@@ -1,0 +1,387 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta content="text/html; charset=utf-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" type="text/css" />
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/mediaUI.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var togglePlayDOM;
+var currentPlay;
+var currentState;
+var pressLatency = 1000;
+var volumeControl;
+var volumeNum;
+var interVal;
+var stopPolling;
+var pollingInterval = 2500;
+var SongList = [];
+
+var checkLoadInterVal;
+
+var audioEditPage = "audioEdit.htm";
+var oldVol;
+
+// Helpler function
+function redirectPage(page) {
+	window.location.href = page;
+}
+// Helpler function
+
+function song() {
+	this.songName = "";
+	this.songPath = "";
+	this.indInPlayList = "";
+	this.setInfo = function(songName, songPath) {
+		this.songName = songName;
+		this.songPath = songPath;
+	}
+
+	this.getName = function() {
+		return this.songName;
+	}
+
+	this.setPathAndName = function(path) {
+		this.songPath = path;
+		var tmpStrArr = this.songPath.split('/');
+		this.songName = tmpStrArr[tmpStrArr.length - 1];
+	}
+}
+
+function init() {
+	wdk.stopTimeout();
+	setAlias();
+	bindTouchEvent();
+	// loadPlayListFile(audioPlaylistMode);
+
+	loadPlayListToView();
+	// createPlayList();
+	// addToPlaylist(SongList);
+	// updateState();
+	stopPolling();
+	interVal = setInterval(updateCurrentStateHW, pollingInterval);
+}
+
+function setAlias() {
+	togglePlayDOM = document.getElementById('playPause');
+	currentPlay = document.getElementById('currentPlay');
+	currentState = document.getElementById('currentState');
+	volumeControl = document.getElementById('volumeControl');
+	volumeNum = document.getElementById('volumeNum');
+}
+
+function bindTouchEvent() {
+	volumeControl.addEventListener('touchstart', function(e) {
+		oldVol = volumeControl.value;
+		stopPolling();
+	});
+
+	volumeControl.addEventListener('touchend', function(e) {
+		// e.preventDefault();	
+		// e.stopPropagation();
+		var vol = this.value;
+		volumeControl.value = vol;
+		volumeNum.innerHTML = vol;
+		wdk.cliCmd("mpc volume " + this.value);
+		interVal = setInterval(updateCurrentStateHW, pollingInterval);
+	}, false);
+}
+
+// VIEW:
+function createPlayList(list) {
+	var playlists = document.getElementById("playlists");
+
+	while (playlists.firstChild) {
+		playlists.removeChild(playlists.firstChild);
+	}
+
+	for (i in list) {
+		var alist = media.playlist.create(Number(i) + 1, list[i], "images/song.jpg");
+
+		alist.addEventListener('click',
+			function(e) {
+				wdk.cliCmd("mpc play " + this.value);
+				updateState();
+				modal();
+			});
+		playlists.appendChild(alist);
+	}
+}
+// Current Play
+function updateState() {
+	updateCurrentPlay();
+	updateCurrentState();
+	updateVol();
+}
+
+function updateCurrentStateHW() {
+	updateCurrentState();
+	updateCurrentPlay();
+	updateVol();
+}
+
+function updateVol() {
+	var curRaVol = wdk.cliCmd('$ra_vol').trim();
+
+	if (curRaVol != oldVol) {
+		volumeNum.innerHTML = curRaVol;
+		volumeControl.value = curRaVol;
+		oldVol = curRaVol;
+	}
+}
+
+function updateCurrentPlay() {
+	// var currentPlay_ = wdk.cliCmd("$mpd_curplay").trim();		
+	var currentPlayFile = wdk.cliCmd("mpc currentfile");
+	var arr = currentPlayFile.split('/');
+	currentPlayFile = arr[arr.length - 1].trim();
+	if (currentPlay == "")
+		currentPlay.innerHTML = "None"
+	else
+		currentPlay.innerHTML = currentPlayFile;
+}
+
+function updateCurrentState() {
+	var currentState_ = wdk.cliCmd("mpc play_status").trim();
+	switch (currentState_) {
+		case "1":
+			currentState.innerHTML = wdk.msg("Stop");
+			break;
+		case "2":
+			currentState.innerHTML = wdk.msg("Playing");
+			break;
+		case "3":
+			currentState.innerHTML = wdk.msg("Pause");
+			break;
+		default:
+			currentState.innerHTML = wdk.msg("Error");
+			break;
+	}
+	currentState.setAttribute("value", currentState_);
+}
+
+function stopPolling() {
+	clearInterval(interVal);
+}
+
+function loadRSInfo() {
+	RSList = loadRSPlayList();
+	// showVol();
+}
+
+function loadPlayListToView() {
+	var myFav = wdk.cliCmd("mpc playlistfile").split('\n');
+	myFav.splice(myFav.length - 1, 1);
+	var pSongs = [];
+	for (i in myFav) {
+		var arr = myFav[i].split('/');
+		pSongs.push(arr[arr.length - 1]);
+	}
+	createPlayList(pSongs);
+}
+
+function loadPlayListFunc() {
+	if (confirm(wdk.msg("Loading playlist will cause the music to stop play. Continue?"))) {
+		showModalWindow();
+		setTimeout(function() {
+			wdk.cliCmd("mpc clear");
+			SongList = [];
+			var tmpStr = wdk.cliCmd("mpc load_playlist").split("\n");
+			tmpStr.splice(tmpStr.length - 1, 1);
+			if (tmpStr == -1) {
+				hideModalWindow();
+				alert(wdk.msg("No playlist is created yet"));
+				return;
+			}
+
+			wdk.cliCmd("mpc load audioPlayList");
+
+			loadPlayListToView();
+
+			for (var i = 0; i < tmpStr.length; i++) {
+				var aNewSong = new song();
+				aNewSong.indInPlayList = i;
+				aNewSong.setPathAndName(tmpStr[i]);
+				SongList.push(aNewSong);
+			}
+
+			hideModalWindow();
+		}, 500);
+	} else {
+		hideModalWindow();
+		return;
+	}
+
+}
+
+// E
+function pushDataToSongList(originArr) {
+	originArr.splice(originArr.length - 1, 1);
+	for (i in originArr) {
+		var aNewSong = new song();
+		// aNewSong.indInPlayList = i;
+		aNewSong.setPathAndName(originArr[i]);
+		SongList.push(aNewSong);
+	}
+}
+
+// Play Control function:
+function backwardPlay() {
+	showModalWindow();
+	setTimeout(function() {
+		wdk.cliCmd("mpc prev");
+		updateState();
+		hideModalWindow();
+	}, 100);
+
+}
+
+function forwardPlay() {
+	showModalWindow();
+	setTimeout(function() {
+		wdk.cliCmd("mpc next");
+		updateState();
+		hideModalWindow();
+	}, 100);
+}
+
+function playPlay() {
+	modal();
+	var curPlayStatus = wdk.cliCmd("mpc play_status").trim();
+
+	if (curPlayStatus == 2) return;
+	wdk.cliCmd('mpc play');
+	setTimeout(updateState, 500);
+}
+
+function playPause() {
+	modal();
+	var curPlayStatus = wdk.cliCmd("mpc play_status").trim();
+	if (curPlayStatus == 1 || curPlayStatus == 3) return;
+	wdk.cliCmd('mpc pause');
+	setTimeout(updateState, 500);
+}
+
+function play_stop() {
+	modal();
+	togglePlayDOM.className = "play";
+	togglePlayDOM.setAttribute("value", "play");
+	wdk.cliCmd("mpc stop");
+	updateState();
+	document.getElementById('currentState').innerHTML = "Stop";
+}
+
+// adjust volume
+// It would be continuously called as the user move the slider.
+function updateVolumeNum(val) {
+	volumeNum.innerHTML = val;
+	// wdk.cliCmd('$ra_vol=' + val);
+}
+
+// modal window
+function modal() {
+	showModalWindow();
+	setTimeout(hideModalWindow, pressLatency);
+}
+
+function showModalWindow() {
+	document.getElementById("modalWindow").style.display = "block";
+	document.getElementById("modalWindow").style.visibility = "visible";
+}
+
+function hideModalWindow() {
+	document.getElementById("modalWindow").style.display = "none";
+	document.getElementById("modalWindow").style.visibility = "hidden";
+}
+
+// Helpler functions
+function addToPlaylist(list) {
+	for (i in list) {
+		wdk.cliCmd("mpc add " + list[i].songPath)
+	}
+
+}
+ </script>
+
+ <body onload="init()">
+
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/home.png" />
+    </a>
+   </div>
+  </div>
+
+  <div>
+   <input id="editMode" type="button" value="Edit Audio Playlist" onclick="redirectPage(audioEditPage)">
+  </div>
+
+  <div id="playControl" class="btnWrapper">
+   <div id="btnHolder">
+    <span id="playPrev" onclick="backwardPlay()"></span>
+    <span id="playPause" class="play" onclick="playPlay()"></span>
+    <span id="playPause" class="pause" onclick="playPause()"></span>
+    <span id="playStop" onclick="play_stop()"></span>
+    <span id="playNext" onclick="forwardPlay()"></span>
+   </div>
+   <div id="buttonBackgroundFiller"></div>
+  </div>
+
+  <span class="graytitle">Current Play and State</span>
+  <ul class="pageitem">
+   <li class="smallfield">
+    <span id="currentPlay" class="leftname"></span>
+    <span id="currentState" value="" class="rightname"></span>
+   </li>
+  </ul>
+
+  <span class="graytitle">Volume Control</span>
+  <ul class="pageitem">
+   <li id="volBar" class="smallfield">
+    <!-- <input id="volumeControl" type="range" min=0 max=100 value=0 step=1 oninput="updateVolumeNum(value)"> -->
+    <input id="volumeControl" type="range" min=0 max=100 value=0 step=1 oninput="updateVolumeNum(value)">
+    <!-- touchmove="updateVolumeNum(value)"> -->
+    <span id="volumeNum"></span>
+   </li>
+  </ul>
+
+  <!-- <div>
+	<ul class="pageitem">
+		<li class="smallfield">
+			<input id="loadAvailableSongs" type="button" value="Load All Songs" onclick="loadAllSongs()">
+			<input id="loadMyFavSongs" type="button" value="Load My Favorite">
+		</li>
+	</ul>
+</div> -->
+  <ul class="pageitem">
+   <li class="smallfield">
+    <input id="loadPlayList" type="button" value="Load PlayList" onclick="loadPlayListFunc()">
+   </li>
+  </ul>
+
+  <div id="content">
+   <span class="graytitle">Audio playlist</span>	
+   <ul class="pageitem">
+    <div id="playlists">
+
+    </div>
+   </ul>
+  </div>
+
+
+
+  <div id="modalWindow" style="display:none; visibility:hidden" class="black_overlay">
+   <div class="white_content">
+    <img src="../images/load.gif" alt="loading icon">
+   </div>
+  </div>
+
+ </body>
+
+</html>

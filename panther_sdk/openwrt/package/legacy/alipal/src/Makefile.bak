@@ -1,0 +1,47 @@
+SRC_DIR = client
+OS_DIR = platform
+RECORD_DIR = record
+image = alipal 
+
+CPPFLAGS=  
+CFG_INC= -I$(shell pwd)/include 
+LIBPATH= -L$(shell pwd)/lib
+
+LIB += $(LDFLAGS)
+
+LIB += -lasound -pthread -lm -lalink_agent -lssl -lcrypto -ldl -lnl-tiny -lutils -lcdb -lopus -lpal -lwebsockets -luci -lsysutil -lcurl -ljson-c
+
+CFLAGS += $(CFG_INC) $(CPPFLAGS) -O2 -pipe -funit-at-a-time -Wall 
+
+
+#IMG_OBJS = $(SRC_DIR)/alink_sample.o $(OS_DIR)/linux_network.o $(OS_DIR)/linux_os.o $(OS_DIR)/linux_ssl.o \
+#$(OS_DIR)/linux_ota.o $(OS_DIR)/linux_hardware.o $(OS_DIR)/linux_awss.o $(OS_DIR)/product.o $(OS_DIR)/pal_sample.o  $(OS_DIR)/platform_linux.o  $(OS_DIR)/cJSON.o \
+#$(OS_DIR)/uciConfig.o
+
+OS_SRCS += $(wildcard $(OS_DIR)/*.c)
+OS_OBJS :=$(OS_SRCS:.c=.o)
+
+SRC_SRCS += $(wildcard $(SRC_DIR)/*.c)
+SRC_OBJS :=$(SRC_SRCS:.c=.o)
+
+RECORD_SRCS += $(wildcard $(RECORD_DIR)/*.c)
+RECORD_OBJS :=$(RECORD_SRCS:.c=.o)
+
+IMG_OBJS = $(SRC_OBJS) $(OS_OBJS) $(RECORD_OBJS)
+
+
+all: $(image)
+
+$(image): $(IMG_OBJS)
+	echo "link $^ ..."
+	echo "--------$(IMG_OBJS)------"
+	$(CC) -o $@ $(IMG_OBJS)  $(CFG_INC) $(LIBPATH) $(LIB)
+
+%.o:%.c
+	@echo "Compiling $< ..."
+	$(CC) -c -Wall $(CFLAGS) -o $@ $<
+
+clean:
+	rm -f *.d *.o $(image)
+	rm -f $(OS_DIR)/*.o
+	rm -f wpa_api/*.o

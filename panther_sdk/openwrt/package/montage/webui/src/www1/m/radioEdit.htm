@@ -1,0 +1,555 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta content="text/html; charset=utf-8" />
+
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" type="text/css" />
+
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/mediaUI.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var RSList = [];
+var favStnNum = 6;
+var RSFavList = [null, null, null, null, null, null];
+var pressLatency = 1000;
+var editAction;
+
+var favStnNum = 6;
+var editRS;
+var RSNameInp;
+var RSUrlInp;
+var editInd;
+var editRSName;
+
+var newRSDiv;
+var newRSName;
+var newRSUrl;
+var maxRSnum = 30;
+var RSNameLengthLimit = 70;
+
+var defaultImgPath = "images/radioIcon.jpg";
+var myFavImgPath = "images/myFav.jpg";
+var trashImgPath = "images/trash.jpg";
+var modifyImgPath = "images/modify.jpg";
+var newRSImgPath = "images/new.jpg";
+
+function RS() {
+	this.RSName = "";
+	this.RSUrl = "";
+	this.playKey = -1;
+	this.opePlayKey = -1;
+	this.setInfo = function(rsName, rsUrl, playKey) {
+		this.RSName = rsName;
+		this.RSUrl = rsUrl;
+		this.playKey = playKey;
+		this.opePlayKey = this.playKey;
+	}
+	this.revertPlayKey = function() {
+		this.opePlayKey = this.playKey;
+	}
+
+	this.changeRSInfo = function(rsName, rsUrl) {
+		this.RSName = rsName;
+		this.RSUrl = rsUrl;
+	}
+	this.getName = function() {
+		return this.RSName;
+	}
+	this.createPattern = function() {
+		//return "NAME=" + this.RSName + '&' + "URI=" + this.RSUrl + ";";
+		return this.RSName + '&' + this.RSUrl + '&' + this.playKey + ";";
+	}
+}
+
+function init() {
+	wdk.stopTimeout();
+	// wdk.cliCmd("cdb set mpd_curplay None");
+	setAlias();
+	// bindTouchEvent();
+	loadRSInfo();
+	setMyFavRSName();
+	// loadRSToTable();
+	createPlayList(defaultImgPath);
+	// updateState();
+	// stopPolling();
+	// interVal = setInterval(updateCurrentStateHW, pollingInterval);
+}
+
+// Three major function.
+
+var addToMyFavorite = function(RSName_) {
+	// Check duplicated:
+	for (var i = 0; i < RSFavList.length; i++) {
+		if (RSName_ == RSFavList[i]) {
+			alert(wdk.msg("Duplicated favorite station"));
+			return;
+		}
+	}
+
+	var key = prompt(wdk.msg("Add to My Favorite, please input an associated keypad number") + "  [1 - 6]");
+	key = Number(key);
+	if (!(key >= 1 && key <= favStnNum)) {
+		alert(wdk.msg("Incorrect input or cancel"));
+		return;
+	}
+
+	// Update related data and UI 	
+	// Update the replaced RS' opePlayKey.
+	if (RSFavList[key - 1] != null) {
+		var ind = searchRSIndByName(RSFavList[key - 1]);
+		RSList[ind].revertPlayKey();
+	}
+	// Update new RSName_
+	RSFavList[key - 1] = RSName_;
+
+	// Update My Favorite View.	
+	var favBtn = document.getElementById("myFav" + key);
+	var favNum = favBtn.value.split('.')[0];
+	favBtn.value = "";
+	favBtn.value = favNum + ". " + RSName_;
+
+	// Update new favorite station's playKey:
+	var ind = searchRSIndByName(RSFavList[key - 1]);
+	RSList[ind].opePlayKey = key;
+}
+
+function searchRSIndByName(rsName) {
+	for (var i = 0; i < RSList.length; i++) {
+		if (RSList[i].RSName == rsName)
+			return i;
+	}
+	return -1;
+}
+
+// 2. Delete some radio station
+function rsDel(ind) {
+	var playKey = RSList[ind].opePlayKey;
+	if (playKey >= 1 && playKey <= favStnNum) {
+		RSFavList[playKey - 1] = null;
+		document.getElementById("myFav" + playKey).value = playKey + ". " + "My Favorite";
+	}
+	RSList.splice(ind, 1);
+}
+
+// 3. rsEdit
+function rsEdit(ind) {
+	RSNameInp.value = RSList[ind].RSName;
+	RSUrlInp.value = RSList[ind].RSUrl;
+}
+
+function modDoneFunc() {
+	if (chkIllegalInp(RSNameInp.value)) {
+		alert(wdk.msg("Station name can not be empty or only contains whitespaces"));
+		return;
+	}
+	if (chkIllegalInp(RSUrlInp.value)) {
+		alert(wdk.msg("URL can not be empty or only contains whitespaces"));
+		return;
+	}
+
+	for (var i = 0; i < RSList.length; i++) {
+		if (i == editInd) continue;
+		else if (RSList[i].RSName == RSNameInp.value) {
+			alert('\"' + RSNameInp.value + '\"' + wdk.msg(" is already in the radio station list"));
+			return;
+		}
+	}
+
+	var playKey = RSList[editInd].opePlayKey;
+	editRSName = RSList[editInd].RSName;
+	var RSNewName = RSNameInp.value;
+	// Update RSList
+	RSList[editInd].changeRSInfo(RSNewName, RSUrlInp.value);
+
+	if (playKey >= 1 && playKey <= favStnNum) {
+		// Update my favorite station name in model.	
+		RSFavList[playKey - 1] = RSNameInp.value;
+		// Apply my favorite stn name to the UI
+		var favBtn = document.getElementById("myFav" + playKey);
+		var favNum = favBtn.value.split('.')[0];
+		favBtn.value = "";
+		favBtn.value = favNum + ". " + RSFavList[playKey - 1];
+	}
+	playlists.childNodes[editInd].setAttribute("name", RSNewName);
+	playlists.childNodes[editInd].childNodes[2].innerHTML = RSNewName;
+	editRS.style.display = 'none';
+}
+
+function showNewRSDiv() {
+	editRS.style.display = 'none';
+	newRSDiv.style.display = 'inline';
+	editAction.innerHTML = wdk.msg("New radio station");
+}
+// rs new
+function addNewRS() {
+
+	if (RSList.length >= maxRSnum) {
+		alert(wdk.msg("The number of radio station has reached the maximum"));
+		return;
+	}
+
+	if (newRSName.value == "") {
+		alert(wdk.msg("Station name can not be empty"));
+		return;
+	}
+
+	// Check error input
+	if (chkIllegalRSChar(newRSName.value)) return;
+
+	if (newRSUrl.value == "") {
+		alert(wdk.msg("URL can not be empty"));
+		return;
+	}
+
+	if (newRSName.value.length > RSNameLengthLimit) {
+		alert(wdk.msg("The length of a station name can't exceed") + RSNameLengthLimit);
+		return;
+	}
+
+	// Detect duplicated radio station
+	if (checkDupName(newRSName.value, RSList)) {
+		alert('\"' + newRSName.value + '\"' + " is already in the radio station list");
+		return;
+	}
+	// Add a new data to RSList
+	var aNewRS = new RS();
+	aNewRS.setInfo(newRSName.value, newRSUrl.value, RSList.length + 1);
+	aNewRS.opePlayKey = RSList.length + 1;
+	// var mpcRSName = RSNameInp.value + '&' + RSUrlInp.value;
+	RSList.push(aNewRS);
+	createPlayList(defaultImgPath);
+	newRSDiv.style.display = 'none';
+}
+
+function checkDupName(name, list) {
+	var i = list.length;
+	while (i--) {
+		if (name === list[i].getName()) return true;
+	}
+	return false;
+}
+
+function addNewRSCancel() {
+	newRSDiv.style.display = 'none';
+}
+
+function modCancelFunc() {
+	RSNameInp.value = "";
+	RSUrlInp.value = "";
+	editRS.style.display = 'none';
+}
+
+// Add to my favorite station
+function setAlias() {
+	editAction = document.getElementById('editAction');
+	RSNameInp = document.getElementById("modRSName");
+	RSUrlInp = document.getElementById("modRSUrl");
+	editRS = document.getElementById("editRS");
+
+	newRSName = document.getElementById("newRSName");
+	newRSUrl = document.getElementById("newRSUrl");
+	newRSDiv = document.getElementById("newRSDiv");
+}
+
+function bindEvent(num) {
+	var RSListNodes = playlists.childNodes;
+	// Remove all previous events:
+	for (i = 0; i < RSListNodes.length; i++) {
+		var node = RSListNodes[i];
+		clonedNode = node.cloneNode(true);
+		node.parentNode.replaceChild(clonedNode, node);
+	}
+
+	switch (num) {
+		case 0:
+			for (i = 0; i < RSListNodes.length; i++) {
+				editRS.style.display = "none";
+				newRSDiv.style.display = 'none';
+				RSListNodes[i].childNodes[1].src = myFavImgPath;
+				RSListNodes[i].addEventListener('click', function() {
+					var RSName = this.getAttribute("name");
+					addToMyFavorite(RSName)
+				}, false);
+			}
+			editAction.innerHTML = wdk.msg("Add to my favorite");
+			break;
+		case 1:
+			for (i = 0; i < RSListNodes.length; i++) {
+				editRS.style.display = "none";
+				newRSDiv.style.display = 'none';
+				RSListNodes[i].childNodes[1].src = trashImgPath;
+				RSListNodes[i].addEventListener('click', function() {
+					var ind = searchRSIndByName(this.getAttribute("name"));
+					rsDel(ind);
+					createPlayList(trashImgPath);
+					bindEvent(1);
+				}, false);
+			}
+			editAction.innerHTML = wdk.msg("Delete radio station");
+			break;
+		case 2:
+			for (i = 0; i < RSListNodes.length; i++) {
+				RSListNodes[i].childNodes[1].src = modifyImgPath;
+				newRSDiv.style.display = 'none';
+				RSListNodes[i].addEventListener('click', function() {
+					editInd = searchRSIndByName(this.getAttribute("name"));
+					rsEdit(editInd);
+					editRS.style.display = "inline";
+					createPlayList(modifyImgPath);
+					bindEvent(2);
+				}, false);
+			}
+			editAction.innerHTML = wdk.msg("Modify radio station");
+			break;
+		case 3:
+			for (i = 0; i < RSListNodes.length; i++) {
+				RSListNodes[i].childNodes[1].src = newRSImgPath;
+			}
+			break;
+	}
+}
+
+
+function setMyFavRSName() {
+	for (var i = 0; i < RSList.length; i++) {
+		var playKey = RSList[i].playKey;
+		if (playKey >= 1 && playKey <= favStnNum) {
+			var favBtn = document.getElementById("myFav" + playKey);
+			var favNum = favBtn.value.split('.')[0];
+			favBtn.value = "";
+			favBtn.value = favNum + ". " + RSList[i].RSName;
+			// Add to my favorite list
+			RSFavList[playKey - 1] = RSList[i].RSName;
+		}
+	}
+}
+
+// Update radio playlist view:
+function createPlayList(iconPath) {
+	var playlists = document.getElementById("playlists");
+
+	while (playlists.firstChild) {
+		playlists.removeChild(playlists.firstChild);
+	}
+
+	for (i in RSList) {
+		var alist = media.playlist.create(Number(i) + 1, RSList[i].RSName, iconPath);
+		// alist.onclick = function(){console.log(alist.value)};		
+		// alist.addEventListener('click',		 		
+		//  		);
+		playlists.appendChild(alist);
+	}
+}
+
+function loadRSInfo() {
+	RSList = loadRSPlayList();
+}
+
+function loadRSPlayList() {
+	var rslist = [];
+	//	var tmpStr = "BBC&http://www.bbc.com&5;Cnn&http://www.cnn.com&3;ABC&http://abc.com&2"; //debug use
+	var tmpStr = wdk.cliCmd("mpc rs load_playlist");
+	var stnArr = tmpStr.split(';')
+	for (var i = 0; i < stnArr.length; i++) {
+		var newRS = new RS();
+		var rsName = stnArr[i].split('&')[0]; // rsName
+		var rsUrl = stnArr[i].split('&')[1]; // rsURL
+		var playKey = stnArr[i].split('&')[2]; // playKey				
+		newRS.setInfo(rsName, rsUrl, Number(playKey.trim()));
+		rslist.push(newRS);
+	}
+	// var lastElement = rslist[rslist.length - 1];
+	// lastElement.playKey = lastElement.playKey.trim();
+	return rslist;
+}
+
+// Check guard:
+function chkIllegalInp(input) {
+	if (!input || input.length === 0 || /^\s*$/.test(input)) return true;
+	else return false;
+}
+
+function chkIllegalRSChar(str) {
+	var reg = /[!$%^&*+|~=`\[\]:";'<>?,\/@]/;
+	if (reg.test(str)) {
+		alert(wdk.msg("The radio station name contains any of these illegal characters") + "\n" + "! $ % ^ & * + | ~ = ` \ :  ; ' < > ? , / @");
+		return true;
+	}
+	return false;
+}
+
+function cancel() {
+	window.location.reload();
+}
+
+function cmtRSPlayList(delayTime, show_result_bg) {
+	wdk.showResultBG();
+	setTimeout(commit, 500);
+
+}
+
+function commit() {
+	var nonMyFavKey = 7;
+	for (i = 0; i < RSList.length; i++) {
+		var rsName = RSList[i].RSName;
+		var match = false;
+
+		for (j = 0; j < RSFavList.length; j++) {
+			if (rsName == RSFavList[j]) {
+				RSList[i].playKey = j + 1;
+				match = true;
+				break;
+			}
+		}
+		if (!match)
+			RSList[i].playKey = nonMyFavKey++;
+	}
+
+	wdk.cliCmd("mpc rs del");
+	for (var i = 0; i < RSList.length; i++) {
+		var newRSListStr = RSList[i].createPattern();
+		newRSListStr = newRSListStr.substring(0, newRSListStr.length - 1);
+		wdk.cliCmd("mpc rs save " + encodeURI(newRSListStr));
+	}
+	window.location.reload();
+}
+
+// modal window
+function modal() {
+	showModalWindow();
+	setTimeout(hideModalWindow, pressLatency);
+}
+
+function showModalWindow() {
+	document.getElementById("modalWindow").style.display = "block";
+	document.getElementById("modalWindow").style.visibility = "visible";
+}
+
+function hideModalWindow() {
+	document.getElementById("modalWindow").style.display = "none";
+	document.getElementById("modalWindow").style.visibility = "hidden";
+}
+ </script>
+
+ <body onload="init()">
+
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="radio.htm">
+     <img alt="Go to play radio" src="images/home.png" />
+    </a>
+   </div>
+  </div>
+
+  <div>
+   <input id="editDone" class="edit" type="button" value="Done" onclick="cmtRSPlayList()">
+   <input id="editCancel" class="edit" type="button" value="Cancel" onclick="cancel()">
+  </div>
+
+  <div id="editControl" class="btnWrapper">
+   <div id="btnHolder">
+
+    <span id="addMyFav" onclick="bindEvent(0)"></span>
+    <span id="deleteRS" onclick="bindEvent(1)"></span>
+    <span id="modifyRS" onclick="bindEvent(2)"></span>
+    <span id="newRS" onclick="showNewRSDiv(),bindEvent(3)"></span>
+
+   </div>
+   <div id="buttonBackgroundFillerWhite"></div>
+  </div>
+
+  <div>
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="equaleft">Action</span>
+     <span class="equalright" id="editAction">None</span>	
+    </li>
+   </ul>
+  </div>
+  <!-- Modify RS name or url -->
+
+  <div id="editRS">
+   <span class="graytitle">Modify radio station</span>
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="leftshortname">Station Name</span>
+     <input id="modRSName" class="rightlongname" type="text" maxlength=70 value="">
+    </li>
+    <li class="smallfield">
+     <span class="leftshortname">URL</span>
+     <input id="modRSUrl" class="rightlongname" type="text" value="">
+    </li>
+    <li class="smallfield">
+     <input type="button" id="modOK" class="name" value="Done" onclick="modDoneFunc()">
+     <input type="button" id="modCancel" value="Cancel" onclick="modCancelFunc()">
+    </li>
+   </ul>
+  </div>
+
+
+  <div id="newRSDiv">
+   <span class="graytitle">Add new radio station</span>
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="leftshortname">Station Name</span>
+     <input id="newRSName" class="rightlongname" type="text" maxlength=70 value="">
+    </li>
+    <li class="smallfield">
+     <span class="leftshortname">URL</span>
+     <input id="newRSUrl" class="rightlongname" type="text" value="">
+    </li>
+    <li class="smallfield">
+     <input type="button" id="newRSOK" class="name" value="Done" onclick="addNewRS()">
+     <input type="button" id="newRSCancel" value="Cancel" onclick="addNewRSCancel()">
+    </li>
+   </ul>
+  </div>
+
+  <span class="graytitle">My Favorite</span>
+  <ul class="pageitem">
+   <li class="smallfield">
+    <input id="myFav1" type="button" class="input1" value="1. My Favorite">
+    <input id="myFav2" type="button" class="input2" value="2. My Favorite">
+   </li>
+   <li class="smallfield">
+    <input id="myFav3" type="button" class="input1" value="3. My Favorite">
+    <input id="myFav4" type="button" class="input2" value="4. My Favorite">
+   </li>
+   <li class="smallfield">
+    <input id="myFav5" type="button" class="input1" value="5. My Favorite">
+    <input id="myFav6" type="button" class="input2" value="6. My Favorite">
+   </li>
+  </ul>
+
+  <div id="content">
+   <span class="graytitle">Radio</span>
+   <ul class="pageitem">
+    <div id="playlists">
+
+    </div>
+   </ul>
+  </div>
+
+  <div id="modalWindow" style="display:none; visibility:hidden" class="black_overlay">
+   <div class="white_content">
+    <img src="../images/load.gif" alt="loading icon">
+   </div>
+  </div>
+
+  <!-- result background -->
+  <div id=resultbg style="display:none;" class=black_overlay>
+   <div id=result class=white_content>
+    <img src="images/load.gif" alt="loading icon" />
+    <div><font id="titleupwarng">Wait a moment</font>
+    </div>
+   </div>
+  </div>
+
+ </body>
+
+</html>

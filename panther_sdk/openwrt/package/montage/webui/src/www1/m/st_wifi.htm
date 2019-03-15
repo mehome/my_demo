@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$wl_bss_num',
+	'$wl_channel',
+	'$wl_bss_ssid1-' + SSID_MAX_NUM,
+	'$wl_bss_enable1-' + SSID_MAX_NUM,
+	'status wl_mac',
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var wifi = [
+	["SSID1", mainObj.config_val('$wl_bss_ssid1')],
+	["SSID2", mainObj.config_val('$wl_bss_ssid2')],
+	["Channel", mainObj.config_val('$wl_channel')]
+];
+
+function init() {
+	var wlan1_enable = mainObj.config_val('$wl_bss_enable2');
+
+	if (wlan1_enable == "1") {
+		showHide("ssid2", 1);
+	} else {
+		showHide("ssid2", 0);
+	}
+
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="status.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">WIFI Status</div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+   <li class="smallfield">
+    <span class="name"><script>show_words(wifi[0][0])</script></span>
+    <span class="label"><script>show_words(wifi[0][1])</script></span>
+   </li>
+   <li id="ssid2" name="ssid2" class="smallfield">
+    <span class="name"><script>show_words(wifi[1][0])</script></span>
+    <span class="label"><script>show_words(wifi[1][1])</script></span>
+   </li>
+   <li class="smallfield">
+    <span class="name"><script>show_words(wifi[2][0])</script></span>
+    <span class="label"><script>show_words(wdk.cliCmd("get_channel"))</script></span>
+   </li>
+  </ul>
+ </div>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+
+# Build OpenWRT
+
+cd openwrt
+./install_host_tools.sh
+cp .config.musl .config
+make menuconfig      <Exit><Yes>
+make
+
+
+# Build Boot loader
+cd panther/boot/boot
+make
+
+
+
+

@@ -1,0 +1,970 @@
+<!--ifdef CONFIG_SAMBA-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['smb get', 'smb ls', '$smb_account1-5', '$smb_enable', '$smb_default_attr']);
+var simple_mode = true;
+
+var max = 5,
+	listnum, cuser, curIdx = -1;
+var PROTOCOL = "smb";
+var smbUserInfo = wdk.cdbValA('smb get');
+var smbTotalLists = wdk.cdbValA('smb ls');
+var DiskLists = new Array();
+var PtLists = new Array();
+var FdLists = new Array();
+var FolderLists = new Array();
+var TempLists = new Array();
+var OriFolderLists = new Array();
+var permissionLists = new Array();
+var FdListsParam = '';
+var addfolder = 0,
+	totalFolderNum;
+var smbEn = Number(wdk.cdbVal('$smb_enable'));
+var cmd = [],
+	addcmd = [],
+	delcmd = [],
+	rencmd = [];
+
+function OListsRecord() {
+	var d, i, j, k, m, n, r, accntname;
+	var disknum = 0,
+		partnum = 0,
+		foldernum = 0;
+
+	n = 0;
+	disknum = getDiskNum(smbTotalLists);
+	for (j = 0; j < disknum; j++) {
+		partnum = getPartitionNum(smbTotalLists, DiskLists[j]);
+		for (k = 0; k < partnum; k++) {
+			foldernum = getFolderNum(smbTotalLists, DiskLists[j], PtLists[k]);
+			if (foldernum) {
+				for (m = 0; m < foldernum; m++) {
+					r = Number(m) + Number(n);
+					TempLists[r] = 'disk=' + DiskLists[j] + '&pt=' + PtLists[k] + '&folder=' + FdLists[m];
+				}
+			} else {
+				r = Number(n);
+				TempLists[r] = 'disk=' + DiskLists[j] + '&pt=' + PtLists[k] + '&folder=';
+			}
+			n += foldernum;
+		}
+	}
+
+	for (i = 0; i < max; i++) {
+		accntname = rule2var(wdk.cdbVal("$smb_account" + (i + 1)), "name");
+		if (accntname) {
+			d = 0;
+			FolderLists[i] = new Array();
+			permissionLists[i] = getUserAttribute(accntname);
+			for (j = 0; j < TempLists.length; j++)
+				FolderLists[i][j] = TempLists[j] + '&user=' + accntname + '&attr=' + permissionLists[i][d++];
+		} else
+			break;
+	}
+}
+
+OListsRecord();
+for (var i = 0; i < TempLists.length; i++) {
+	OriFolderLists[i] = rule2var(TempLists[i], "folder");
+}
+
+function initTranslation() {
+	var s = document.frm.smbEn1;
+	wdk.setTD(s.options[0], wdk.msg("Disable"));
+	wdk.setTD(s.options[1], wdk.msg("Enable and shared without account(s)"));
+	wdk.setTD(s.options[2], wdk.msg("Enable and shared with account(s)"));
+}
+
+function init() {
+	var f = document.frm;
+	initTranslation();
+	totalFolderNum = getUSBTotalFolderNum();
+	listnum = wdk.cdbLen('$smb_account', max);
+	refreshList('$smb_account', max, listnum);
+	//f.reset();
+	wdk.init_form();
+	if (simple_mode) {
+		var o = wdk.getById('$smb_enable');
+		o.remove(2);
+	} else {
+		showHide('edit1', 1);
+		showHide('edit1', Number(wdk.cdbVal('$smb_enable')));
+		EnDisenAccount(smbEn);
+		if (!smbTotalLists.length || (smbEn != 2))
+			f.default_attr.disabled = true;
+		// show folder lists
+		if (listnum > 0) {
+			showFolderLists(rule2var(wdk.cdbVal("$smb_account1"), "name"));
+			if (listnum == 1)
+				f.r.checked = true;
+			else
+				f.r[0].checked = true;
+			markEntry(wdk.getById('$smb_account1'));
+			edit(1);
+		} else
+			showFolderLists('');
+		var e = wdk.getById("smb_th").children;
+		if (smbEn != 2) {
+			e[0].style.color = "#C0C0C0";
+			e[1].style.color = "#C0C0C0";
+		}
+	}
+}
+
+function getUSBTotalFolderNum() {
+	var lists = new Array();
+	var r = new Array();
+	var i, s = '',
+		fdnum = 0;
+
+	for (i = 0; i < smbTotalLists.length; i++) {
+		r[i] = rule2var(smbTotalLists[i], "folder");
+		if (r[i]) {
+			s += r[i];
+			if (i != (smbTotalLists.length - 1)) s += '/';
+			lists = r[i].split('/');
+			fdnum += lists.length;
+		}
+	}
+	return fdnum;
+}
+
+function getUserAttribute(uid) {
+	var i, j, s = '',
+		ckey = '';
+	var AttrLists = new Array();
+
+	for (i = 0; i < smbUserInfo.length; i++) {
+		ckey = rule2var(smbUserInfo[i], "user");
+		if (ckey) {
+			if (ckey == uid) {
+				AttrLists = rule2var(smbUserInfo[i], "attr");
+				if (AttrLists) AttrLists = AttrLists.split(',');
+				break;
+			}
+		}
+	}
+	if (i == smbUserInfo.length) {
+		for (j = 0; j < totalFolderNum; j++) {
+			s += Number(wdk.cdbVal('$smb_default_attr'));
+			if (j != (totalFolderNum - 1)) s += ',';
+		}
+		smbUserInfo[i] = "user=" + uid + "&attr=" + s;
+		AttrLists = s.split(',');
+	}
+	return AttrLists;
+}
+
+function getDiskNum(s) {
+	var i, j = 0,
+		ckey = '',
+		c = '';
+	var cnt = 0;
+
+	for (i = 0; i < s.length; i++) {
+		ckey = rule2var(s[i], "disk");
+		if (ckey) {
+			if (ckey == c)
+				continue;
+			else {
+				cnt++;
+				c = ckey;
+				DiskLists[j++] = rule2var(s[i], "disk");
+			}
+		}
+	}
+	return cnt;
+}
+
+function getPartitionNum(s, dkey) {
+	var i, j = 0,
+		c = '';
+	var cnt = 0;
+
+	for (i = 0; i < s.length; i++) {
+		c = rule2var(s[i], "disk");
+		if (c) {
+			if (c == dkey) {
+				cnt++;
+				PtLists[j++] = rule2var(s[i], "pt");
+			}
+		}
+	}
+	return cnt;
+}
+
+function getFolderNum(s, dkey, pkey) {
+	var i;
+	var c1 = '',
+		c2 = '';
+
+	for (i = 0; i < s.length; i++) {
+		c1 = rule2var(s[i], "disk");
+		if (c1) {
+			if (c1 == dkey) {
+				c2 = rule2var(s[i], "pt");
+				if (c2) {
+					if (c2 == pkey) {
+						FdLists = rule2var(s[i], "folder");
+						if (FdLists) FdLists = FdLists.split('/');
+						break;
+					}
+				}
+			}
+		}
+	}
+	return FdLists.length;
+}
+
+function findSMBRuleIndex(s, d, p) {
+	var i, idx = '',
+		c1 = '',
+		c2 = '';
+
+	for (i = 0; i < s.length; i++) {
+		c1 = rule2var(s[i], "disk");
+		if (c1 == d) {
+			c2 = rule2var(s[i], "pt");
+			if (c2 == p) {
+				idx = i;
+				FdListsParam = rule2var(s[i], "folder");
+				break;
+			}
+		}
+	}
+	return idx;
+}
+
+function change(add) {
+	var r = '',
+		k;
+	var f = document.frm;
+	var tab = wdk.findChildNode(wdk.getById('edit2'));
+	var nm = wdk.getByName(tab, 'name');
+	var ps = wdk.getByName(tab, 'pass');
+	var ps2 = wdk.getByName(tab, 'pass2');
+
+	if (Number(f.smbEn1.value) == 2) {
+		if (!chkStrNoNull(nm, "Account")) {
+			nm.focus();
+			return;
+		}
+		if (!chkPass(ps, ps2, f.changed, "Password is not consistent!")) {
+			ps2.focus();
+			return;
+		}
+	}
+	for (var i = 1; i <= listnum; i++) {
+		if (!add && i == curIdx) continue;
+		if (wdk.cdbVal('$smb_account' + i).indexOf('name=' + nm.value + '&') > -1) {
+			alert(wdk.msg("Duplicated Account Name!"));
+			return;
+		}
+	}
+	r = 'name=' + nm.value + '&pass=' + ps.value;
+	k = curIdx;
+	if (add) {
+		k = listnum + 1;
+		if (k > max) {
+			alert(wdk.msg("Too many entries, maximum is ") + max);
+			return
+		}
+	}
+	wdk.cdbSet('$smb_account' + k, r);
+	OListsRecord();
+	f.reset();
+	init();
+}
+
+function edit(idx) {
+	var f = document.frm;
+	var r = wdk.cdbVal('$smb_account' + idx);
+
+	r = (r == '') ? 'name=&pass=' : r;
+	wdk.fill_form_entry(wdk.getById('edit2'), r);
+	wdk.getById('pass2').value = rule2var(r, "pass");
+	markEntry(wdk.getById('$smb_account' + idx));
+	if (listnum == 1)
+		f.r.checked = true;
+	else
+		f.r[idx - 1].checked = true;
+	showFolderLists(f.name[idx].value);
+	curIdx = idx;
+}
+
+function Remove(idx) {
+	var f = document.frm;
+	wdk.cdbDel('$smb_account' + idx, max);
+	if (curIdx > 2)
+		curIdx--;
+	OListsRecord();
+	f.reset();
+	init();
+}
+
+function checkAddCmds(a, d, r) {
+	var i, j, k, fd, isSame, reladd;
+
+	for (i = 0; i < a.length; i++) {
+		isSame = 0;
+		reladd = 1;
+		fd = rule2var(a[i], "folder");
+		for (j = 0; j < OriFolderLists.length; j++) {
+			if (fd == OriFolderLists[j]) {
+				isSame = 1;
+				break;
+			}
+		}
+		if (!isSame) {
+			for (k = 0; k < d.length; k++) {
+				if (fd == rule2var(d[k], "folder")) {
+					reladd = 0;
+					break;
+				}
+			}
+			if (reladd) {
+				cmd.push(a[i]);
+			}
+		}
+	}
+}
+
+function checkDelCmds(a, d, r) {
+	var i, j, k, fd, isSame, reldel;
+
+	for (i = 0; i < d.length; i++) {
+		isSame = 0;
+		reldel = 1;
+		fd = rule2var(d[i], "folder");
+		for (j = 0; j < OriFolderLists.length; j++) {
+			if (fd == OriFolderLists[j]) {
+				isSame = 1;
+				break;
+			}
+		}
+		if (isSame) {
+			for (k = 0; k < a.length; k++) {
+				if (fd == rule2var(a[k], "folder")) {
+					reldel = 0;
+					break;
+				}
+			}
+			if (reldel) {
+				cmd.push(d[i]);
+			}
+		}
+	}
+}
+
+function checkRenCmds(a, d, r) {
+	var i, j, fd, isSame;
+
+	for (i = 0; i < r.length; i++) {
+		isSame = 0;
+		fd = rule2var(r[i], "old");
+		for (j = 0; j < OriFolderLists.length; j++) {
+			if (fd == OriFolderLists[j]) {
+				isSame = 1;
+				break;
+			}
+		}
+		if (isSame)
+			cmd.push(r[i]);
+	}
+}
+
+function checkAllCmds(addcmd, delcmd, rencmd) {
+	checkAddCmds(addcmd, delcmd, rencmd);
+	checkDelCmds(addcmd, delcmd, rencmd);
+	checkRenCmds(addcmd, delcmd, rencmd);
+}
+
+function apply() {
+	var r, i, j, k, m, n, t, c, fd;
+	var modifylists = 0;
+	var disknum = 0,
+		partnum = 0,
+		foldernum = 0;
+	var FolderLists1 = new Array();
+	var permissionLists1 = new Array();
+	var s = new Array();
+	var NewAttrLists = new Array();
+	var a = [],
+		cmd1 = [],
+		send_count = 10,
+		flag1 = 1,
+		flag2 = 1,
+		cnum = 0;
+	var isSame, flag, v;
+
+	wdk.save_form(2000);
+	checkAllCmds(addcmd, delcmd, rencmd);
+	if (cmd.length) {
+		cmd = encodeURI(cmd.join('%;')).replace(/&/g, '%26');
+		resut_ret = wdk.cliCmd(cmd);
+		changed = 1;
+	}
+	if (changed) {
+		wdk.showResultBG();
+		wdk.showResult(2000);
+		wdk.cliCmd('smb commit');
+	}
+	for (i = 0; i < listnum; i++) {
+		var accntname = rule2var(wdk.cdbVal("$smb_account" + (i + 1)), "name");
+		var d = 0;
+		var n = 0;
+		FolderLists1[i] = new Array();
+		disknum = getDiskNum(smbTotalLists);
+		permissionLists1[i] = getUserAttribute(accntname);
+		for (j = 0; j < disknum; j++) {
+			partnum = getPartitionNum(smbTotalLists, DiskLists[j]);
+			for (k = 0; k < partnum; k++) {
+				foldernum = getFolderNum(smbTotalLists, DiskLists[j], PtLists[k]);
+				if (foldernum) {
+					for (m = 0; m < foldernum; m++) {
+						r = Number(m) + Number(n);
+						FolderLists1[i][r] = 'disk=' + DiskLists[j] + '&pt=' + PtLists[k] + '&folder=' + FdLists[m] + '&user=' + accntname + '&attr=' + permissionLists1[i][d++];
+					}
+				} else {
+					r = Number(n);
+					FolderLists1[i][r] = 'disk=' + DiskLists[j] + '&pt=' + PtLists[k] + '&folder=&user=' + accntname + '&attr=';
+				}
+				n += foldernum;
+			}
+		}
+
+		for (j = 0; j < FolderLists1[i].length; j++) {
+			isSame = 0;
+			for (k = 0; k < FolderLists[i].length; k++) {
+				if (FolderLists1[i][j] == FolderLists[i][k]) {
+					isSame = 1;
+					break;
+				}
+			}
+			if (!isSame) {
+				flag = 1;
+				for (m = 0; m < addcmd.length; m++) {
+					if (rule2var(addcmd[m], "folder") == rule2var(FolderLists1[i][j], "folder")) {
+						v = Number(rule2var(FolderLists1[i][j], "attr"));
+						if (v == 3) {
+							flag = 0;
+							break;
+						}
+					}
+				}
+				for (n = 0; n < rencmd.length; n++) {
+					if (rule2var(rencmd[n], "new") == rule2var(FolderLists1[i][j], "folder")) {
+						flag = 0;
+						break;
+					}
+				}
+				if (flag) {
+					modifylists++;
+					cnum++;
+					a.push('smb set ' + FolderLists1[i][j]);
+				}
+			}
+		}
+	}
+
+	for (i = 0, j = 1; i < modifylists; i++) {
+		cmd1.push(a[i]);
+		if ((i + 1) == (send_count * j)) {
+			cmd1 = encodeURI(cmd1.join('%;')).replace(/&/g, '%26');
+			resut_ret = wdk.cliCmd(cmd1);
+			j++;
+			cmd1 = [];
+			if (i == (modifylists - 1)) {
+				flag2 = 0;
+				wdk.showResultBG();
+				wdk.showResult(2000);
+				wdk.cliCmd('smb run');
+			}
+		}
+	}
+
+	if (flag2) {
+		if (cnum) {
+			cmd1 = encodeURI(cmd1.join('%;')).replace(/&/g, '%26');
+			resut_ret = wdk.cliCmd(cmd1);
+			wdk.showResultBG();
+			wdk.showResult(2000);
+			wdk.cliCmd('smb run');
+		} else {
+			if (!changed) {
+				alert(wdk.msg('The settings are not changed!!'));
+			} else {
+				wdk.showResultBG();
+				wdk.showResult(2000);
+				wdk.cliCmd('smb run');
+			}
+		}
+	}
+}
+
+function NewFolder(s, d, p) {
+	var i, j, q, indx, idx, idx1;
+	var f = document.frm;
+	var lists = new Array();
+	var z = new Array();
+	var ofd = new Array();
+	var attrs = '';
+	var w = new Array();
+	var s1, s2, k = 1,
+		nfd = "new";
+
+	addfolder = 1;
+	indx = findSMBRuleIndex(s, d, p);
+	if (smbTotalLists.length >= max) {
+		alert(wdk.msg("Too many entries, maximum is ") + max);
+		return
+	}
+	z = FdListsParam.split('/');
+	for (i = 0; i < z.length; i++) {
+		if (z[i] == nfd) {
+			nfd = "new" + k;
+			k++;
+			i = -1;
+			continue;
+		}
+	}
+	if (FdListsParam)
+		var r = 'disk=' + d + '&pt=' + p + '&folder=' + FdListsParam + '/' + nfd;
+	else
+		var r = 'disk=' + d + '&pt=' + p + '&folder=' + nfd;
+	smbTotalLists[indx] = r;
+	for (i = 0; i < smbUserInfo.length; i++) {
+		idx = -1;
+		idx1 = 0;
+		astrs = '';
+		attrs = rule2var(smbUserInfo[i], "attr");
+		if (attrs) w = attrs.split(',');
+		for (j = 0; j <= indx; j++) {
+			lists = rule2var(smbTotalLists[j], "folder");
+			if (lists) {
+				lists = lists.split('/');
+				idx += Number(lists.length);
+			}
+		}
+		if (idx == 0) {
+			astrs += Number(wdk.cdbVal('$smb_default_attr'));
+			if (attrs) {
+				astrs += ',' + attrs;
+			}
+		} else if (idx == w.length) {
+			astrs += attrs + ',' + Number(wdk.cdbVal('$smb_default_attr'));
+		} else {
+			for (q = 0; q < w.length; q++) {
+				if (q == idx) {
+					astrs += Number(wdk.cdbVal('$smb_default_attr')) + ',';
+				}
+				astrs += w[q];
+				if (q != (w.length - 1)) astrs += ',';
+			}
+		}
+		smbUserInfo[i] = smbUserInfo[i].substring(0, smbUserInfo[i].indexOf("&attr=")) + '&attr=' + astrs;
+	}
+	init();
+	eval("EditFolder(f.f" + idx + ",\"f" + idx + "\");")
+}
+
+function EditFolder(t, id) {
+	wdk.getById(id).style.border = "1px solid";
+	t.focus();
+	t.select();
+	wdk.getById(id).readOnly = false;
+}
+
+function ExitFolder(s, d, p, t, id, idx) {
+	var i, n, r, indx, fdlists = '';
+	var f = document.frm;
+	var lists = new Array();
+
+	wdk.getById(id).style.border = "none";
+	wdk.getById(id).readOnly = true;
+	if (t.defaultValue != t.value) {
+		for (n = 0; n < smbTotalLists.length; n++) {
+			if (smbTotalLists[n].search(wdk.getById(id).value) != -1) //found
+			{
+				alert(wdk.msg("This name already exists!"));
+				wdk.getById(id).value = t.defaultValue;
+				EditFolder(t, id);
+				return;
+			}
+		}
+		if (!addfolder) {
+			r = 'disk=' + d + '&pt=' + p + '&old=' + t.defaultValue + '&new=' + t.value;
+			rencmd.push('smb ren ' + r);
+		}
+	} else {
+		if (!addfolder) return;
+	}
+	if (addfolder) {
+		r = 'disk=' + d + '&pt=' + p + '&folder=' + t.value;
+		addcmd.push('smb add ' + r);
+	}
+	indx = findSMBRuleIndex(s, d, p);
+	if (FdListsParam) lists = FdListsParam.split('/');
+	lists[idx] = t.value;
+	for (i = 0; i < lists.length; i++) {
+		fdlists += lists[i];
+		if (i != (lists.length - 1)) fdlists += '/';
+	}
+	r = 'disk=' + d + '&pt=' + p + '&folder=' + fdlists;
+	smbTotalLists[indx] = r;
+	addfolder = 0;
+}
+
+function DelFolder(s, d, p, f, ix) {
+	var i, j = 0,
+		m, n, r, k, l, t, indx;
+	var df = new Array();
+	var lists = new Array();
+	var atts = new Array();
+	var atts1 = new Array();
+
+	indx = findSMBRuleIndex(s, d, p);
+	r = 'disk=' + d + '&pt=' + p + '&folder=' + f;
+	delcmd.push('smb del ' + r);
+	df = FdListsParam.split('/');
+	for (i = 0; i < df.length; i++) {
+		if (df[i] == f) continue;
+		lists[j++] = df[i];
+	}
+	k = '';
+	for (i = 0; i < lists.length; i++) {
+		k += lists[i];
+		if (i != (lists.length - 1)) k += '/';
+	}
+	t = 'disk=' + d + '&pt=' + p + '&folder=' + k;
+	smbTotalLists[indx] = t;
+	for (i = 0; i < smbUserInfo.length; i++) {
+		m = 0;
+		atts = rule2var(smbUserInfo[i], "attr").split(',');
+		for (n = 0; n < atts.length; n++) {
+			if (n == ix) continue;
+			atts1[m++] = atts[n];
+		}
+		l = '';
+		for (n = 0; n < atts1.length; n++) {
+			l += atts1[n];
+			if (n != (atts1.length - 1)) l += ',';
+		}
+		smbUserInfo[i] = smbUserInfo[i].substring(0, smbUserInfo[i].indexOf("&attr=")) + '&attr=' + l;
+	}
+	init();
+}
+
+function showFolderLists(user) {
+	var code = "";
+	var i, j, k, idx = 0;
+	var permission = new Array();
+	var disknum = 0,
+		partnum = 0,
+		foldernum = 0;
+
+	cuser = user;
+	permission = getUserAttribute(user);
+	code += '<table class=infolist1 border="0"><tr>';
+	code += '<th width=65% align="center">' + 'All Directories' + '<' + '/th>';
+	if (PROTOCOL == "cifs") {
+		code += '<th width="56" align="center">' + wdk.msg("R/W"); + '<' + '/th>';
+		code += '<th width="56" align="center">' + wdk.msg("R"); + '<' + '/th>';
+		code += '<th width="56" align="center">' + wdk.msg("No"); + '<' + '/th>';
+	} else if (PROTOCOL == "smb") {
+		code += '<th width="42" align="center">' + wdk.msg("R/W"); + '<' + '/th>';
+		code += '<th width="42" align="center">' + wdk.msg("W"); + '<' + '/th>';
+		code += '<th width="42" align="center">' + wdk.msg("R"); + '<' + '/th>';
+		code += '<th width="42" align="center">' + wdk.msg("No"); + '<' + '/th>';
+	}
+	code += '<' + '/tr>';
+	disknum = getDiskNum(smbTotalLists);
+	for (i = 0; i < disknum; i++) {
+		code += '<tr align=left>';
+		code += '<td>' + DiskLists[i] + '<' + '/td><td>&nbsp;<' + '/td><td>&nbsp;<' + '/td><td>&nbsp;<' + '/td><td>&nbsp;<' + '/td>';
+		code += '<' + '/tr>';
+		partnum = getPartitionNum(smbTotalLists, DiskLists[i]);
+		for (j = 0; j < partnum; j++) {
+			code += '<tr><td>';
+			code += '<table border=0><tr><td align=left>';
+			code += '<img src=images/new.gif width=19 height=19 border=0 alt=\"new folder\" onclick=NewFolder(smbTotalLists,DiskLists[' + i + '],PtLists[' + j + ']);';
+			//if( smbEn==1 )
+			//code += ' disabled';
+			code += '>' + PtLists[j] + '<' + '/td>';
+			code += '<' + '/table><' + '/td>';
+			code += '<td>&nbsp;<' + '/td><td>&nbsp;<' + '/td><td>&nbsp;<' + '/td><td>&nbsp;<' + '/td>';
+			code += '<' + '/tr>';
+			foldernum = getFolderNum(smbTotalLists, DiskLists[i], PtLists[j]);
+			for (k = 0; k < foldernum; k++) {
+				code += '<tr align=left>';
+				code += '<td>';
+				code += '<table border=0><tr><td align=left>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+				code += '<img src=images/folder.gif width=16 height=18 border=0>';
+				code += '<input type=text id=f' + idx + ' name=f' + idx + ' value=\"' + FdLists[k] + '\" onclick=EditFolder(this,\"f' + idx + '\"); onblur=ExitFolder(smbTotalLists,DiskLists[' + i + '],PtLists[' + j + '],this,\"f' + idx + '\",' + idx + ');';
+				//if( smbEn==1 )
+				//code += ' disabled';
+				code += '><' + '/td>';
+				code += '<td align=right><img src=images/trash.gif width=15 height=17 border=0 alt=\"delete folder\" onclick=DelFolder(smbTotalLists,DiskLists[' + i + '],PtLists[' + j + '],wdk.getById(\"f' + idx + '\").value,' + idx + ');';
+				//if( smbEn==1 )
+				//code += ' disabled';
+				code += '><' + '/td>';
+				code += '<' + '/tr><' + '/table><' + '/td>';
+				code += '<' + '/td>';
+				code += '<td><input type=radio name=g' + idx + ' value=3 onclick=setAttr(cuser,' + idx + ',3);';
+				if (permission[idx] == 3)
+					code += ' checked';
+				if ((listnum <= 0) || (smbEn != 2))
+					code += ' disabled';
+				code += '><' + '/td>';
+				code += '<td><input type=radio name=g' + idx + ' value=2 onclick=setAttr(cuser,' + idx + ',2);';
+				if (permission[idx] == 2)
+					code += ' checked';
+				if ((listnum <= 0) || (smbEn != 2))
+					code += ' disabled';
+				code += '><' + '/td>';
+				code += '<td><input type=radio name=g' + idx + ' value=1 onclick=setAttr(cuser,' + idx + ',1);';
+				if (permission[idx] == 1)
+					code += ' checked';
+				if ((listnum <= 0) || (smbEn != 2))
+					code += ' disabled';
+				code += '><' + '/td>';
+				code += '<td><input type=radio name=g' + idx + ' value=0 onclick=setAttr(cuser,' + idx + ',0);';
+				if (permission[idx] == 0)
+					code += ' checked';
+				if ((listnum <= 0) || (smbEn != 2))
+					code += ' disabled';
+				code += '><' + '/td>';
+				code += '<' + '/tr>';
+				idx++;
+			}
+		}
+	}
+	code += '<' + '/table>';
+	wdk.getById('folderLists').innerHTML = code;
+}
+
+function setAttr(uid, k, val) {
+	var i, j, ckey, r = '';
+	var AttrLists = new Array();
+
+	for (i = 0; i < smbUserInfo.length; i++) {
+		ckey = rule2var(smbUserInfo[i], "user");
+		if (ckey) {
+			if (ckey == uid) {
+				AttrLists = rule2var(smbUserInfo[i], "attr").split(',');
+				break;
+			}
+		}
+	}
+	AttrLists[k] = val;
+	for (j = 0; j < AttrLists.length; j++) {
+		r += AttrLists[j];
+		if (j != (AttrLists.length - 1)) r += ',';
+	}
+	smbUserInfo[i] = "user=" + uid + "&attr=" + r;
+}
+
+function setDefaultAttr() {
+	var s, accntname;
+
+	for (var i = 0; i < listnum; i++) {
+		s = '';
+		accntname = rule2var(wdk.cdbVal("$smb_account" + (i + 1)), "name");
+		for (var j = 0; j < totalFolderNum; j++) {
+			s += Number(wdk.cdbVal('$smb_default_attr'));
+			if (j != (totalFolderNum - 1)) s += ',';
+		}
+		smbUserInfo[i] = "user=" + accntname + "&attr=" + s;
+	}
+	init();
+}
+
+function EnableSmb(n) {
+	var m, f = document.frm;
+
+	if (n != 0) {
+		if (n == 1)
+			m = "Do you want to enable the SAMBA server shared without account(s)?";
+		else
+			m = "Do you want to enable the SAMBA server shared with account(s)?";
+	} else
+		m = "Do you want to disable the SAMBA server?";
+
+	if (confirm(wdk.msg(m))) {
+		wdk.save_form(2000);
+	} else f.smbEn1.value = smbEn;
+}
+
+function EnDisenAccount(c) {
+	if (c != 2) {
+		wdk.getById('acname').style.color = "#C0C0C0";
+		wdk.getById('fpass').style.color = "#C0C0C0";
+		wdk.getById('fpass2').style.color = "#C0C0C0";
+		wdk.getById('pass').disabled = true;
+		wdk.getById('pass2').disabled = true;
+		wdk.getById('Add').style.background = "#C0C0C0";
+		wdk.getById('Mod').style.background = "#C0C0C0";
+		wdk.getById('name').disabled = wdk.getById('pass').disabled = wdk.getById('pass2').disabled = wdk.getById('Add').disabled = wdk.getById('Mod').disabled = true;
+	}
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings")
+    </script>
+   </legend>
+   <input type=hidden name=changed value=0>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("SAMBA server")
+     </script>
+    </div>
+    <select name=smbEn1 id=$smb_enable size=1 onchange='EnableSmb(this.value);'>
+     <option value=0>Disable</option>
+     <option value=1>Enable and shared without account</option>
+     <option value=2>Enable and shared with account</option>
+    </select>
+   </div>
+   <div id=edit1 style="display:none">
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg('Folder attribute reset to default');
+      </script>
+     </div>
+     <input type=checkbox name=default_attr onclick='setDefaultAttr();'>
+    </div>
+    <hr>
+    <br>
+    <table width="500" cellpadding="0" cellspacing="0" border=0>
+     <tr>
+      <!-- The table of accounts. -->
+      <td valign="top" bgcolor="#F8F8F8">
+       <table width="300" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+         <td>
+          <div id=edit2>
+           <div class=setting>
+            <div id=acname class=col33>
+             <script>
+wdk.putmsg("Account");
+             </script>
+            </div>
+            <input id=name name=name size=15 maxlength=12>
+           </div>
+           <div class=setting>
+            <div id=fpass class=col33>
+             <script>
+wdk.putmsg("Password");
+             </script>
+            </div>
+            <input type=password id=pass name=pass size=15 maxlength=12 onFocus=chkPassInput2(this,pass,pass2,changed);>
+           </div>
+           <div class=setting>
+            <div id=fpass2 class=col33>
+             <script>
+wdk.putmsg("Re-type Password");
+             </script>
+            </div>
+            <input type=password id=pass2 name=pass2 size=15 maxlength=12 onFocus=chkPassInput2(this,pass,pass2,changed);>
+           </div>
+           <div class=setting>
+            <div class=col33>&nbsp;</div>
+            <script>
+puts('<input type=button class=button id=Add name=Add value="' + wdk.msg('Add') + '" onclick=change(1)>' +
+	'<input type=button class=button id=Mod name=Mod value="' + wdk.msg('Modify') + '" onclick=change(0)>');
+            </script>
+           </div>
+          </div>
+         </td>
+        </tr>
+        <tr>
+         <td>
+          <table class=infolist border="0">
+           <tr id=smb_th>
+            <th width=60%>
+             <script>
+wdk.putmsg('Account Name')
+             </script>
+            </th>
+            <th width=40%>
+             <script>
+wdk.putmsg('Action')
+             </script>
+            </th>
+           </tr>
+           <tr align=center id=$smb_account1>
+            <td>
+             <script>
+if (smbEn != 2) {
+	puts('<input type=radio name=r value=this.parentNode.parentNode.rowIndex onclick="showFolderLists(document.frm.name[this.parentNode.parentNode.rowIndex].value);edit(this.parentNode.parentNode.rowIndex);" disabled>');
+	puts('<input type=text name=name size=8 style="color:#C0C0C0" readonly>');
+} else {
+	puts('<input type=radio name=r value=this.parentNode.parentNode.rowIndex onclick="showFolderLists(document.frm.name[this.parentNode.parentNode.rowIndex].value);edit(this.parentNode.parentNode.rowIndex);">');
+	puts('<input type=text name=name size=8 readonly>');
+}
+             </script>
+            </td>
+            <td>
+             <script>
+if (smbEn != 2) {
+	puts('<img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode.rowIndex) disabled>&nbsp;' +
+		'<img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode.rowIndex) disabled>');
+} else {
+	puts('<img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode.rowIndex)>&nbsp;' +
+		'<img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode.rowIndex)>');
+}
+             </script>
+            </td>
+           </tr>
+          </table>
+         </td>
+        </tr>
+       </table>
+      </td>
+
+      <!-- The table of folders. -->
+      <td width="60%" valign="top" bgcolor="#F8F8F8">
+       <table width="325" border="1" cellspacing="0" cellpadding="0">
+        <tr>
+         <td>
+          <!-- the folder lists -->
+          <div id="folderLists"></div>
+         </td>
+        </tr>
+       </table>
+      </td>
+     </tr>
+    </table>
+   </div>
+  </fieldset>
+
+  <script>
+if (simple_mode)
+	footer(1);
+else
+	footer();
+  </script>
+ </form>
+
+</html>
+<!--endif-->

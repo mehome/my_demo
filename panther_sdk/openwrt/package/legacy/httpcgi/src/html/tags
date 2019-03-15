@@ -1,0 +1,110 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Conexant_bin_delay_time	js/function.js	/^var Conexant_bin_delay_time=1000;$/;"	v
+Conexant_bin_getRefToDivNest	js/function.js	/^function Conexant_bin_getRefToDivNest(divID, oDoc)   $/;"	f
+Conexant_bin_init	js/function.js	/^function Conexant_bin_init()	$/;"	f
+Conexant_bin_loop_num	js/function.js	/^var Conexant_bin_loop_num=0;$/;"	v
+Conexant_bin_my_Error	js/function.js	/^function Conexant_bin_my_Error(str)$/;"	f
+Conexant_bin_my_OK	js/function.js	/^function Conexant_bin_my_OK()$/;"	f
+Conexant_bin_progress	js/function.js	/^function Conexant_bin_progress()  $/;"	f
+Conexant_bin_progressBar	js/function.js	/^function Conexant_bin_progressBar( oBt, oBc, oBg, oBa, oWi, oHi, oDr )   $/;"	c
+Conexant_bin_resetBar	js/function.js	/^function Conexant_bin_resetBar( a, b )   $/;"	c
+Conexant_bin_sendClicked	js/function.js	/^function Conexant_bin_sendClicked(F)  $/;"	f
+Conexant_bin_setColour	js/function.js	/^function Conexant_bin_setColour( a )   $/;"	f
+Conexant_bin_show_div	js/function.js	/^function Conexant_bin_show_div(Conexant_bin_show,Conexant_bin_id) {  $/;"	f
+Conexant_bin_time	js/function.js	/^var Conexant_bin_time=0;$/;"	v
+Conexant_sys_delay_time	js/function.js	/^var Conexant_sys_delay_time=1000;$/;"	v
+Conexant_sys_getRefToDivNest	js/function.js	/^function Conexant_sys_getRefToDivNest(divID, oDoc)   $/;"	f
+Conexant_sys_init	js/function.js	/^function Conexant_sys_init()	$/;"	f
+Conexant_sys_loop_num	js/function.js	/^var Conexant_sys_loop_num=0;$/;"	v
+Conexant_sys_my_Error	js/function.js	/^function Conexant_sys_my_Error(str)$/;"	f
+Conexant_sys_my_OK	js/function.js	/^function Conexant_sys_my_OK()$/;"	f
+Conexant_sys_progress	js/function.js	/^function Conexant_sys_progress()  $/;"	f
+Conexant_sys_progressBar	js/function.js	/^function Conexant_sys_progressBar( oBt, oBc, oBg, oBa, oWi, oHi, oDr )   $/;"	c
+Conexant_sys_resetBar	js/function.js	/^function Conexant_sys_resetBar( a, b )   $/;"	c
+Conexant_sys_sendClicked	js/function.js	/^function Conexant_sys_sendClicked(F)  $/;"	f
+Conexant_sys_setColour	js/function.js	/^function Conexant_sys_setColour( a )   $/;"	f
+Conexant_sys_show_div	js/function.js	/^function Conexant_sys_show_div(Conexant_sys_show,Conexant_sys_id) {  $/;"	f
+Conexant_sys_time	js/function.js	/^var Conexant_sys_time=0;$/;"	v
+Conexant_upgrade	js/function.js	/^function Conexant_upgrade()$/;"	f
+Conexant_upgrade_my_OK	js/function.js	/^function Conexant_upgrade_my_OK()$/;"	f
+bluetooth_delay_time	js/function.js	/^var bluetooth_delay_time=1000;  $/;"	v
+bluetooth_init	js/function.js	/^function bluetooth_init()	$/;"	f
+bluetooth_loop_num	js/function.js	/^var bluetooth_loop_num=0;$/;"	v
+bluetooth_my_Error	js/function.js	/^function bluetooth_my_Error(str)$/;"	f
+bluetooth_my_OK	js/function.js	/^function bluetooth_my_OK()$/;"	f
+bluetooth_time	js/function.js	/^var bluetooth_time=0;  $/;"	v
+cloud_test_log_status	js/function.js	/^var cloud_test_log_status = 0;$/;"	v
+cloud_test_log_url	js/function.js	/^var cloud_test_log_url;$/;"	v
+compare_channel	js/function.js	/^function compare_channel()$/;"	f
+conexant_init	js/function.js	/^function conexant_init()	$/;"	f
+conexant_show_div	js/function.js	/^function conexant_show_div(conexant_show,conexant_id) {  $/;"	f
+delay_time	js/function.js	/^var delay_time=1000;  $/;"	v
+disable_cloud_test_log	js/function.js	/^function disable_cloud_test_log()$/;"	f
+disable_test_mode	js/function.js	/^function disable_test_mode()$/;"	f
+dot_get_microphone_recording_file	js/function.js	/^function dot_get_microphone_recording_file()$/;"	f
+dot_get_normal_recording_file	js/function.js	/^function dot_get_normal_recording_file()$/;"	f
+dot_get_reference_signal_recording_file	js/function.js	/^function dot_get_reference_signal_recording_file()$/;"	f
+dot_microphone_recording	js/function.js	/^function dot_microphone_recording()$/;"	f
+dot_normal_recording	js/function.js	/^function dot_normal_recording()$/;"	f
+dot_reference_signal_recording	js/function.js	/^function dot_reference_signal_recording()$/;"	f
+dot_stop_recording	js/function.js	/^function dot_stop_recording() $/;"	f
+download_file	js/function.js	/^function download_file(url)$/;"	f
+download_file2	js/function.js	/^function download_file2(url)$/;"	f
+enable_cloud_test_log	js/function.js	/^function enable_cloud_test_log()$/;"	f
+enable_test_mode	js/function.js	/^function enable_test_mode()$/;"	f
+get_cloud_test_log	js/function.js	/^function get_cloud_test_log()$/;"	f
+get_recording_file	js/function.js	/^function get_recording_file() $/;"	f
+get_test_mode	js/function.js	/^function get_test_mode()$/;"	f
+get_wakeup_test	js/function.js	/^function get_wakeup_test()$/;"	f
+init	js/function.js	/^function init()	$/;"	f
+loop_num	js/function.js	/^var loop_num=0;$/;"	v
+micarray_get_info	js/function.js	/^function micarray_get_info()$/;"	f
+micarray_get_mic_recording_file	js/function.js	/^function micarray_get_mic_recording_file()$/;"	f
+micarray_get_normal_recording_file	js/function.js	/^function micarray_get_normal_recording_file()$/;"	f
+micarray_get_ref_recording_file	js/function.js	/^function micarray_get_ref_recording_file()$/;"	f
+micarray_recording_info_mics	js/function.js	/^var micarray_recording_info_mics = 0;$/;"	v
+micarray_recording_info_refs	js/function.js	/^var micarray_recording_info_refs = 0;$/;"	v
+micarray_start_recording	js/function.js	/^function micarray_start_recording()$/;"	f
+micarray_stop_recording	js/function.js	/^function micarray_stop_recording()$/;"	f
+my_Error	js/function.js	/^function my_Error(str)$/;"	f
+my_OK	js/function.js	/^function my_OK()$/;"	f
+play_test_music	js/function.js	/^function play_test_music()$/;"	f
+reset_VAD	js/function.js	/^function reset_VAD()$/;"	f
+start_VAD	js/function.js	/^function start_VAD()$/;"	f
+start_init	js/function.js	/^function start_init()$/;"	f
+start_recording	js/function.js	/^function start_recording()$/;"	f
+stop_recording	js/function.js	/^function stop_recording() $/;"	f
+stop_test_music	js/function.js	/^function stop_test_music()$/;"	f
+time	js/function.js	/^var time=0;  $/;"	v
+timing_recording	js/function.js	/^function timing_recording() $/;"	f
+xmlhttp.onreadystatechange	js/function.js	/^	}$/;"	f
+xzx_module_VAD_scope_change	js/function.js	/^function xzx_module_VAD_scope_change(obj)$/;"	f
+xzx_module_bluetooth_upload_content_cancleUploadFile	js/function.js	/^function xzx_module_bluetooth_upload_content_cancleUploadFile()$/;"	f
+xzx_module_bluetooth_upload_content_oloaded	js/function.js	/^var xzx_module_bluetooth_upload_content_oloaded;$/;"	v
+xzx_module_bluetooth_upload_content_ot	js/function.js	/^var xzx_module_bluetooth_upload_content_ot;$/;"	v
+xzx_module_bluetooth_upload_content_progressFunction	js/function.js	/^function xzx_module_bluetooth_upload_content_progressFunction(evt)$/;"	f
+xzx_module_bluetooth_upload_content_sh	js/function.js	/^var xzx_module_bluetooth_upload_content_sh;$/;"	v
+xzx_module_bluetooth_upload_content_upgrade	js/function.js	/^function xzx_module_bluetooth_upload_content_upgrade()$/;"	f
+xzx_module_bluetooth_upload_content_uploadComplete	js/function.js	/^function xzx_module_bluetooth_upload_content_uploadComplete(evt)$/;"	f
+xzx_module_bluetooth_upload_content_uploadFailed	js/function.js	/^function xzx_module_bluetooth_upload_content_uploadFailed(evt)$/;"	f
+xzx_module_bluetooth_upload_content_uploadFile	js/function.js	/^function xzx_module_bluetooth_upload_content_uploadFile() $/;"	f
+xzx_module_bluetooth_upload_content_xhr	js/function.js	/^var xzx_module_bluetooth_upload_content_xhr;$/;"	v
+xzx_module_bluetooth_upload_content_xhr.upload.onloadstart	js/function.js	/^	xzx_module_bluetooth_upload_content_xhr.upload.onprogress = xzx_module_bluetooth_upload_content_progressFunction;$/;"	f
+xzx_module_bluetooth_upload_sendClicked	js/function.js	/^function xzx_module_bluetooth_upload_sendClicked(F)  $/;"	f
+xzx_module_upload_content_cancleUploadFile	js/function.js	/^function xzx_module_upload_content_cancleUploadFile()$/;"	f
+xzx_module_upload_content_oloaded	js/function.js	/^var xzx_module_upload_content_oloaded;$/;"	v
+xzx_module_upload_content_ot	js/function.js	/^var xzx_module_upload_content_ot;$/;"	v
+xzx_module_upload_content_progressFunction	js/function.js	/^function xzx_module_upload_content_progressFunction(evt)$/;"	f
+xzx_module_upload_content_sh	js/function.js	/^var xzx_module_upload_content_sh;$/;"	v
+xzx_module_upload_content_upgrade	js/function.js	/^function xzx_module_upload_content_upgrade()$/;"	f
+xzx_module_upload_content_uploadComplete	js/function.js	/^function xzx_module_upload_content_uploadComplete(evt)$/;"	f
+xzx_module_upload_content_uploadFailed	js/function.js	/^function xzx_module_upload_content_uploadFailed(evt)$/;"	f
+xzx_module_upload_content_uploadFile	js/function.js	/^function xzx_module_upload_content_uploadFile() $/;"	f
+xzx_module_upload_content_xhr	js/function.js	/^var xzx_module_upload_content_xhr;$/;"	v
+xzx_module_upload_content_xhr.upload.onloadstart	js/function.js	/^	xzx_module_upload_content_xhr.upload.onprogress = xzx_module_upload_content_progressFunction;$/;"	f
+xzx_module_upload_sendClicked	js/function.js	/^function xzx_module_upload_sendClicked(F)  $/;"	f

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+[ -f /sbin/lrfcmd ] &&
+{
+	lrfcmd lrf $@
+} ||
+{
+	echo $@ > /proc/lrf
+	cat /proc/lrf
+}
+

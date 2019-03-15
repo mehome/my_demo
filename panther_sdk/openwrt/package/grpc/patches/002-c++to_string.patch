@@ -1,0 +1,25 @@
+--- grpc-1.4.5.org/include/grpc++/impl/codegen/config.h	2017-08-10 11:10:41.000000000 +0800
++++ grpc-1.4.5/include/grpc++/impl/codegen/config.h	2017-09-20 15:40:39.977395382 +0800
+@@ -45,11 +45,21 @@
+ #define GRPC_OVERRIDE override  // deprecated
+ #define GRPC_FINAL final        // deprecated
+
++#include <sstream>
++#include <iostream>
++
+ namespace grpc {
+
+ typedef GRPC_CUSTOM_STRING string;
+
+-using std::to_string;
++    template < typename T > std::string to_string( const T& n )
++	    {
++		        std::ostringstream stm ;
++				        stm << n ;
++						        return stm.str() ;
++								    }
++
++//using std::to_string;
+
+ }  // namespace grpc
+

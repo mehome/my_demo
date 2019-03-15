@@ -1,0 +1,34 @@
+ {
+    "cblAuthDelegate":{
+        "databaseFilePath":"/etc/avs/cblAuthDelegate2.db"
+    },
+
+    "deviceInfo":{
+        "deviceSerialNumber":"12345",
+        "clientId":"amzn1.application-oa2-client.9dc7fc754c8c4ef98b84d34aaa2405a9",
+        "productId":"IMA699"
+    },
+
+    "miscDatabase":{
+        "databaseFilePath":"/etc/avs/misc.db"
+    },
+
+    "alertsCapabilityAgent":{
+	"databaseFilePath":"/etc/avs/alerts.db"
+    },
+
+    "settings":{
+        "databaseFilePath":"/etc/avs/settings.db",
+        "defaultAVSClientSettings":{
+            "locale":"en-US"
+          }
+    },
+
+    "certifiedSender":{
+        "databaseFilePath":"/etc/avs/certifiedSender.db"
+    },
+
+    "notifications":{
+       "databaseFilePath":"/etc/avs/notifications.db"
+    }
+ }

@@ -1,0 +1,29 @@
+diff -Nur a/Db/dbdata.h b/Db/dbdata.h
+--- a/Db/dbdata.h	2014-10-21 22:47:56.000000000 +0800
++++ b/Db/dbdata.h	2017-11-15 10:42:23.560082917 +0800
+@@ -40,8 +40,11 @@
+ 
+ // ============= external funs defs ============
+ 
+-#ifndef _WIN32
+-extern double round(double);
++#if 1
++//#ifndef _WIN32
++//extern double round(double);
++/* avoid linking round()/floor() in libm */
++#define round(x) ((double) ((double) x + 0.5))
+ #else
+ /* round as a macro (no libm equivalent for MSVC) */
+ #define round(x) ((double) floor((double) x + 0.5))
+diff -Nur a/Db/dblock.h b/Db/dblock.h
+--- a/Db/dblock.h	2014-10-21 22:47:56.000000000 +0800
++++ b/Db/dblock.h	2017-11-15 10:43:08.208085238 +0800
+@@ -38,7 +38,7 @@
+ 
+ /* XXX: move to configure.in / config-xxx.h */
+ #define USE_LOCK_TIMEOUT 1
+-#define DEFAULT_LOCK_TIMEOUT 2000 /* in ms */
++#define DEFAULT_LOCK_TIMEOUT 5000 /* in ms */
+ 
+ /* Lock protocol */
+ #define RPSPIN 1

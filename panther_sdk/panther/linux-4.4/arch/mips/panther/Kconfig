@@ -1,0 +1,782 @@
+
+#config PANTHER_CHIP_VERSION
+#	int "Chip version"
+#	depends on PANTHER
+#	range 0 3
+#	default 0
+
+config PANTHER_FPGA
+	bool "FPGA platform"
+	depends on PANTHER
+	default n
+
+config PANTHER_ZBOOT
+	bool "Enable self-uncompressed kernel"
+	depends on PANTHER
+	select SYS_SUPPORTS_ZBOOT
+	default n
+
+config PANTHER_DEBUG_ZBOOT
+	bool "Enable compressed kernel support debugging"
+	depends on DEBUG_KERNEL && SYS_SUPPORTS_ZBOOT
+	select DEBUG_ZBOOT
+	default n
+
+config RAMFS_RECOVERY_IMAGE
+	bool "Montage recovery image flag"
+	default n
+	help
+	  Do not enable the flag without openwrt configure
+
+config MTD_PANTHER
+	tristate "SPI NAND/NOR flash device support"
+	depends on PANTHER
+	select MTD
+	select MTD_COMPLEX_MAPPINGS
+	select MTD_ROM
+	select MTD_PARTITIONS
+	default y
+	help
+	  This enables access routines for the flash chips on the Panther board
+
+config MTD_MT_SYMPHONY_SPI_FLASH
+        tristate "Montage SPI flash driver"
+        depends on MTD_PANTHER
+        default y
+        help
+          This enables support symphony flash driver. Please note that
+          you do not need any mapping/chip driver for mt_spi_flash. This one
+          does it all for you, so go disable all of those if you enabled
+          some of them (:
+
+config MTD_PDMA_SPI_FLASH
+        tristate "Enable PDMA on SPI flash driver"
+        depends on MTD_PANTHER && PANTHER_PDMA
+        default n
+        help
+          This allows you to read/write spi flash with PDMA.
+          If PDMA is enable then read/write will be accelerated by PDMA.
+
+#config PANTHER_MTD_SIZE
+#	hex "Flash size"
+#	depends on MTD_PANTHER
+#	default 0x800000
+
+config PANTHER_KERNEL_SIZE
+	hex "Kernel partitions size"
+	depends on MTD_PANTHER
+	default 2
+
+#config PANTHER_BACKUP_IMAGE
+#	bool "Consider Backup Partition"
+#	depends on MTD_PANTHER
+#	default n
+#	help
+#	  Say Y here to support flash with backup image.
+#config PANTHER_BACKUP_SIZE
+#	hex "The Paritiion Size for Backup Image"
+#	range 0 PANTHER_MTD_SIZE
+#	depends on PANTHER_BACKUP_IMAGE
+#	default 0x300000
+#config PANTHER_BACKUP_IMAGE_BUILD
+#	bool "Build Backup Image"
+#	depends on PANTHER_BACKUP_IMAGE
+#	default n
+#	help
+#	  Say Y here to build a backup image.
+
+#config PANTHER_MTD_SE
+#	bool "Sector erase"
+#	depends on MTD_PANTHER
+#	default y
+
+#config DYNAMIC_PARTITION_ROOTFS
+#	bool "dynamic partition for rootfs"
+#	depends on MTD_PANTHER
+#	default y
+#
+#choice
+#	prompt "read&write paritiion"
+#	depends on MTD_PANTHER
+#	default MTD_ROOTFS_SPLIT
+#config MTD_RWPART_NONE
+#	bool "None"
+#config MTD_ROOTFS_SPLIT
+#	bool "split from rootfs partition(squashfs)"
+#config MTD_RWPART_EXTRA_PARTITION
+#	bool "extra partition"
+#endchoice
+
+#config MTD_RWPART_EXTRA_PARTITION_OFFSET
+#	hex "the offset of extra partition"
+#	depends on MTD_RWPART_EXTRA_PARTITION
+#	default 0x400000
+
+#config PANTHER_ANA_KEYPAD
+#	bool "Panther ana Keypad"
+#	depends on PANTHER
+#	default n
+#	help
+#		This enable panther ana keypad.
+
+#config PANTHER_KEYPAD
+#	bool "Panther Keypad"
+#	depends on PANTHER
+#	select PANTHER_MADC
+#	default n
+#	help
+#		This enable panther keypad.
+
+#config PANTHER_LCD
+#	bool "Panther lcd"
+#	depends on PANTHER
+#	default n
+#	help
+#		This enable panther lcd.
+#choice
+#	depends on PANTHER_LCD
+#	prompt "Panther type"
+#	default PANTHER_ST7565P_LCD
+#config PANTHER_ST7565P_LCD
+#	bool "st7565p"
+#config PANTHER_ST7588T_LCD
+#	bool "st7588t"
+#endchoice
+
+#config PANTHER_MADC
+#	bool "Panther madc"
+#	depends on PANTHER
+#	default n
+#	help
+#		This enable panther madc.
+ 
+#config PANTHER_PWM
+#	bool "Panther pwm"
+#	depends on PANTHER
+#	default n
+#	help
+#		This enable panther pwm.
+
+#config PANTHER_4M_JFFS2
+#	bool "To reserve 4M jffs2"
+#	depends on PANTHER
+#	default n
+#	help
+#		This enable to reserve 4M jffs2.
+
+#choice
+#	prompt "Select Sniffer Mode "
+#	default PANTHER_SMART_CONFIG
+#
+#config PANTHER_SMART_CONFIG
+#	bool "Panther Smart Config"
+#	depends on PANTHER
+#	help
+#		This enable panther smart config.
+#
+#config PANTHER_SMART_TO_USRSPACE
+#    bool "Sniffer to User Space"
+#    depends on PANTHER
+#
+#endchoice
+
+config PANTHER_WLAN
+	bool "Wireless LAN driver"
+	depends on PANTHER
+	default n
+	select MAC80211
+	select CFG80211
+
+config PANTHER_ETH
+	bool "Ethernet driver"
+	depends on PANTHER
+	select VLAN_8021Q
+
+#config EPHY_GLITCH_PATCH
+#	bool "EPHY glitch patch"
+#	depends on PANTHER_ETH && PANTHER_USB
+#	default n
+
+config HNAT_PATCH
+	bool "HW-NAT bugfix"
+	depends on PANTHER_ETH
+	default y
+
+#config SRAM_ENABLE
+#	bool "SRAM Enable"
+#	depends on PANTHER
+
+config PANTHER_INTERNAL_DEBUGGER
+	bool "Internal debugger support"
+	depends on PANTHER
+	default y
+
+config PANTHER_ENABLE_DEBUGFS
+	bool "Debug via debugfs"
+	depends on PANTHER
+	select DEBUG_FS
+	default n
+
+config PANTHER_SND
+	tristate "Sound driver"
+	depends on PANTHER
+	select SOUND
+	select SND
+#	select SND_PCM_OSS
+	select SND_SOC
+	select SND_RAWMIDI
+	#select NET
+	#select COMPAT_WIRELESS
+	#select COMPAT_PATCH
+	#select PANTHER_SND_DEDICATED_I2C
+	default n
+
+#config PANTHER_SND_DEDICATED_I2C
+#	bool "Dedicated I2C Pins For Codec"
+#	depends on PANTHER_SND
+#	default y
+#config PANTHER_SND_SCL_GPIO_NUM
+#	int "GPIO Number for I2C Clock (0~29)"
+#	range 0 29
+#	depends on PANTHER_SND_DEDICATED_I2C
+#	default 10
+#config PANTHER_SND_SDA_GPIO_NUM
+#	int "GPIO Number for I2C Data (0~29)"
+#	range 0 29
+#	depends on PANTHER_SND_DEDICATED_I2C
+#	default 11
+
+config PCMGPIOCONTROL
+	bool "Generate PCM control events"
+	depends on PANTHER_SND
+	default n
+
+config GPIO_AUDIO_AMP_POWER
+	bool "Use GPIO to Control Audio AMP Power"
+	depends on PANTHER_SND
+	default n
+
+config GPIO_AUDIO_AMP_POWER_NUM
+	int "GPIO Number to Control Audio AMP Power (0~29)"
+	range 0 29
+	depends on GPIO_AUDIO_AMP_POWER
+	default 7
+
+config GPIO_AUDIO_AMP_POWER_LOW_ACTIVE
+	bool "Low Active"
+	depends on GPIO_AUDIO_AMP_POWER
+	default y
+
+config PANTHER_SND_PCM0
+	bool "PCM module 0"
+	depends on PANTHER_SND
+	default y
+
+choice
+	prompt "PCM0 Codec select"
+	depends on PANTHER_SND_PCM0
+	default PANTHER_SND_WM8750
+
+config PANTHER_SND_PCM0_NONE
+	bool "No external CODECs"
+
+config PANTHER_SND_PCM0_TLV320AIC3111
+	bool "Texas Instruments TLV320AIC31xx CODECs"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_ESS9018Q2C
+	bool "LinkNext Technologies SABRE9018Q2C"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_WM8750
+	bool "Wolfson WM8750"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_WM8988
+	bool "Wolfson WM8988"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_NAU8822
+	bool "Nuvoton NAU8822"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_TAS5711
+	bool "Texas TAS5711"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_ES8316
+	bool "Everest Semiconductor ES8316"
+	select I2C
+	select MONTAGE_I2C
+	select GPIO_AUDIO_AMP_POWER
+	help
+	  This codec has to enable AUDIO_AMP_POWER: GPIO9
+
+config PANTHER_SND_PCM0_ES9023
+	bool "ES9023"
+
+config I2S_SLAVE
+	bool "I2S_SLAVE"
+	depends on PANTHER_SND_PCM0_ES9023
+	default n
+config PANTHER_SND_PCM0_MP320
+	bool "Maples MP320"
+	select I2C
+	select MONTAGE_I2C
+	
+config PANTHER_SND_PCM0_DUMMY
+	bool "DUMMY codec"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_WM8737
+	bool "Wolfson WM8737"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_ES7243
+	bool "Everest ES7243"
+	select I2C
+	select MONTAGE_I2C
+	
+config PANTHER_SND_PCM0_ES7210
+	bool "Everest ES7210"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM0_ES8388
+	bool "Everest ES8388"
+	select I2C
+	select MONTAGE_I2C
+
+endchoice
+
+choice
+	prompt "Select WM8xxx Input Source"
+	depends on PANTHER_SND_PCM0
+	depends on PANTHER_SND_PCM0_WM8750 || PANTHER_SND_PCM0_WM8988 || PANTHER_SND_PCM0_WM8737
+	default PANTHER_SND_PCM0_WM8xxx_INPUT2
+
+config PANTHER_SND_PCM0_WM8xxx_INPUT1
+	bool "Input1"
+
+config PANTHER_SND_PCM0_WM8xxx_INPUT2
+	bool "Input2"
+
+config PANTHER_SND_PCM0_WM8xxx_INPUT3
+	bool "Input3"
+endchoice
+
+choice
+	prompt "Select MP320 Input Source"
+	depends on PANTHER_SND_PCM0
+	depends on PANTHER_SND_PCM0_MP320
+	default PANTHER_SND_PCM0_MP320_INPUT2
+
+config PANTHER_SND_PCM0_MP320_INPUT1
+	bool "Input1"
+
+config PANTHER_SND_PCM0_MP320_INPUT2
+	bool "Input2"
+
+config PANTHER_SND_PCM0_MP320_INPUT3
+	bool "Input3"
+endchoice
+
+choice
+	prompt "Support PCMWB 44100 TX"
+	depends on PANTHER_SND_PCM0
+	depends on PANTHER_SND_PCM0_ES7243 || PANTHER_SND_PCM0_ES7210
+	default PANTHER_SND_PCM0_PCMWB_44100_TX_DISABLE
+
+config PANTHER_SND_PCM0_PCMWB_44100_TX_DISABLE
+	bool "Disable"
+
+config PANTHER_SND_PCM0_PCMWB_44100_TX_ENABLE
+	bool "Enable"
+endchoice
+
+choice
+	prompt "Support I2S 48K"
+	depends on PANTHER_SND_PCM0
+	depends on PANTHER_SND_PCM0_ES7243 || PANTHER_SND_PCM0_ES7210
+	default PANTHER_NOT_SUPPORT_I2S_48K
+
+config PANTHER_NOT_SUPPORT_I2S_48K
+	bool "Disable"
+
+config PANTHER_SUPPORT_I2S_48K
+	bool "Enable"
+endchoice
+
+choice
+	prompt "Choice MIC CHAN"
+	depends on PANTHER_SND_PCM0
+	depends on PANTHER_SND_PCM0_ES7243 || PANTHER_SND_PCM0_ES7210
+	default INPUT_MIC_HW4_REF_HW1
+
+config INPUT_MIC_HW2_REF_HW1
+	bool "INPUT: 2MIC + 1REF(HW)"
+
+config INPUT_MIC_HW2_REF_HW2
+	bool "INPUT: 2MIC + 2REF(HW)"
+
+config INPUT_MIC_HW3_REF_HW1
+	bool "INPUT: 3MIC + 1REF(HW)"
+
+config INPUT_MIC_HW3_REF_HW2
+	bool "INPUT: 3MIC + 2REF(HW)"
+
+config INPUT_MIC_HW4_REF_HW1
+	bool "INPUT: 4MIC + 1REF(HW)"
+
+config INPUT_MIC_HW4_REF_HW2
+	bool "INPUT: 4MIC + 2REF(HW)"
+endchoice
+
+
+config PANTHER_SND_PCM1
+	bool "PCM module 1"
+	depends on PANTHER_SND
+	default n
+
+choice
+	prompt "PCM1 Codec select"
+	depends on PANTHER_SND_PCM1
+	default PANTHER_SND_WM8750
+
+config PANTHER_SND_PCM1_WM8750
+	bool "Wolfson WM8750"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM1_WM8988
+	bool "Wolfson WM8988"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM1_NAU8822
+	bool "Nuvoton NAU8822"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM1_TAS5711
+	bool "Texas TAS5711"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM1_MP320
+	bool "Maples MP320"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM1_WM8737
+	bool "Wolfson WM8737"
+	select I2C
+	select MONTAGE_I2C
+
+config PANTHER_SND_PCM1_ES8388
+	bool "Everest ES8388"
+	select I2C
+	select MONTAGE_I2C
+
+endchoice
+
+choice
+	prompt "Select WM8xxx Input Source"
+	depends on PANTHER_SND_PCM1
+	depends on PANTHER_SND_PCM1_WM8750 || PANTHER_SND_PCM1_WM8988 || PANTHER_SND_PCM1_WM8737
+	default PANTHER_SND_PCM1_WM8xxx_INPUT2
+
+config PANTHER_SND_PCM1_WM8xxx_INPUT1
+	bool "Input1"
+
+config PANTHER_SND_PCM1_WM8xxx_INPUT2
+	bool "Input2"
+
+config PANTHER_SND_PCM1_WM8xxx_INPUT3
+	bool "Input3"
+endchoice
+
+choice
+	prompt "Select MP320 Input Source"
+	depends on PANTHER_SND_PCM1
+	depends on PANTHER_SND_PCM1_MP320
+	default PANTHER_SND_PCM1_MP320_INPUT2
+
+config PANTHER_SND_PCM1_MP320_INPUT1
+	bool "Input1"
+
+config PANTHER_SND_PCM1_MP320_INPUT2
+	bool "Input2"
+
+config PANTHER_SND_PCM1_MP320_INPUT3
+	bool "Input3"
+endchoice
+
+config PANTHER_USB
+	bool
+
+config USB_EHCI_MT
+        tristate "Montage EHCI controller driver"
+        depends on USB_EHCI_HCD && PANTHER
+        select USB_EHCI_ROOT_HUB_TT
+        help
+          The USB HCD Driver of Montage USB EHCI IP
+          is designed to meet USB2.0 EHCI specification with
+          minor modification.
+
+config USB_GADGET_MT_USB2
+        boolean "Montage USB peripheral controller driver"
+	select USB_GADGET
+        select USB_GADGET_DUALSPEED
+        help
+           Some of Montage processors have a High Speed
+           Dual-Role(DR)USB controller, which support device mode.
+
+           The number of programmable endpoints is different through
+           SOC revision.
+
+           Say "y" to link the driver statically, or "m" to build a
+           dynamically linked module called "mt_usb2_udc" and force
+           all gadget drivers to also be dynamically linked.
+
+config USB_MT_USB2
+        tristate
+        depends on USB_GADGET_MT_USB2
+        default USB_GADGET
+        select USB_GADGET_SELECTED
+
+choice
+	bool "USB0 driver"
+	depends on PANTHER
+	default PANTHER_USB_NONE
+
+config PANTHER_USB_NONE
+	bool "None"
+
+config PANTHER_USB_HOST_ROLE
+	bool "As USB Host"
+	select USB_SUPPORT
+	select USB
+	select USB_EHCI_HCD
+	select USB_EHCI_MT
+	select PANTHER_USB
+
+config PANTHER_USB_DEVICE_ROLE
+	bool "As USB Device"
+	select USB_SUPPORT
+	select USB_GADGET
+	select PANTHER_USB
+
+config PANTHER_USB_DUAL_ROLE
+	bool "Dual role by VBus Detection"
+	select USB_SUPPORT
+	select USB
+	select USB_EHCI_HCD
+	select USB_EHCI_MT
+	select USB_GADGET
+	select PANTHER_USB
+endchoice
+
+choice
+	bool "USB1 driver"
+	depends on PANTHER
+	default PANTHER_USB1_NONE
+
+config PANTHER_USB1_NONE
+	bool "None"
+
+config PANTHER_USB1_HOST_ROLE
+	bool "As USB Host"
+	select USB_SUPPORT
+	select USB
+	select USB_EHCI_HCD
+	select USB_EHCI_MT
+	select PANTHER_USB
+
+config PANTHER_USB1_DEVICE_ROLE
+	bool "As USB Device"
+	select USB_SUPPORT
+	select USB_GADGET
+	select PANTHER_USB
+endchoice
+
+config PANTHER_SDHCI
+	tristate "SDHCI driver"
+	depends on PANTHER
+	select MMC
+	select CONFIG_MMC_SDHCI
+	select MMC_SDHCI_IO_ACCESSORS
+	default n
+
+#config PANTHER_SDHCI_VOLTAGE_CTRL
+#	bool "SDHCI 3.3 or 1.8 voltage control by software"
+#	depends on PANTHER_SDHCI
+#	default n
+
+config PANTHER_PDMA
+	bool "PDMA engine driver"
+	depends on PANTHER
+	default y
+
+config PANTHER_GDMA
+	bool "GDMA engine driver"
+	depends on PANTHER
+	default y
+
+
+#config LEDS_TRIGGER_CTAINTF
+#	bool "LED Network Interface Trigger for Panther"
+#	select NEW_LEDS
+#	select LEDS_TRIGGERS
+#	default n
+
+#config PANTHER_GPIO_ROTARY_ENCODER
+#	bool "Panther GPIO Rotary encoders"
+#	select INPUT
+#	select GPIOLIB
+#	select GENERIC_GPIO
+#	depends on PANTHER && !PANTHER_GVCOM
+#	default n
+#	help
+#	  Say Y here to add support for rotary encoders connected to GPIO lines.
+
+config PANTHER_UART_BAUDRATE
+	int "UART Baud Rate"
+	depends on PANTHER
+	default 115200
+
+config PANTHER_SOFTWARE_UART
+	bool "Software UART driver"
+	default n
+
+config PANTHER_TX_GPIO_PIN
+	int "GPIO pin number of UART transmission"
+	depends on PANTHER_SOFTWARE_UART
+	default 19
+
+config PANTHER_RX_GPIO_PIN
+	int "GPIO pin number of UART receive"
+	depends on PANTHER_SOFTWARE_UART
+	default 18
+
+config PANTHER_SOFTWARE_UART_CONSOLE
+	bool "Console on Software UART device"
+	depends on PANTHER_SOFTWARE_UART
+	default n
+
+choice
+	prompt "I2C DRIVER"
+	default PANTHER_I2C_GPIO
+	
+config PANTHER_I2C_HARDWARE
+	bool "Hardware based I2C"
+	select I2C
+	select I2C_CHARDEV
+	
+
+config PANTHER_I2C_GPIO
+	bool "Software implemented I2C"
+	depends on PANTHER
+	select I2C
+	select I2C_GPIO
+	select I2C_CHARDEV
+
+config PANTHER_I2C_GPIO_SCL_GPIO_PIN
+	int "GPIO pin number of I2C clock"
+	depends on PANTHER_I2C_GPIO
+	default 3
+
+config PANTHER_I2C_GPIO_SDA_GPIO_PIN
+	int "GPIO pin number of I2C data"
+	depends on PANTHER_I2C_GPIO
+	default 2
+
+endchoice
+choice
+
+	prompt "SPI controller driver"
+	default PANTHER_SPI_NONE
+
+config PANTHER_SPI_NONE
+	bool "None"
+
+config PANTHER_SPI
+	bool "Hardware based SPI"
+	select SPI
+	select SPI_MASTER
+	select SPI_GPIO
+
+config PANTHER_SPI_GPIO
+	bool "Software implemented SPI"
+	depends on PANTHER
+	select SPI
+	select SPI_MASTER
+	select SPI_GPIO
+
+config PANTHER_SPI_GPIO_SCLK_GPIO_PIN
+	int "GPIO pin number of SPI SCLK"
+	depends on PANTHER_SPI_GPIO
+	default 20
+
+config PANTHER_SPI_GPIO_MOSI_GPIO_PIN
+	int "GPIO pin number of SPI MOSI"
+	depends on PANTHER_SPI_GPIO
+	default 18
+
+config PANTHER_SPI_GPIO_MISO_GPIO_PIN
+	int "GPIO pin number of SPI MISO"
+	depends on PANTHER_SPI_GPIO
+	default 17
+
+config PANTHER_SPI_GPIO_CS_GPIO_PIN
+	int "GPIO pin number of SPI CS"
+	depends on PANTHER_SPI_GPIO
+	default 19
+
+endchoice
+
+config PANTHER_MMC_SPI
+	bool "MMC/SD/SDIO over SPI"
+	depends on PANTHER_SPI_GPIO || PANTHER_SPI
+	select MMC_SPI
+	default n
+
+config PANTHER_WATCHDOG
+        bool "Watchdog Timer driver"
+        select WATCHDOG
+        default n
+        help
+          Hardware driver for the built-in watchdog timer.
+
+config PANTHER_UIO_OTP
+        bool "Stub of Userspace OTP driver"
+        select UIO
+        default n
+        help
+
+config PANTHER_UIO_TSI
+        bool "Stub of Userspace TSI driver"
+        select UIO
+        default n
+        help
+
+config PANTHER_PWM
+        tristate "8bit PWM support"
+        select PWM
+        depends on PANTHER
+        help
+          Panther PWM driver. The frequency can be 1~156250 HZ and the precision of duty cycle can be 1/256.
+
+config PANTHER_THERMAL
+        bool "Thermal sensor driver"
+        select THERMAL
+        default n
+        help

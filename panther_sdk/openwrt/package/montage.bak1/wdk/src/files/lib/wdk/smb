@@ -1,0 +1,439 @@
+#!/bin/sh
+# Copyright (C) 2013 Montage Inc.
+
+. /etc/cdb.sh
+
+local httpprog="/usr/sbin/uhttpd"
+local smbprog="/etc/init.d/samba"
+local smbconf="/etc/samba/smb.conf.template"
+local smbshare="/etc/config/samba"
+local smbaccountnum=5
+
+local smb_root="/etc/samba"
+local smb_cur_dir="${smb_root}/cur"
+local smb_cur_conf="${smb_root}/cur/cur.conf"
+local smb_disk_dir="${smb_root}/disk"
+local smb_disk_conf="${smb_root}/disk/disk.conf"
+local smb_usr_dir="${smb_root}/usr"
+local smb_usr_conf="${smb_root}/usr/usr.conf"
+
+local dbg_file="/var/disk.txt"
+
+dbg() {
+	echo "$*" >> ${dbg_file}
+}
+
+file_write() {
+	echo -e "${1}" >> "${2}"
+}
+
+config_check() {
+	[ -d ${smb_root} ] || mkdir ${smb_root}
+	[ -f ${smb_cur_conf} ] || mkdir -p ${smb_cur_dir} && touch ${smb_cur_conf}
+	[ -f ${smb_disk_conf} ] || mkdir -p ${smb_disk_dir} && touch ${smb_disk_conf}
+	[ -f ${smb_usr_conf} ] || mkdir -p ${smb_usr_dir} && touch ${smb_usr_conf}
+
+	config_get smb_default_attr smb_default_attr
+	dbg "smb_default_attr=${smb_default_attr}"
+}
+
+build_attr() {
+	local usr=${1}
+	local idx=${2}
+	local disk_ori=${3}
+	local attr_cont=""
+	local ori_cont=""
+	local ori_idx=1
+	local ori_cnt=0
+	if [ -f ${smb_usr_dir}/${usr}/${idx} ]; then
+		if diff "${smb_disk_dir}/${idx}" "${disk_ori}" > /dev/null; then
+			return
+		fi
+		attr_cont=`cat ${smb_disk_dir}/${idx} | awk 'BEGIN{FS="/"} {print $1 "/" $2 "/" '${smb_default_attr}'}'`
+		ori_cont=`awk 'BEGIN{FS="/"} NR==FNR{a[$1]=$2} NR>FNR{print $2 "/" a[$1]}' ${smb_usr_dir}/${usr}/${idx} ${disk_ori}`
+		ori_cnt=`echo "${ori_cont}" | wc -l`
+		while [ ${ori_idx} -le ${ori_cnt} ]
+		do
+			local name=`echo "${ori_cont}" | sed -n ${ori_idx}'s/\/.*$//p'`
+			local attr=`echo "${ori_cont}" | sed -n ${ori_idx}'s/^.*\///p'`
+			attr_cont=`echo "${attr_cont}" | sed 's/\/\('"${name}"'\)\/.*$/\/\1\/'"${attr}"'/'`
+			ori_idx=`expr ${ori_idx} + 1`
+		done
+		attr_cont=`echo "${attr_cont}" | awk 'BEGIN{FS="/"} {print $1 "/" $3}'`
+	else
+		attr_cont=`cat ${smb_disk_dir}/${idx} | awk 'BEGIN{FS="/"} {print $1 "/" '${smb_default_attr}'}'`
+	fi
+	echo "${attr_cont}" > ${smb_usr_dir}/${usr}/${idx}
+}
+
+build_attr_for_each() {
+	local idx=${1}
+	local disk_ori=${2}
+	cat ${smb_usr_conf} | while read usr
+	do
+		[ -d ${smb_usr_dir}/${usr} ] || mkdir ${smb_usr_dir}/${usr}
+		build_attr "${usr}" "${idx}" "${disk_ori}"
+	done
+}
+
+scan_disk() {
+	local idx=${1}
+	local disk_ori=${smb_disk_dir}/ori
+	local disk_cont=`ls -F "$2" | grep '/' | awk 'BEGIN{FS="/"; b=-1} {b++; print b "/" $1}'`
+	[ -f ${smb_disk_dir}/${idx} ] && mv ${smb_disk_dir}/${idx} ${disk_ori}
+	echo "${disk_cont}" > ${smb_disk_dir}/${idx}
+	build_attr_for_each "${idx}" "${disk_ori}"
+	rm ${disk_ori}
+}
+
+# $1: the disk name to be added to system 
+build_disk() {
+	local disk=$1
+	local temp=":${disk_info}"
+
+	if [ "${disk}" == "" ]; then
+		return
+	fi
+
+	mount | grep ${disk} | cut -d ' ' -f 1,3 | while read par dir
+	do
+		local idx=0
+		par=`echo ${par} | sed 's/\/dev\/'${disk}'//'`
+		[ "${par}" == "" ] && par=0
+		idx=`grep "${par}${temp}" ${smb_disk_conf} | cut -d ':' -f 1`
+		if [ "${idx}" == "" ]; then
+			idx=$((`tail -n 1 ${smb_disk_conf} | cut -d ':' -f 1`+1))
+			if [ ${idx} -eq 1 ]; then
+				echo "${idx}:${par}${temp}" >> ${smb_disk_conf}
+			else
+				sed -i '$a '"${idx}:${par}${temp}" ${smb_disk_conf}
+			fi
+		fi
+		if [ ${par} -eq 0 ]; then
+			par=${disk}
+		else
+			par=${disk}${par}
+		fi 
+		# format
+		# 2:/media/sda/sda1:sda1
+		sed -i "/${par}$/d" ${smb_cur_conf}
+		echo "${idx}:${dir}:${par}" >> ${smb_cur_conf}
+
+		dbg "idx=${idx}"
+		dbg "dir=${dir}"
+		dbg "par=${par}"
+		scan_disk "${idx}" "${dir}"
+	done
+	dbg "build disk done"
+}
+
+
+smb_ls() {
+# disk=xxx&pt=xxx1&folder=xxx1/xxx2/xxx3/xxx4/ ...
+	while read line
+	do
+		local idx=`echo "${line}" | cut -d ':' -f 1`
+		local disk=`grep "^${idx}:" ${smb_disk_conf} | cut -d ':' -f 4`
+		local par=`grep "^${idx}:" ${smb_disk_conf} | cut -d ':' -f 2`
+		local output="disk=${disk}&pt=MontageDisk${par}_${idx}&folder="
+		while read lline
+		do
+			local folder=`echo "${lline}" | cut -d '/' -f 2`
+			output="${output}${folder}/"
+		done < ${smb_disk_dir}/${idx}
+		output=`echo "${output}" | sed 's/\/$//'`
+		echo "${output}"
+	done < ${smb_cur_conf}
+}
+
+smb_get() {
+# user=xxx1&attr=x1,x2,x3,x4,x5,x6,x7,x8, ...
+# user=xxx2&attr=x1,x2,x3,x4,x5,x6,x7,x8, ...
+	while read usr
+	do
+		local output="user=${usr}&attr="
+		while read line
+		do
+			local idx=`echo "${line}" | cut -d ':' -f 1`
+			while read lline
+			do
+				local attr=`echo "${lline}" | cut -d '/' -f 2`
+				output="${output}${attr},"
+			done < ${smb_usr_dir}/${usr}/${idx}
+		done < ${smb_cur_conf}
+		output=`echo "${output}" | sed 's/,$//'`
+		echo "${output}"
+	done < ${smb_usr_conf}
+}
+
+smb_set() {
+# if "smb_account?" modified or "smb add/del" called, "smb commit" must be called firstly
+# then "smb set" can be called
+# disk=xxx&pt=xxx&folder=xxx&user=xxx&attr=x (attr: 3,2,1,0 for RW,W,R,No)
+	local ret=0
+	local idx=`echo "$*" | sed 's/.*&pt=\(.*\)&folder=.*/\1/' | sed 's/.*_\(.*\)$/\1/'`
+	local folder=`echo "$*" | sed 's/.*&folder=\(.*\)&user=.*/\1/'`
+	local user=`echo "$*" | sed 's/.*&user=\(.*\)&attr=.*/\1/'`
+	local attr=`echo "$*" | sed 's/.*&attr=\(.*\)$/\1/'`
+	local iidx=`grep ".*/${folder}$" ${smb_disk_dir}/${idx} | cut -d '/' -f 1`
+	if [ "${iidx}" != "" ]; then
+		sed -i '/^'"${iidx}"'\//s/\(^.*\/\).*$/\1'"${attr}"'/' ${smb_usr_dir}/${user}/${idx}
+		ret=1
+	fi
+	[ ${ret} -eq 1 ] && echo "!OK" || echo "!ERR"
+}
+
+smb_add() {
+# disk=xxx&pt=xxx&folder=xxx
+	local ret=0
+	local idx=`echo "$*" | sed 's/.*&pt=\(.*\)&folder=.*/\1/' | sed 's/.*_\(.*\)$/\1/'`
+	local folder=`echo "$*" | sed 's/.*&folder=\(.*\)$/\1/'`
+	local dir=`grep "^${idx}:.*$" ${smb_cur_conf} | cut -d ':' -f 2`
+	if [ "${dir}" != "" ]; then
+		mkdir "${dir}/${folder}"
+		[ "$?" == "0" ] && ret=1
+	fi
+	[ ${ret} -eq 1 ] && echo "!OK" || echo "!ERR"
+}
+
+smb_del() {
+# disk=xxx&pt=xxx&folder=xxx
+	local ret=0
+	local idx=`echo "$*" | sed 's/.*&pt=\(.*\)&folder=.*/\1/' | sed 's/.*_\(.*\)$/\1/'`
+	local folder=`echo "$*" | sed 's/.*&folder=\(.*\)$/\1/'`
+	local dir=`grep "^${idx}:.*$" ${smb_cur_conf} | cut -d ':' -f 2`
+	if [ "${dir}" != "" ]; then
+		rm -fr "${dir}/${folder}"
+		[ "$?" == "0" ] && ret=1
+	fi
+	[ ${ret} -eq 1 ] && echo "!OK" || echo "!ERR"
+}
+
+smb_ren() {
+# disk=xxx&pt=xxx&old=xxx&new=xxx
+	local ret=0
+	local idx=`echo "$*" | sed 's/.*&pt=\(.*\)&old=.*/\1/' | sed 's/.*_\(.*\)$/\1/'`
+	local ofolder=`echo "$*" | sed 's/.*&old=\(.*\)&new=.*/\1/'`
+	local nfolder=`echo "$*" | sed 's/.*&new=\(.*\)$/\1/'`
+	local dir=`grep "^${idx}:.*$" ${smb_cur_conf} | cut -d ':' -f 2`
+	if [ "${dir}" != "" ]; then
+		sed -i '/^.*\/'"${ofolder}"'$/s/\(^.*\/\).*$/\1'"${nfolder}"'/' ${smb_disk_dir}/${idx}
+		mv "${dir}/${ofolder}" "${dir}/${nfolder}"
+		[ "$?" == "0" ] && ret=1
+	fi
+	[ ${ret} -eq 1 ] && echo "!OK" || echo "!ERR"
+}
+
+smb_commit() {
+# "smb_account?" modified or "smb add/del" called
+# "smb commit" must be called, otherwise samba doesn't work
+	local ret=0
+	local inum=1
+	local smb_account=""
+	local smb_accounts=""
+	local accounts=""
+	while [ ${inum} -le ${smbaccountnum} ]
+	do
+		config_get smb_account "smb_account${inum}"
+		smb_account=`config_chk "${smb_account}"`
+		if [ "${smb_account}" != "" ]; then
+			accounts=`echo -e "${smb_account}\n${accounts}"`
+			smb_account=`echo "${smb_account}" | sed 's/^name=\(.*\)&.*$/\1/'`
+			smb_accounts=`echo -e "${smb_account}\n${smb_accounts}"`
+		fi
+		inum=`expr ${inum} + 1`
+	done
+	sed -i '/^$/d' ${smb_usr_conf}
+	while read usr
+	do
+		if echo "${smb_accounts}" | grep "^${usr}$" > /dev/null; then
+			# this user is existed
+			echo "smb_account: ${usr} is existed"
+			smb_accounts=`echo "${smb_accounts}" | grep -v "^${usr}$"`
+		else
+			# this user is eliminated
+			echo "smb_account: ${usr} is eliminated"
+			local passwd=`echo "${accounts}" | grep "${usr}" | sed 's/^.*pass=\(.*\)$/\1/'`
+			smbpasswd -del "${usr}" > /dev/null 2>&1
+			deluser "${usr}" > /dev/null 2>&1
+			sed -i "/^${usr}$/d" ${smb_usr_conf}
+			rm -fr "${smb_usr_dir}/${usr}"
+		fi
+	done < ${smb_usr_conf}
+	echo "${smb_accounts}" | while read usr
+	do
+		if [ "${usr}" != "" ]; then
+			local passwd=`echo "${accounts}" | grep "${usr}" | sed 's/^.*pass=\(.*\)$/\1/'`
+			adduser -DH "${usr}" > /dev/null 2>&1
+			smbpasswd "${usr}" "${passwd}" > /dev/null 2>&1
+			echo "smb_account: ${usr} is appended"
+			echo "${usr}" >> ${smb_usr_conf}
+		fi
+	done
+
+# check smb_account? modified??
+# check disk folder? modified??
+	while read line
+	do
+		local idx=`echo "${line}" | cut -d ':' -f 1`
+		local dir=`echo "${line}" | cut -d ':' -f 2`
+		scan_disk "${idx}" "${dir}"
+	done < ${smb_cur_conf}
+# forcely set ret=1, always be successful
+	ret=1
+	[ ${ret} -eq 1 ] && echo "!OK" || echo "!ERR"
+}
+
+smb_config_user_mode() {
+	cat ${smb_cur_conf} | awk 'BEGIN{FS=":"} {print $1,$2}' | while read idx dir
+	do
+		cat ${smb_disk_dir}/${idx} | awk 'BEGIN{FS="/"} {print $1,$2}' | while read iidx name
+		do
+			local v_usrs=""
+			local w_usrs=""
+			sed -i '/^$/d' ${smb_usr_conf}
+			while read usr
+			do
+				if grep "^${iidx}/[123]" ${smb_usr_dir}/${usr}/${idx}; then
+					v_usrs=`echo "${v_usrs},${usr}"`
+				fi
+				if grep "^${iidx}/[23]" ${smb_usr_dir}/${usr}/${idx}; then
+					w_usrs=`echo "${w_usrs},${usr}"`
+				fi
+			done < ${smb_usr_conf} 
+			if [ "${v_usrs}" == "" ]; then
+				echo "name=$name no any valid users"
+				continue
+			else
+				v_usrs=`echo "${v_usrs}" | sed 's/^,//'`
+			fi
+			echo "name=$name"
+			file_write "[${name}]" ${smbshare}
+			file_write "\tpath = ${dir}/${name}" ${smbshare}
+			file_write "\tvalid users = ${v_usrs}" ${smbshare}
+			if [ "${w_usrs}" == "" ]; then
+				echo "name=$name no any write list"
+			else
+				w_usrs=`echo "${w_usrs}" | sed 's/^,//'`
+				file_write "\twrite list = ${w_usrs}" ${smbshare}
+			fi
+			file_write "\tread only = yes" ${smbshare}
+			file_write "\tcreate mask = 0664" ${smbshare}
+			file_write "\tdirectory mask = 0775" ${smbshare}
+			file_write "" ${smbshare}
+		done
+	done
+}
+
+smb_config_share_mode() {
+	cat ${smb_cur_conf} | awk 'BEGIN{FS=":"} {print $1,$2}' | while read idx dir
+	do
+		cat ${smb_disk_dir}/${idx} | cut -d '/' -f 2 | while read name
+		do
+			file_write "[${name}]" ${smbshare}
+			file_write "\tpath = ${dir}/${name}" ${smbshare}
+			file_write "\tread only = no" ${smbshare}
+			file_write "\tguest ok = yes" ${smbshare}
+			file_write "\tcreate mask = 0664" ${smbshare}
+			file_write "\tdirectory mask = 0775" ${smbshare}
+			file_write "" ${smbshare}
+		done
+	done
+}
+
+smb_config_share_mode_all_partitions() {
+	cat ${smb_cur_conf} | awk 'BEGIN{FS=":"} {print $1,$2}' | while read idx dir
+	do
+		file_write "[${dir##/*/}]" ${smbshare}
+		file_write "\tpath = ${dir}" ${smbshare}
+		file_write "\tread only = no" ${smbshare}
+		file_write "\tguest ok = yes" ${smbshare}
+		file_write "\tcreate mask = 0664" ${smbshare}
+		file_write "\tdirectory mask = 0775" ${smbshare}
+		file_write "" ${smbshare}
+	done
+}
+
+smb_start() {
+	[ -x ${smbprog} ] && {
+		${smbprog} restart
+		echo "samba is running"
+	}
+}
+
+smb_stop() {
+	[ -x ${smbprog} ] && {
+		${smbprog} stop
+		echo "samba is stop"
+	}
+}
+
+smb_run() {
+	smb_stop
+	if [ "${ACTION}" == "add" ]; then
+		build_disk ${disk_name}
+	fi
+	if [ "${ACTION}" == "remove" ]; then
+		awk -F: '{print $2}' ${smb_cur_conf} | while read p
+		do
+			if mount | grep -v "${p}" > /dev/null; then
+				sed -i "/${p##/*/}$/d" ${smb_cur_conf}
+			fi
+		done
+	fi
+
+	# initialize samba config
+	rm -f ${smbshare}
+	# do smb enable/disable
+	case "${smb_enable}" in
+		"0")	echo "smb is disabled"
+				smb_stop
+				;;
+		"1")	echo "smb is enabled in security share mode for all partitions"
+				sed -i '/security =/s/=.*$/= share/' ${smbconf}
+				smb_config_share_mode_all_partitions
+				;;
+		"2")	echo "smb is enabled in security user mode"
+				sed -i '/security =/s/=.*$/= user/' ${smbconf}
+				smb_config_user_mode
+				;;
+		"3")	echo "smb is enabled in security share mode"
+				sed -i '/security =/s/=.*$/= share/' ${smbconf}
+				smb_config_share_mode
+				;;
+	esac
+	if [ `cat ${smb_cur_conf} | wc -l` -gt 0 ]; then
+		smb_start
+	fi
+}
+
+config_get smb_enable smb_enable
+config_get smb_default_attr smb_default_attr
+config_check
+[ -z "$1" ] && exit 0
+arg="$1"
+shift
+args="$*"
+args=`${httpprog} -d "${args}"`
+case "${arg}" in
+	"ls")	smb_ls
+			;;
+	"get")	smb_get
+			;;
+	"set")	smb_set ${args} 
+			;;
+	"add")	smb_add ${args}
+			;;
+	"del")	smb_del ${args}
+			;;
+	"ren")	smb_ren ${args}
+			;;
+	"commit")
+			smb_commit
+			;;
+	"run")
+			smb_run &
+			;;
+esac
+
+exit 0

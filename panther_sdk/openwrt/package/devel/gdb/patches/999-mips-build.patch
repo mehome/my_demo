@@ -1,0 +1,27 @@
+diff -Nur a/gdb/configure b/gdb/configure
+--- a/gdb/configure	2014-07-29 20:37:42.000000000 +0800
++++ b/gdb/configure	2017-10-14 17:54:28.020291220 +0800
+@@ -7172,7 +7172,7 @@
+ 
+ fi
+ 
+-
++ac_cv_search_tgetent=yes
+ if test "$ac_cv_search_tgetent" = no; then
+   as_fn_error "no termcap library found" "$LINENO" 5
+ fi
+diff -Nur a/gdb/Makefile.in b/gdb/Makefile.in
+--- a/gdb/Makefile.in	2014-07-29 20:37:42.000000000 +0800
++++ b/gdb/Makefile.in	2017-10-14 17:54:50.852292406 +0800
+@@ -554,9 +554,9 @@
+ # LIBIBERTY appears twice on purpose.
+ CLIBS = $(SIM) $(READLINE) $(OPCODES) $(BFD) $(INTL) $(LIBIBERTY) $(LIBDECNUMBER) \
+ 	$(XM_CLIBS) $(NAT_CLIBS) $(GDBTKLIBS) \
+-	@LIBS@ @GUILE_LIBS@ @PYTHON_LIBS@ \
++	@LIBS@ -lncurses @GUILE_LIBS@ @PYTHON_LIBS@ \
+ 	$(LIBEXPAT) $(LIBLZMA) $(LIBBABELTRACE) \
+-	$(LIBIBERTY) $(WIN32LIBS) $(LIBGNU)
++	$(LIBIBERTY) $(WIN32LIBS) $(LIBGNU) -lgcc_s
+ CDEPS = $(XM_CDEPS) $(NAT_CDEPS) $(SIM) $(BFD) $(READLINE_DEPS) \
+ 	$(OPCODES) $(INTL_DEPS) $(LIBIBERTY) $(CONFIG_DEPS) $(LIBGNU)
+ 

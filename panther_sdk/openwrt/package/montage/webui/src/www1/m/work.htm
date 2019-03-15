@@ -1,0 +1,662 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href=css/demo2.css rel=stylesheet type="text/css" />
+ <script src="javascript/functions.js"></script>
+ <script src="javascript/common.js"></script>
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/product.js"></script>
+ <script src="javascript/md5.js"></script>
+ <script src="javascript/set_wireless.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+ <script>
+var work_mode = wdk.cdbVal('$op_work_mode');
+var SSID_NUM = 0;
+
+var modeVal = [3, 9]; // WISP, RPTR, BRGE, STA
+
+var selVal;
+var scanResult;
+var apInfoArr = [];
+
+function init() {
+	wdk.init_form();
+	//Apply wireless setting.
+	wl_init();
+	showTargetAP();
+}
+
+/**
+ * [wl_init For work.htm ONLY, since this function's instructions are
+ * included in wireless_bais::init(). But each init() is unique, those
+ * function can't be extracted to one copy.]
+ * @return {[type]} [description]
+ */
+function wl_init() {
+	var f = document.frm;
+	//critical
+	init_working_mode(Number(wdk.cdbVal('$wl_enable')));
+	//wdk.init_form();
+
+	var mgt = wdk.cdbVal('$wl_bss_key_mgt2');
+	var sec_mode = wdk.cdbVal('$wl_bss_sec_type2');
+	var cipher_mode = wdk.cdbVal("$wl_bss_cipher2");
+	if (mgt == 1) // whether 8021x
+	{
+		// we don't support client mode using 8021X
+		wdk.cdbSet('$wl_bss_key_mgt2', 0);
+	}
+	sec_view_disp(sec_mode, cipher_mode);
+}
+
+function apInfo() {
+	this.bssid = "";
+	this.ssid = "";
+	this.ch = "";
+	this.sig = "";
+	this.band = "";
+	this.sec = "";
+	this.secNum = '';
+	this.pcipher = "";
+	this.pcipherNum = '';
+	this.gcipher = "";
+
+	// infoStr:"bssid=c8:d3:a3:69:4a:96&ssid=000dlink-4A96&ch=1&sig=18&band=4&sec=8&pcipher=0&gcipher=0"
+	this.setAPInfo = function(infoStr) {
+		this.bssid = infoStr.split('&')[0].split('=')[1];
+		this.ssid = infoStr.substring(infoStr.indexOf("&ssid=") + 6, infoStr.indexOf("&ch="));
+		this.ch = infoStr.split('&')[2].split('=')[1];
+		this.sig = infoStr.split('&')[3].split('=')[1];
+		this.band = infoStr.split('&')[4].split('=')[1];
+		sec_ = infoStr.split('&')[5].split('=')[1];
+		this.secNum = sec_;
+		if (sec_ == 0) {
+			this.sec_ = "None";
+		} else {
+			if (sec_ & 1)
+				this.sec += "WEP ";
+			if (sec_ & 2)
+				this.sec += "WPA ";
+			if (sec_ & 4)
+				this.sec += "WPA2 ";
+			if (sec_ & 8)
+				this.sec += "WPS ";
+			if (sec_ & 16)
+				this.sec += "WAPI ";
+		}
+
+		var pcipher_ = infoStr.split('&')[6].split('=')[1];
+		this.pcipherNum = pcipher_;
+		if (pcipher_ == 0) {
+			this.pcipher += "None ";
+		} else {
+			if (pcipher_ & 8)
+				this.pcipher += "TKIP ";
+			if (pcipher_ & 16)
+				this.pcipher += "AES ";
+		}
+		this.gcipher = infoStr.split('&')[7].split('=')[1];
+	}
+}
+
+/**
+ * [getAPInfo 1. Called by triggering Survey.]
+ * @return {[type]} [Update the searched ap result,storing to an array]
+ */
+function getAPInfo() {
+	apInfoArr = []; // clear the apInfoArr for the new searching result.  
+	var apListStr = wdk.cliCmd('ap result');
+	apList = apListStr.split('\n');
+	apList.splice(apList.length - 1);
+
+	for (var i = 0; i < apList.length; i++) {
+		var ap = new apInfo();
+		// ap.setSec(apList[i].split('&')[1],apList[i].split('&')[5]);  //set ap.sec, ap.ssid
+		ap.setAPInfo(apList[i]);
+		// use new api
+		apInfoArr.push(ap);
+	}
+}
+
+function ScanSurvey() {
+	var surveyEle = document.getElementById('survey');
+	surveyEle.disabled = true;
+	timeout = 3;
+	wdk.cliCmd('ap scan all');
+
+	interval = setInterval(function() {
+		surveyEle.value = timeout;
+		if (timeout-- <= 0) {
+			clearInterval(interval);
+			surveyEle.value = 'Survey';
+			surveyEle.disabled = false;
+			getAPInfo();
+			updateAPList();
+			document.getElementById('aplist').style.display = "block";
+		}
+	}, 1000);
+	// wdk.cliCmd("ap scan all");
+	//document.getElementById('aplist').style.display='block'
+}
+
+function updateAPList() {
+	var hookAPBtn = document.getElementById('aplisthook');
+	var wl_ssid = document.getElementById('$wl_bss_ssid2');
+	var wl_bssid = document.getElementById('$wl_bss_bssid2');
+	var wl_channel = document.getElementById('$wl_channel');
+
+	//Remove old ap(s) on the view.
+	while (hookAPBtn.firstChild) {
+		hookAPBtn.removeChild(hookAPBtn.firstChild);
+	}
+
+	//Append new ap(s)
+	for (var i = 0; i < apInfoArr.length; ++i) {
+		var li = document.createElement('li');
+		li.className = 'button';
+		var apBtn = document.createElement('input');
+		apBtn.setAttribute('type', 'button');
+		apBtn.setAttribute('id', i);
+		apBtn.setAttribute('value', apInfoArr[i].ssid);
+		apBtn.onclick = function() {
+			var clickItem = apInfoArr[this.id];
+			wl_channel.value = clickItem.ch;
+			wl_ssid.value = clickItem.ssid;
+			wl_bssid.value = clickItem.bssid;
+			sec_view_disp(clickItem.secNum << 2, clickItem.pcipherNum >> 1);
+		}
+
+		li.appendChild(apBtn);
+		hookAPBtn.appendChild(li);
+	}
+	//  document.getElementById('xxx').onclick= function(){alert(this.value);}
+}
+/**
+ * [showTargetAP work.htm ONLY.]
+ * @return {[type]} [description]
+ */
+function showTargetAP() {
+	scanResult = false;
+	var sel = wdk.getById("$op_work_mode");
+	var selInd = sel.selectedIndex;
+	selVal = sel.options[selInd].value;
+	selVal = parseInt(selVal);
+	for (var i = 0; i < modeVal.length; i++) {
+		if (modeVal[i] == selVal) {
+			scanResult = true;
+			break;
+		}
+	}
+	// Update Wireless-Setting - XXX mode
+	updateWirelessSettingStr();
+
+	if (scanResult) {
+		document.getElementById("wl_wbs2_hiden").style.display = 'block';
+	} else {
+
+		document.getElementById("wl_wbs2_hiden").style.display = 'none';
+		document.getElementById("aplist").style.display = 'none';
+	}
+
+	// For STN mode:
+	if (selVal == 9) {
+		document.getElementById("wl_opt").style.display = 'none';
+		document.getElementById("wl_wbs1_hiden").style.display = 'none';
+		document.getElementById("wl_setting_title").style.display = 'none';
+
+	} else {
+		document.getElementById("wl_opt").style.display = 'none';
+		document.getElementById("wl_wbs1_hiden").style.display = 'none';
+		document.getElementById("wl_setting_title").style.display = 'none';
+	}
+	document.getElementById("aplist").style.display = 'none'; // The on and off for the AP list is controlled by ScanResult()
+}
+
+function updateWirelessSettingStr() {
+	var updateStr = 'error!';
+	var workMode = document.getElementById('$op_work_mode');
+	var work_mode = workMode.options[workMode.selectedIndex].value;
+	switch (work_mode) {
+		case '1':
+			updateStr = "AP mode";
+			break;
+		case '2':
+			updateStr = "Wireless Router mode";
+			break;
+		case '3':
+			updateStr = "WISP mode";
+			break;
+		case '4':
+			updateStr = "Repeater mode";
+			break;
+		case '5':
+			updateStr = "Bridge mode";
+			break;
+			/*--ifdef CONFIG_USB_ETH--*/
+		case '9':
+			updateStr = "Station mode";
+			break;
+			/*--endif--*/
+	}
+	var e = document.getElementById("wl_setting_title");
+	e.innerHTML = "Wireless Setting - " + updateStr;
+}
+
+function apply() {
+	var f = document.frm;
+	var sys_wm = wdk.getByName(f, 'sys_wm');
+
+	wdk.cdbSet('$wl_bss_enable1', 1);
+	wdk.cdbSet('$wl_bss_enable2', 0);
+	wdk.cdbSet('$dhcps_enable', 1); // default on
+	switch (sys_wm.value) {
+		case '1': // AP
+			break;
+		case '2': // Wireless Router
+			break;
+		case '3': // WISP
+			wdk.cdbSet('$wl_bss_enable2', 1);
+			break;
+		case '4': // AP Client Repeater
+		case '5': // AP Client Bridge
+			wdk.cdbSet('$dhcps_enable', 0);
+			wdk.cdbSet('$wl_bss_enable2', 1);
+			break;
+			/*--ifdef CONFIG_USB_ETH--*/
+		case '6': // Station
+			wdk.cdbSet('$dhcps_enable', 0);
+			wdk.cdbSet('$wl_bss_enable1', 0);
+			wdk.cdbSet('$wl_bss_enable2', 1);
+			break;
+			/*--endif--*/
+		case '7': // 3G
+			//reserve previous $wan_mode when switching to 3G mode
+			if (work_mode != 7) {
+				var w = wdk.cdbVal('$wan_mode');
+				wdk.cdbSet('$wan_pmode', w);
+			}
+			wdk.cdbSet('$wan_mode', 9);
+			break;
+	}
+
+	wdk.cdbSet('$op_work_mode', sys_wm.value);
+	//restore previous $wan_mode when out of 3G mode
+	if (wdk.cdbChg('$op_work_mode') && (work_mode == 7)) {
+		var p = wdk.cdbVal('$wan_pmode');
+		wdk.cdbSet('$wan_mode', p);
+	}
+
+	if (Number(sys_wm.value) == 9) {
+		var confirmed = window.confirm(wdk.msg("Switching to STA mode might make you unable to connect to DUT if authentication information is wrong"));
+		if (!confirmed) {
+			window.location.reload();
+			return;
+		}
+	}
+
+	//Apply wireless setting.
+	work_mode = sys_wm.value;
+	if (!wl_apply()) return;
+
+	/*--ifdef CONFIG_OP_CHANGE_REBOOT--*/
+	if (wdk.cdbChg('$op_work_mode')) {
+		wdk.showResultBG();
+		reboot();
+		wdk.save_form(0, 1);
+	} else
+	/*--endif--*/
+		wdk.save_form(2000);
+}
+
+function createChannelRngByCountry() {
+	var countryCode = wdk.cdbVal('$wl_region');
+	addAutoChannelOpt();
+
+	if (countryCode == "CN")
+		createSelectTagChild(1, 13);
+	else if (countryCode == "JP")
+		createSelectTagChild(1, 13);
+	else //US
+		createSelectTagChild(1, 11);
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <!-- result background -->
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="adm.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+ </div>
+
+
+ <form method="post" name="frm">
+  <fieldset>
+   <span class="graytitle">Working Mode</span>
+   <ul class="pageitem">
+    <li class="smallfield"><span class="name">Mode</span>
+     <select name="sys_wm" id="$op_work_mode" size="1" onchange="showTargetAP()">
+      <!--ifdef CONFIG_OP_AP-->
+      <option id="w1" value="1">
+       <script>
+wdk.putmsg('AP')
+       </script>
+      </option>
+      <!--endif-->
+      <!--ifdef CONFIG_OP_WR-->
+      <option id="w2" value="2">
+       <script>
+wdk.putmsg('Wireless Router')
+       </script>
+      </option>
+      <!--endif-->
+      <!--ifdef CONFIG_OP_WISP-->
+      <option id="w3" value="3">
+       <script>
+wdk.putmsg('WISP')
+       </script>
+      </option>
+      <!--endif-->
+      <!--ifdef CONFIG_OP_3G-->
+      <option id="w7" value="7">
+       <script>
+wdk.putmsg('3G')
+       </script>
+      </option>
+      <!--endif-->
+      <!--ifdef CONFIG_OP_STA-->
+      <option id="w9" value="9">
+       <script>
+wdk.putmsg('STA')
+       </script>
+      </option>
+      <!--endif-->
+     </select>
+    </li>
+   </ul>
+
+   <!-- Hidden Part -->
+   <!-- When the DUT plays the role as server, it requires the user to configure the network type and give the specific SSID name -->
+   <div id="stn_switch" style="display:block">
+    <div id="wl_opt">
+     <span class="graytitle"><script>wdk.putmsg("Options")</script></span>
+     <ul class="pageitem">
+      <li class="smallfield">
+       <span class="name"><script>wdk.putmsg('Wireless Network Mode');</script></span>
+       <select name="wl_bs_nm" id="$wl_bb_mode" size="1">
+        <option value="1">
+         <script>
+wdk.putmsg('802.11b')
+         </script>
+        </option>
+        <option value="2">
+         <script>
+wdk.putmsg('802.11g')
+         </script>
+        </option>
+        <option value="4">
+         <script>
+wdk.putmsg('802.11n')
+         </script>
+        </option>
+        <option value="3">
+         <script>
+wdk.putmsg('Mixed 802.11b, 802.11g')
+         </script>
+        </option>
+        <option value="7">
+         <script>
+wdk.putmsg('Mixed 802.11b, 802.11g, 802.11n')
+         </script>
+        </option>
+       </select>
+      </li>
+
+      <li class="smallfield">
+       <span class=name><script>wdk.putmsg('Wireless Channel')</script></span> 
+       <select name="wl_b_sc" id="$wl_channel" size="1">
+        <script>
+createChannelRngByCountry()
+        </script>
+       </select>
+      </li>
+     </ul>
+    </div>
+    <!-- wl_opt done-->
+
+    <div id="wl_setting" style="display:none">
+     <!-- title -->
+     <span id="wl_setting_title" class="graytitle"><script>display_working_mode()</script></span> 
+
+     <!-- wl_wbs1_hiden -->
+     <div id="wl_wbs1_hiden" style="display:none">
+      <ul class="pageitem">
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("Wireless SSID")</script></span>
+        <input type="text" name="wl_bss_ssid1" id="$wl_bss_ssid1" size="17" maxLength="32">
+       </li>
+      </ul>
+     </div>
+    </div>
+    <!-- stn switch -->
+    <!-- wl_wbs1_hiden done -->
+
+    <!-- wl_wbs2_hiden -->
+    <div id="wl_wbs2_hiden" style="display:none">
+     <span class="graytitle">Target AP</span>
+     <ul class="pageitem">
+      <li class="smallfield">
+       <span class="name"><script>wdk.putmsg("Wireless SSID")</script></span>
+       <input type="text" name=wl_bss_ssid2 id="$wl_bss_ssid2" size="17" maxLength="32" placeholder="Enter SSID Name">
+      </li>
+      <li class="smallfield">
+       <span class="name"><script>wdk.putmsg("Wireless BSSID")</script></span>
+       <input type="text" placeholder="Device's MAC address." name="wl_bss_bssid2" id="$wl_bss_bssid2" size=17 maxLength=17>
+      </li>
+      <li class="button">
+       <input type="button" id="survey" value="Survey" onclick="ScanSurvey()">
+      </li>
+      <li class="smallfield">
+       <span class="name"><script>wdk.putmsg("Security Mode")</script></span>
+       <select name="wl_sec_type" id="wl_sec_type" size="1" onchange="sec_view_disp(this.value)">
+        <option value="0">
+         <script>
+wdk.putmsg("Disable")
+         </script>
+        </option>
+        <option value="5">WEP</option>
+        <option value="8">WPA - PSK</option>
+        <option value="16">WPA2 - PSK</option>
+        <option value="24">WPA/WPA2 - PSK</option>
+        <option value="128">WAPI - PSK</option>
+       </select>
+      </li>
+     </ul>
+
+     <!-- wireless security: include wep and wpa part -->
+     <div id="wl_sec_option" style="display:none" class="graytitle"></div>
+     <!-- wep -->
+     <div id="wl_wep_disp" style="display:none">
+      <ul class="pageitem">
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("Authentication Mode")</script></span> 
+        <select name="wl_sec_wep_auth_mode" id="wl_sec_wep_auth_mode" size="1">
+         <option value="1">
+          <script>
+wdk.putmsg("Open System")
+          </script>
+         </option>
+         <option value="2">
+          <script>
+wdk.putmsg("Shared System")
+          </script>
+         </option>
+        </select>
+       </li>
+
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("Authentication Length")</script></span> 
+        <select name="wl_sec_wep_cipher" id="wl_sec_wep_cipher" size="1">
+         <option value="1">
+          <script>
+wdk.putmsg("64 Bit")
+          </script>
+         </option>
+         <option value="2">
+          <script>
+wdk.putmsg("128 Bit")
+          </script>
+         </option>
+        </select>
+       </li>
+
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("WEP Key Selection")</script></span> 
+        <select name="wl_bss_wep_index2" id="$wl_bss_wep_index2" size="1">
+         <option value="0">
+          <script>
+wdk.putmsg("Key 1")
+          </script>
+         </option>
+         <option value="1">
+          <script>
+wdk.putmsg("Key 2")
+          </script>
+         </option>
+         <option value="2">
+          <script>
+wdk.putmsg("Key 3")
+          </script>
+         </option>
+         <option value="3">
+          <script>
+wdk.putmsg("Key 4")
+          </script>
+         </option>
+        </select>
+       </li>
+
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("WEP Key1")</script></span> 
+        <input type="text" name="wl_bss_wep_1key2" id="$wl_bss_wep_1key2" size="26">
+       </li>
+
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("WEP Key2")</script></span> 
+        <input type="text" name="wl_bss_wep_2key2" id="$wl_bss_wep_2key2" size="26">
+       </li>
+
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("WEP Key3")</script></span> 
+        <input type="text" name="wl_bss_wep_3key2" id="$wl_bss_wep_3key2" size="26">
+       </li>
+
+       <li class="smallfield">
+        <span class="name"><script>wdk.putmsg("WEP Key4")</script></span> 
+        <input type="text" name="wl_bss_wep_4key2" id="$wl_bss_wep_4key2" size="26">
+       </li>
+      </ul>
+     </div>
+     <!-- wep part security part done-->
+
+     <!--WPA && WAPI sec-->
+     <div id="wl_wpa_disp" style="display:none">
+      <!-- WPA -->
+      <ul class="pageitem">
+       <li class="smallfield" id="wl_wapi_cipher_disp" style="display:none">
+        <span class="name"><script>wdk.putmsg("Cipher Mode")</script></span>
+        <select name="wl_wapi_cipher" id="wl_wapi_cipher" size="1" disabled="true">
+         <option value="16">
+          <script>
+wdk.putmsg("SMS4")
+          </script>
+         </option>
+        </select>
+       </li>
+       <li class="smallfield" id="wl_wpa_cipher_disp" style="display:none">
+        <span class="name"><script>wdk.putmsg("Cipher Mode")</script></span>
+        <select name="wl_wpa_cipher" id="wl_wpa_cipher" size="1">
+         <option value="4">TKIP</option>
+         <option value="8">AES</option>
+         <option value="12">TKIP&amp;AES</option>
+        </select>
+       </li>
+       <li class="smallfield" id="wl_wpa_psk_disp" style="display:none">
+        <span class="name"><script>wdk.putmsg("Pre-shared Key")</script></span> 
+        <input type="text" name="wl_bss_wpa_psk2" id="$wl_bss_wpa_psk2" size="34" maxlength="64" placeholder="Enter the preshared key">
+       </li>
+      </ul>
+     </div>
+     <!--WPA sec done-->
+     <!-- wl_wbs2-hidden done -->
+     <!-- dummy -->
+     <div style="display:none">
+      <ul class="pageitem">
+       <li class="checkbox">
+        <span class="name"><script>wdk.putmsg("Wireless SSID broadcast")</script></span>
+        <input type="checkbox" checked="true" name="wl_bss_ssid_hidden1" id="wl_bss_ssid_hidden1">
+       </li>
+      </ul>
+     </div>
+     <!-- dummy -->
+     <!-- wl_enable -->
+     <div style="display:none">
+      <ul class="pageitem">
+       <li class="checkbox">
+        <span class="name"><script>wdk.putmsg("Enabled")</script></span>
+        <input type="checkbox" checked="true" name="wl_en" id="$wl_enable" onclick="init_working_mode(this.checked)">
+       </li>
+      </ul>
+     </div>
+     <!-- wl_enable -->
+    </div>
+    <!-- wl_setting done-->
+
+    <!-- Target AP Security setting-->
+
+    <!-- AP list -->
+    <div id="aplist" style="display:none">
+     <span class="graytitle">AP List</span>
+     <ul class="pageitem">
+      <div id="aplisthook">
+      </div>
+     </ul>
+    </div>
+    <!-- AP list Done-->
+   </div>
+  </fieldset>
+ </form>
+ <!-- Submit -->
+ <!-- Remove unecessary help page here -->
+
+ <!-- Confirm and Cancel-->
+ <ul class="pageitem">
+  <li class="button">
+   <input type="button" value="OK" onclick="apply()">
+  </li>
+  <li class="button">
+   <input type="button" value="Cancel" onclick="cancel()">
+  </li>
+ </ul>
+ <!-- Confirm and Cancel Done-->
+</body>
+
+</html>

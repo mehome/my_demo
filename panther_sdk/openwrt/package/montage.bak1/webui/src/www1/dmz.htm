@@ -1,0 +1,244 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$lan_ip', '$nat_dmz_enable', 'status wan_ip', '$nat_dmz_host1-6', ]);
+
+var wanIP = wdk.cdbVal("status wan_ip");
+var max = 6
+var peerip = wdk.cliCmd('http peerip');
+var netip = subNet(wdk.cdbVal("$lan_ip"));
+var listnum;
+var curIdx = -1;
+var lanip = wdk.cdbVal('$lan_ip');
+var currentHost = window.location.host;
+
+function init() {
+	var f = document.frm;
+	listnum = wdk.cdbLen('$nat_dmz_host', max);
+	refreshList('$nat_dmz_host', max, listnum);
+	wdk.getById('usage').innerHTML = listnum + '/' + max;
+	f.reset();
+	wdk.init_form();
+	showHide('natdmz_tab', Number(wdk.cdbVal('$nat_dmz_enable')));
+	var k = wdk.getById('lip');
+	if (!f.lipen.checked)
+		k.value = "";
+}
+
+function change_init() {
+	wdk.presubmit_form();
+	init();
+}
+
+function change(add) {
+	var r = '';
+	var tab = wdk.findChildNode(wdk.getById('edit'));
+	var lip = wdk.getByName(tab, 'lip');
+	var gip = wdk.getByName(tab, 'gip');
+	var tab = document.getElementById('tbl');
+
+	if (!chkNum(lip, 1, 254, "IP Address of Virtual DMZ Host")) {
+		lip.focus();
+		return;
+	}
+
+	for (var i = 1; i <= listnum; i++) {
+		if (!add && i == curIdx) continue;
+		var line = wdk.cdbVal('$nat_dmz_host' + i);
+
+		if (tab.rows[i].cells[0].children[0].value == gip.value) {
+			alert(wdk.msg("Duplicated") + wdk.msg("Public IP Address"));
+			return;
+		}
+
+		if (line.indexOf('lip=' + netip + lip.value) > -1) {
+			alert(wdk.msg("Duplicated") + wdk.msg("Virtual DMZ Hosts"));
+			return;
+		}
+	}
+	r = 'en=1' + '&lip=' + netip + lip.value + '&gip=';
+	if (gip.value != wanIP)
+		r += gip.value;
+
+	k = curIdx;
+	if (add) {
+		k = listnum + 1;
+		if (k > max) {
+			alert(wdk.msg("Too many entries, maximum is ") + max);
+			return
+		}
+	}
+	wdk.cdbSet('$nat_dmz_host' + k, r);
+	change_init();
+}
+
+function ip() {
+	puts(netip);
+}
+
+function getCurrentIp() {
+	var f = document.frm;
+	var s = peerip.split('.');
+	var k = wdk.getById('lip');
+	if (f.lipen.checked)
+		k.value = s[3];
+}
+
+function public_ip() {
+	var tab = wdk.getById('gip');
+	tab.options[0] = new Option(wanIP, wanIP);
+}
+
+function show_ip(v, gip) {
+	v.value = (gip == '') ? wanIP : gip;
+}
+
+function edit(idx) {
+	var r = wdk.cdbVal('$nat_dmz_host' + idx);
+	r = (r == '') ? 'en=0&str=&sip=' : r;
+	wdk.fill_form_entry(wdk.getById('edit'), r);
+	markEntry(wdk.getById('$nat_dmz_host' + idx));
+	curIdx = idx;
+}
+
+function Remove(idx) {
+	wdk.cdbDel('$nat_dmz_host' + idx, max);
+	if (curIdx > 2)
+		curIdx--;
+	change_init();
+}
+
+function apply() {
+	wdk.save_form(2000);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings")
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=col31>
+     <script>
+wdk.putmsg("Enabled")
+     </script>
+    </div>
+    <input type=checkbox name=check id=$nat_dmz_enable onclick="showHide('natdmz_tab',this.checked)">
+   </div>
+   <div id=natdmz_tab>
+    <div id=edit>
+     <div class=setting>
+      <div class=col31>
+       <script>
+wdk.putmsg("Public IP Address")
+       </script>
+      </div>
+      <select name=gip id=gip>
+       <script>
+public_ip()
+       </script>
+      </select>
+     </div>
+     <div class=setting>
+      <div class=col31>
+       <script>
+wdk.putmsg("IP Address of Virtual DMZ Host")
+       </script>
+      </div>
+      <script>
+ip()
+      </script>
+      <input placeholder="1~254" name=lip id=lip load=ip_lsb size=5 maxlength=3>
+     </div>
+     <div class=setting>
+      <div class=col31>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</div>
+      <script>
+if (lanip != currentHost) {
+	puts('<input type=checkbox name=lipen value=1 onclick=getCurrentIp() disabled>');
+	puts('<font color="#C0C0C0">' + wdk.msg("Get current LAN IP automatically") + '<' + '/font>');
+} else {
+	puts('<input type=checkbox name=lipen value=1 onclick=getCurrentIp()>');
+	wdk.putmsg("Get current LAN IP automatically");
+}
+      </script>
+     </div>
+     <div class=setting>
+      <center>
+       <script>
+puts('<input type=button class=button name=Add value="' + wdk.msg('Add') + '" onclick=change(1)>' +
+	'<input type=button class=button name=Mod value="' + wdk.msg('Modify') + '" onclick=change(0)>');
+       </script>
+      </center>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Rules Listing")
+      </script>
+     </div>
+     <div class=col3r><span id=usage></span>
+      <script>
+wdk.putmsg(" (using/max)")
+      </script>
+     </div>
+    </div>
+    <div class=floatKiller></div>
+    <hr>
+    <table class=infolist id=tbl>
+     <tr>
+      <th width=45%>
+       <script>
+wdk.putmsg("Public IP Address")
+       </script>
+      </th>
+      <th width=45%>
+       <script>
+wdk.putmsg("IP Address of Virtual DMZ Host")
+       </script>
+      </th>
+      <th width=10%>
+       <script>
+wdk.putmsg("Action")
+       </script>
+      </th>
+     </tr>
+     <tr align=center id=$nat_dmz_host1>
+      <td align=left>
+       <input name=gip disabled size=32 load=show_ip>
+      </td>
+      <td align=left>
+       <input name=lip disabled size=32>
+      </td>
+      <td>
+       <img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode.rowIndex)>&nbsp;
+       <img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode.rowIndex)>
+      </td>
+     </tr>
+    </table>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

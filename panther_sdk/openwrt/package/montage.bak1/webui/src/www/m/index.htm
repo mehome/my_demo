@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+ <title>Panther(Mobile Version)</title>
+
+ <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <script src="javascript/functions.js" type="text/javascript"></script>
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+
+ <script type="text/javascript">
+var curMediaState;
+function init() {
+	wdk.cdbLoad(['$op_work_mode', '$ra_func', '$ra_radiotype']);
+	var opWorkMode = wdk.cdbVal('$op_work_mode');
+	raRadioType = Number(wdk.cdbVal('$ra_radiotype'));
+	curMediaState = Number(wdk.cdbVal("$ra_func").trim());
+
+	if ((opWorkMode == "2") || (opWorkMode == "7")) {
+		get_by_id('wan').style.display = 'block';
+	} else {
+		get_by_id('wan').style.display = 'none';
+	}
+
+}
+
+ </script>
+</head>
+
+<body onload="init()">
+ <div id="topbar">
+  <div id="title">Panther</div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+
+   <li class="menu">
+    <a href="adm.htm">
+     <span class="name">Admin</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="lan.htm">
+     <span class="name">LAN</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li id="wan" class="menu">
+    <a href="sel_wan.htm">
+     <span class="name">WAN</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="wifi.htm">
+     <span class="name">Wireless</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="files.htm">
+     <span class="name">Storage</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="status.htm">
+     <span class="name">Status</span><span class="arrow"></span>
+    </a>
+   </li>
+
+  </ul>
+
+ </div>
+
+</body>
+
+</html>

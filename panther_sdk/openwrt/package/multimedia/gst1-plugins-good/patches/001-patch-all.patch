@@ -1,0 +1,54 @@
+diff -Nur a/configure.ac b/configure.ac
+--- a/configure.ac	2017-09-18 19:32:24.000000000 +0800
++++ b/configure.ac	2017-10-04 18:28:47.765580319 +0800
+@@ -1061,27 +1061,9 @@
+ sys/v4l2/Makefile
+ sys/waveform/Makefile
+ sys/ximage/Makefile
+-po/Makefile.in
+-tests/Makefile
+-tests/check/Makefile
+-tests/examples/Makefile
+-tests/examples/audiofx/Makefile
+-tests/examples/cairo/Makefile
+-tests/examples/equalizer/Makefile
+-tests/examples/jack/Makefile
+-tests/examples/level/Makefile
+-tests/examples/rtp/Makefile
+-tests/examples/shapewipe/Makefile
+-tests/examples/spectrum/Makefile
+-tests/examples/v4l2/Makefile
+-tests/files/Makefile
+-tests/icles/Makefile
+ common/Makefile
+ common/m4/Makefile
+ m4/Makefile
+-docs/Makefile
+-docs/plugins/Makefile
+-docs/version.entities
+ pkgconfig/Makefile
+ pkgconfig/gstreamer-plugins-good-uninstalled.pc
+ )
+diff -Nur a/gst/multifile/Makefile.am b/gst/multifile/Makefile.am
+--- a/gst/multifile/Makefile.am	2017-05-15 23:46:26.000000000 +0800
++++ b/gst/multifile/Makefile.am	2017-10-04 18:29:01.689581043 +0800
+@@ -28,5 +28,5 @@
+ 	gstsplitutils.c \
+ 	patternspec.c
+ test_splitmux_part_reader_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CFLAGS) $(GIO_CFLAGS)
+-test_splitmux_part_reader_LDADD = $(GST_PLUGINS_BASE_LIBS) -lgstvideo-@GST_API_VERSION@ $(GST_BASE_LIBS) $(GST_LIBS) $(GIO_LIBS)
++test_splitmux_part_reader_LDADD = $(GST_PLUGINS_BASE_LIBS) -lgstvideo-@GST_API_VERSION@ $(GST_BASE_LIBS) $(GST_LIBS) $(GIO_LIBS) -lm -lrt -lpthread -ldl
+ test_splitmux_part_reader_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
+diff -Nur a/Makefile.am b/Makefile.am
+--- a/Makefile.am	2017-05-15 23:46:26.000000000 +0800
++++ b/Makefile.am	2017-10-04 18:28:47.765580319 +0800
+@@ -2,9 +2,6 @@
+ 
+ ALWAYS_SUBDIRS =		\
+ 	gst sys ext 		\
+-	tests			\
+-	docs			\
+-	po			\
+ 	common			\
+ 	m4			\
+ 	pkgconfig

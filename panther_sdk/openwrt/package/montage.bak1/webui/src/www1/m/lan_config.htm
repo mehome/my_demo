@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$dhcps_enable',
+	'$dhcps_start',
+	'$dhcps_end',
+	'$dhcps_lease_time',
+	'$lan_ip',
+	'$dns_enable',
+	'status wan_ip',
+	'$dhcps_probe'
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var lanCfg = {
+	'lanIp': mainObj.config_val('$lan_ip'),
+	'wanIp': mainObj.config_val('status wan_ip'),
+	'lanDhcp': mainObj.config_val('$dhcps_enable'),
+	'lanMinAddr': mainObj.config_val('$dhcps_start'),
+	'lanMaxAddr': mainObj.config_val('$dhcps_end'),
+	'dhcpLeaseTime': mainObj.config_val('$dhcps_lease_time'),
+	'dnsProxy': mainObj.config_val('$dns_enable'),
+};
+
+function send_request() {
+	var ip = get_by_id("lan_ip").value;
+	var dhcpsrv = get_checked_value(get_by_id("dhcpsvr"));
+	var start_ip = get_by_id("dhcpd_start").value;
+	var end_ip = get_by_id("dhcpd_end").value;
+	var dhcp_les = get_by_id("dhcpd_lease_time").value;
+	var dns = get_checked_value(get_by_id("dns_proxy"));
+
+	var ip_obj = new addr_obj(ip.split("."), "", false, false);
+	var wan_ip_obj = new addr_obj(lanCfg.wanIp.split("."), "", false, false);
+
+	var start_obj = new addr_obj(start_ip.split("."), "", false, false);
+	var end_obj = new addr_obj(end_ip.split("."), "", false, false);
+
+	if (!chkIP(get_by_id("lan_ip"), "IP Address")) {
+		return;
+	}
+
+	if (!chkIP(get_by_id("dhcpd_start"), "IP Pool Starting Address")) {
+		return;
+	}
+
+	if (!chkIP(get_by_id("dhcpd_end"), "IP Pool Ending Address")) {
+		return;
+	}
+
+	if (!check_LAN_ip(ip_obj.addr, wan_ip_obj.addr)) {
+		alert(wdk.msg("LAN IP address can't be the same with WAN IP address !"));
+		return;
+	}
+
+	if (!check_ip_order(start_obj, end_obj)) {
+		alert(wdk.msg("IP Pool Starting Address should not be greater than IP Pool Ending Address !"));
+		return;
+	}
+
+	if (dhcpsrv == "1") {
+		if (check_lanip_order(ip_obj, start_obj, end_obj)) {
+			alert(wdk.msg("LAN IP address should not in the range of IP Pool Address !"));
+			return;
+		}
+	}
+
+	mainObj.config_set(ip, '$lan_ip');
+	mainObj.config_set(dhcpsrv, '$dhcps_enable');
+	mainObj.config_set(start_ip, '$dhcps_start');
+	mainObj.config_set(end_ip, '$dhcps_end');
+	mainObj.config_set(dhcp_les, '$dhcps_lease_time');
+	mainObj.config_set(dns, '$dns_enable');
+
+	var ret = wdk.request_submit();
+	if (ret) {
+		wdk.showResultBG();
+		reboot();
+	}
+}
+
+function init() {
+	get_by_id("lan_ip").value = lanCfg.lanIp;
+	set_checked(lanCfg.lanDhcp, get_by_id("dhcpsvr"));
+	get_by_id("dhcpd_start").value = lanCfg.lanMinAddr;
+	get_by_id("dhcpd_end").value = lanCfg.lanMaxAddr;
+	set_selectIndex(lanCfg.dhcpLeaseTime, get_by_id("dhcpd_lease_time"));
+	set_checked(lanCfg.dnsProxy, get_by_id("dns_proxy"));
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="lan.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">LAN Settings</div>
+   <div id="rightbutton">
+    <a href="#" onclick="send_request()">
+     <script>
+show_words("Done")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("IP Address")</script></span>
+     <input name="lan_ip" id="lan_ip" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Subnet Mask")</script></span>
+     <span class="label">255.255.255.0</span>
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("DHCP Server")</script></span>
+     <input name="dhcpsvr" id="dhcpsvr" type="checkbox" value="1">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Start Address")</script></span>
+     <input name="dhcpd_start" id="dhcpd_start" type="text">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("End Address")</script></span>
+     <input name="dhcpd_end" id="dhcpd_end" type="text">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Lease Time")</script></span>
+     <select name="dhcpd_lease_time" id="dhcpd_lease_time" class="duoselectionbuttons" size="1">
+      <option value="1800">
+       <script>
+get_words('Half hour')
+       </script>
+      </option>
+      <option value="3600">
+       <script>
+get_words("One hour")
+       </script>
+      </option>
+      <option value="7200">
+       <script>
+get_words("Two hours")
+       </script>
+      </option>
+      <option value="28800">
+       <script>
+get_words("Eight hours")
+       </script>
+      </option>
+      <option value="43200">
+       <script>
+get_words("Half day")
+       </script>
+      </option>
+      <option value="86400">
+       <script>
+get_words("One day")
+       </script>
+      </option>
+      <option value="172800">
+       <script>
+get_words("Two days")
+       </script>
+      </option>
+      <option value="604800">
+       <script>
+get_words("One week")
+       </script>
+      </option>
+      <option value="1209600">
+       <script>
+get_words("Two weeks")
+       </script>
+      </option>
+      <option value="315360000">
+       <script>
+get_words("Forever")
+       </script>
+      </option>
+     </select>
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("DNS Proxy")</script></span>
+     <input name="dns_proxy" id="dns_proxy" type="checkbox" value="1">
+    </li>
+   </ul>
+  </div>
+ </form>
+</body>
+
+</html>

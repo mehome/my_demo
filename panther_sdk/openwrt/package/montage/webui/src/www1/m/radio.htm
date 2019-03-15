@@ -1,0 +1,392 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta content="text/html; charset=utf-8" />
+
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" type="text/css" />
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/mediaUI.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var RSList = [];
+var rsTableInfo = new Object();
+var togglePlayDOM;
+var currentPlay;
+var currentState;
+var pressLatency = 1000;
+var volumeControl;
+var volumeNum;
+var interVal;
+var stopPolling;
+var pollingInterval = 2000;
+var favStnNum = 6;
+var RSFavList = [null, null, null, null, null, null];
+var radioEditPage = "radioEdit.htm";
+var oldVol;
+var modalLatency = 500;
+
+function RS() {
+	this.RSName = "";
+	this.RSUrl = "";
+	this.playKey = -1;
+	this.setInfo = function(rsName, rsUrl, playKey) {
+		this.RSName = rsName;
+		this.RSUrl = rsUrl;
+		this.playKey = playKey;
+	}
+	this.getName = function() {
+		return this.RSName;
+	}
+	this.createPattern = function() {
+		//return "NAME=" + this.RSName + '&' + "URI=" + this.RSUrl + ";";
+		return this.RSName + '&' + this.RSUrl + '&' + this.playKey + ";";
+	}
+}
+
+function init() {
+	wdk.stopTimeout();
+	// wdk.cliCmd("cdb set mpd_curplay None");
+	setAlias();
+	bindTouchEvent();
+	loadRSInfo();
+	setMyFavRSName();
+	// loadRSToTable();
+	createPlayList();
+	updateState();
+	stopPolling();
+	interVal = setInterval(updateCurrentStateHW, pollingInterval);
+}
+
+function setAlias() {
+	togglePlayDOM = document.getElementById('playPause');
+	currentPlay = document.getElementById('currentPlay');
+	currentState = document.getElementById('currentState');
+	volumeControl = document.getElementById('volumeControl');
+	volumeNum = document.getElementById('volumeNum');
+}
+
+function bindTouchEvent() {
+	volumeControl.addEventListener('touchstart', function(e) {
+		oldVol = volumeControl.value;
+		stopPolling();
+	}, false);
+
+	volumeControl.addEventListener('touchend', function(e) {
+		// wdk.cliCmd("mpc volume " + this.value);
+		var vol = this.value;
+		volumeControl.value = vol;
+		volumeNum.innerHTML = vol;
+		wdk.cliCmd("mpc volume " + this.value);
+		interVal = setInterval(updateCurrentStateHW, pollingInterval);
+	}, false);
+}
+
+function setMyFavRSName() {
+	for (var i = 0; i < RSList.length; i++) {
+		var playKey = RSList[i].playKey;
+		if (playKey >= 1 && playKey <= favStnNum) {
+			var favBtn = document.getElementById("myFav" + playKey);
+			var favNum = favBtn.value.split('.')[0];
+			favBtn.value = "";
+			favBtn.value = favNum + ". " + RSList[i].RSName;
+			// Add to my favorite list
+			RSFavList[playKey - 1] = RSList[i].RSName;
+		}
+	}
+}
+
+// Update radio playlist view:
+function createPlayList() {
+	var playlists = document.getElementById("playlists");
+
+	while (playlists.firstChild) {
+		playlists.removeChild(playlists.firstChild);
+	}
+
+	for (i in RSList) {
+		var alist = media.playlist.create(Number(i) + 1, RSList[i].RSName, "images/radioIcon.jpg");
+		// alist.onclick = function(){console.log(alist.value)};
+		alist.addEventListener('click',
+			function(e) {
+				var name = this.getAttribute("name");
+				wdk.cliCmd("mpc rs play " + encodeURI(name));
+
+				// togglePlayDOM.className="pause";
+				// togglePlayDOM.setAttribute("value", "pause");
+
+				updateState();
+				modal();
+			});
+		playlists.appendChild(alist);
+	}
+}
+
+// Current Play
+function updateState() {
+	updateCurrentPlay();
+	updateCurrentState();
+	// updateVol();
+}
+
+function updateCurrentStateHW() {
+	updateCurrentState();
+	updateCurrentPlay();
+	updateVol();
+}
+
+function updateVol() {
+	var curRaVol = wdk.cliCmd('$ra_vol').trim();
+
+	if (curRaVol != oldVol) {
+		volumeNum.innerHTML = curRaVol;
+		volumeControl.value = curRaVol;
+		oldVol = curRaVol;
+	}
+}
+
+function updateCurrentPlay() {
+	var currentPlay_ = wdk.cliCmd("$mpd_curplay").trim();
+	// var currentPlay_ = wdk.cliCmd("mpc current");
+	if (currentPlay_ == "")
+		currentPlay.innerHTML = "None"
+	else
+		currentPlay.innerHTML = currentPlay_;
+}
+
+function updateCurrentState() {
+	var currentState_ = wdk.cliCmd("mpc play_status").trim();
+	switch (currentState_) {
+		case "1":
+			currentState.innerHTML = wdk.msg("Stop");
+			break;
+		case "2":
+			currentState.innerHTML = wdk.msg("Playing");
+			break;
+		case "3":
+			currentState.innerHTML = wdk.msg("Pause");
+			break;
+		default:
+			currentState.innerHTML = wdk.msg("Error");
+			break;
+	}
+	currentState.setAttribute("value", currentState_);
+}
+
+function stopPolling() {
+	clearInterval(interVal);
+}
+
+function loadRSInfo() {
+	RSList = loadRSPlayList();
+	// showVol();
+}
+
+function loadRSPlayList() {
+	var rslist = [];
+	//	var tmpStr = "BBC&http://www.bbc.com&5;Cnn&http://www.cnn.com&3;ABC&http://abc.com&2"; //debug use
+	var tmpStr = wdk.cliCmd("mpc rs load_playlist");
+	var stnArr = tmpStr.split(';')
+	for (var i = 0; i < stnArr.length; i++) {
+		var newRS = new RS();
+		var rsName = stnArr[i].split('&')[0]; // rsName
+		var rsUrl = stnArr[i].split('&')[1]; // rsURL
+		var playKey = stnArr[i].split('&')[2]; // playKey
+		newRS.setInfo(rsName, rsUrl, playKey);
+		rslist.push(newRS);
+	}
+	var lastElement = rslist[rslist.length - 1];
+	lastElement.playKey = lastElement.playKey.trim();
+	return rslist;
+}
+
+// Play Control function:
+function backwardPlay() {
+	showModalWindow();
+	setTimeout(function() {
+		wdk.cliCmd("rakey backward");
+		updateState();
+		hideModalWindow();
+	}, modalLatency);
+}
+
+function forwardPlay() {
+	showModalWindow();
+	setTimeout(function() {
+		wdk.cliCmd("rakey forward");
+		updateState();
+		hideModalWindow();
+	}, modalLatency);
+}
+
+function playPlay() {
+	showModalWindow();
+	setTimeout(function() {
+		var curPlayStatus = wdk.cliCmd("mpc play_status").trim();
+		if (curPlayStatus == 2) return;
+		wdk.cliCmd('mpc play');
+		setTimeout(updateState, 500);
+		hideModalWindow();
+	}, modalLatency);
+}
+
+function playPause() {
+	showModalWindow();
+	setTimeout(function() {
+		var curPlayStatus = wdk.cliCmd("mpc play_status").trim();
+		if (curPlayStatus == 1 || curPlayStatus == 3) return;
+		wdk.cliCmd('mpc pause');
+		setTimeout(updateState, 500);
+		hideModalWindow();
+	}, modalLatency);
+}
+
+function play_stop() {
+	showModalWindow();
+	setTimeout(function() {
+		togglePlayDOM.className = "play";
+		togglePlayDOM.setAttribute("value", "play");
+		wdk.cliCmd("mpc stop");
+		updateState();
+		document.getElementById('currentState').innerHTML = "Stop";
+		hideModalWindow();
+	}, modalLatency);
+}
+
+function playFavStn(ind) {
+	showModalWindow();
+	setTimeout(function() {
+		wdk.cliCmd("rakey " + ind);
+		hideModalWindow();
+	}, modalLatency);
+}
+// adjust volume
+
+function updateVolumeNum(val) {
+	volumeNum.innerHTML = val;
+}
+
+function redirectPage(page) {
+	window.location.href = page;
+}
+
+// modal window
+function modal() {
+	showModalWindow();
+	setTimeout(hideModalWindow, pressLatency);
+}
+
+function showModalWindow() {
+	document.getElementById("modalWindow").style.display = "block";
+	document.getElementById("modalWindow").style.visibility = "visible";
+}
+
+function hideModalWindow() {
+	document.getElementById("modalWindow").style.display = "none";
+	document.getElementById("modalWindow").style.visibility = "hidden";
+}
+ </script>
+
+ <body onload="init()">
+
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/home.png" />
+    </a>
+   </div>
+  </div>
+
+  <div>
+   <input id="editMode" type="button" value="Edit Radio Playlist" onclick="redirectPage(radioEditPage)">
+  </div>
+
+  <div id="playControl" class="btnWrapper">
+   <div id="btnHolder">
+    <span id="playPrev" onclick="backwardPlay()"></span>
+    <!-- <span id="playPause" class="pause" value="pause" 
+			onclick="play_pause()"></span> -->
+    <span id="playPause" class="play" onclick="playPlay()"></span>
+    <span id="playPause" class="pause" onclick="playPause()"></span>
+    <span id="playStop" onclick="play_stop()"></span>
+    <span id="playNext" onclick="forwardPlay()"></span>
+   </div>
+   <div id="buttonBackgroundFiller"></div>
+  </div>
+
+  <span class="graytitle">Current Play and State</span>
+  <ul class="pageitem">
+   <li class="smallfield">
+    <span id="currentPlay" class="leftname"></span>
+    <span id="currentState" value="" class="rightname"></span>
+   </li>
+  </ul>
+
+  <span class="graytitle">Volume Control</span>
+  <ul class="pageitem">
+   <li id="volBar" class="smallfield">
+    <input id="volumeControl" type="range" min=0 max=100 value=0 step=1 oninput="updateVolumeNum(value)">
+    <span id="volumeNum"></span>
+   </li>
+  </ul>
+
+  <span class="graytitle">My Favorite</span>
+  <ul class="pageitem">
+   <li class="smallfield">
+    <input id="myFav1" type="button" class="input1" value="1. My Favorite" onclick="
+
+			playFavStn(1)">
+    <input id="myFav2" type="button" class="input2" value="2. My Favorite" onclick="playFavStn(2)">
+   </li>
+   <li class="smallfield">
+    <input id="myFav3" type="button" class="input1" value="3. My Favorite" onclick="
+
+			playFavStn(3)">
+    <input id="myFav4" type="button" class="input2" value="4. My Favorite" onclick="playFavStn(4)">
+   </li>
+   <li class="smallfield">
+    <input id="myFav5" type="button" class="input1" value="5. My Favorite" onclick="
+
+			playFavStn(5)">
+    <input id="myFav6" type="button" class="input2" value="6. My Favorite" onclick="playFavStn(6)">
+   </li>
+  </ul>
+
+  <div id="content">
+   <span class="graytitle">Radio</span>
+   <ul class="pageitem">
+    <div id="playlists">
+     <!-- <li class="store">
+			<a class="noeffect" href="">		
+			<img src="images/radioIcon.jpg" alt="Radio Station Image"> -->
+
+     <!-- Don't need -->
+     <!-- <span class="comment"></span> -->
+
+     <!-- <span class="name">Radio Station Name</span> -->
+     <!-- Don't need -->
+     <!-- <span class="stars5"></span> -->
+
+     <!-- Don't need -->
+     <!-- <span class="starcomment">151 Ratings</span> -->
+
+     <!-- Don't need -->
+     <!-- <span class="arrow"></span> -->
+     <!-- </a> -->
+     <!-- </li> -->
+    </div>
+   </ul>
+  </div>
+
+  <div id="modalWindow" style="display:none; visibility:hidden" class="black_overlay">
+   <div class="white_content">
+    <img src="../images/load.gif" alt="loading icon">
+   </div>
+  </div>
+
+ </body>
+
+</html>

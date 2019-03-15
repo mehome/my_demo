@@ -1,0 +1,16 @@
+diff -Nur a/configure.ac b/configure.ac
+--- a/configure.ac	2016-12-19 15:27:56.000000000 +0800
++++ b/configure.ac	2017-09-20 13:33:44.892193209 +0800
+@@ -1523,7 +1523,11 @@
+        LIBS="$CLEANLIBS"
+        ])
+     ])
+-
++  ac_cv_lib_crypto_HMAC_Update=yes
++  HAVECRYPTO="yes"
++  LIBS="-lcrypto $LIBS"
++  LDFLAGS="$CLEANLDFLAGS -L$LIB_OPENSSL"
++  CPPFLAGS="$CLEANCPPFLAGS -I$PREFIX_OPENSSL/include/openssl -I$PREFIX_OPENSSL/include"
+ 
+   if test X"$HAVECRYPTO" = X"yes"; then
+      AC_MSG_CHECKING([OpenSSL linking without -ldl])

@@ -1,0 +1,14 @@
+// 程序主要生产WIFI音箱相关HTTP扩展功能
+// 可执行文件在bin/目录下，
+// cgi文件在cgi-bin目录下。
+
+
+make lib
+sudo make lib_install
+
+make clean
+make
+sudo make install
+
+
+

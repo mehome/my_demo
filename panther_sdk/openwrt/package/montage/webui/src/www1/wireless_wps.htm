@@ -1,0 +1,383 @@
+<!--ifdef CONFIG_WLAN-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad([
+	'$wl_enable', '$wl_bss_num', '$wl_wps_def_pin', '$wl_macf_mode', '$wl_macf1-20',
+	'$wl_bss_sec_type1-' + SSID_MAX_NUM, '$wl_bss_ssid_hidden1-' + SSID_MAX_NUM,
+	'$wl_bss_key_mgt1-' + SSID_MAX_NUM, '$wl_bss_enable1-' + SSID_MAX_NUM,
+]);
+
+var SSID_NUM = wdk.cdbVal('$wl_bss_num');
+
+//wps status=STATE=idle,CONF=NO,SSID=DEMO2,AUTH=Open,ENCR=WEB,KEYIDX=1,KEY=1122334456,UUID=53949844
+
+//SECURITY MODE
+var DISABLE_SEC_MODE = 0;
+var OPEN_SEC_MODE = 1;
+var SHARED_SEC_MODE = 2;
+var WEP_SEC_MODE = 4;
+var WPA_SEC_MODE = 8;
+var WPA2_SEC_MODE = 16;
+var WPA_WPA2_SEC_MODE = 24;
+var WPS_SEC_MODE = 32;
+var WAPI_SEC_MODE = 128;
+
+//KEY_MGT
+var KEY_PSK_MGT = 0;
+var KEY_1X_MGT = 1;
+var KEY_SHA256_PSK_MGT = 2;
+var KEY_SHA256_1X_MGT = 3;
+var KEY_FT_PSK_MGT = 4;
+var KEY_FT_1X_MGT = 5;
+
+var intervalID = new Array();
+var initFlag = 0;
+var WPS_STATE = "Idle";
+var WPS_RESULT = "Fail";
+
+function init() {
+	var f = document.frm;
+
+	/*--reset--*/
+	f.reset();
+
+	for (var idx = 1; idx <= SSID_NUM; idx++) {
+		showHide('ssid' + idx + 'Disp', Number(wdk.cdbVal('$wl_bss_enable' + idx)));
+		if (Number(wdk.cdbVal('$wl_bss_sec_type' + idx)) & Number(WPS_SEC_MODE)) {
+			pinCodeDisp(0, idx);
+			wdk.getById('wl_bss_sec_type' + idx).checked = true;
+			showHide('rwpsPinCodeDisp' + idx, 1);
+			showHide('wpsModeDisp' + idx, 1);
+			showHide('statusDisp' + idx, 1);
+			//just init once
+			if (initFlag++ < SSID_NUM) {
+				wdk.getById('ssid' + idx + '_row3').innerHTML = '<img src="images/load.gif" width=22/>';
+				setInterval('statusInterval(' + idx + ')', 1000 * 3);
+			}
+			pinResult(idx);
+		}
+	}
+	var wirelessEn = Number(wdk.cdbVal('$wl_enable'));
+	if (wirelessEn == 0) alert(wdk.msg("Wireless is not enabled."));
+}
+
+function apply() {
+	var wps_disabled = 0;
+	var sec_mode = 0;
+	var key_mgt = 0;
+	var max = 20;
+	var listnum = 0;
+
+	listnum = wdk.cdbLen('$wl_macf', max);
+
+	for (var idx = 1; idx <= SSID_NUM; idx++) {
+		if (wdk.getById('wl_bss_sec_type' + idx).checked) {
+			sec_mode = Number(wdk.cdbVal('$wl_bss_sec_type' + idx));
+			key_mgt = Number(wdk.cdbVal('$wl_bss_key_mgt' + idx));
+
+			if (idx == 1) {
+				if (Number(wdk.cdbVal('$wl_enable')) && Number(wdk.cdbVal('$wl_bss_ssid_hidden1')))
+					if (wdk.getById('wl_bss_sec_type1').checked) {
+						wps_disabled = 1;
+					}
+			}
+			if (idx == 2) {
+				if (Number(wdk.cdbVal('$wl_bss_enable2')) && Number(wdk.cdbVal('$wl_bss_ssid_hidden2')))
+					if (wdk.getById('wl_bss_sec_type2').checked) {
+						wps_disabled = 2;
+					}
+			}
+			if ((wps_disabled == 1) || (wps_disabled == 2)) {
+				alert(wdk.msg("Please enable broadcast SSID" + wps_disabled + " firstly!"));
+				return;
+			}
+
+			if ((Number(wdk.cdbVal('$wl_macf_mode')) == 2) && (listnum <= 0)) {
+				alert(wdk.msg("Please add allowed MAC address or disable MAC Flitering firstly!"));
+				return;
+			}
+
+			if (key_mgt == KEY_1X_MGT) {
+				alert(wdk.msg("Security Mode is 802.1X, WPS can't be enabled!"));
+				return;
+			}
+			if (sec_mode & WEP_SEC_MODE) {
+				alert(wdk.msg("Security Mode is WEP, WPS can't be enabled!"));
+				return;
+			}
+			if ((sec_mode & (WPA2_SEC_MODE + WPA_SEC_MODE)) == WPA_SEC_MODE) {
+				alert(wdk.msg("Security Mode is WPA-PSK only, WPS can't be enabled!"));
+				return;
+			}
+			if (sec_mode & WAPI_SEC_MODE) {
+				alert(wdk.msg("Security Mode is WAPI-PSK, WPS can't be enabled!"));
+				return;
+			}
+
+			wdk.cdbSet('$wl_bss_sec_type' + idx, Number(wdk.cdbVal('$wl_bss_sec_type' + idx)) | Number(WPS_SEC_MODE));
+		} else
+			wdk.cdbSet('$wl_bss_sec_type' + idx, Number(wdk.cliCmd('$wl_bss_sec_type' + idx).trim()) & ~WPS_SEC_MODE);
+	}
+	wdk.save_form(2000);
+}
+
+function pinCodeDisp(val, idx) {
+	if (val == 1) //PIN Code
+	{
+		buttonDisable('trigger' + idx, false);
+		wdk.getById('pinCode' + idx).style.display = style_display_on();
+	} else //PBC
+	{
+		if (pinCodeTime != 0) buttonDisable('trigger' + idx, true);
+		else buttonDisable('trigger' + idx, false);
+
+		wdk.getById('pinCode' + idx).style.display = "none";
+	}
+}
+
+function ValidateChecksum(PIN) {
+	var accum = 0;
+
+	accum += 3 * (parseInt(PIN / 10000000) % 10);
+	accum += 1 * (parseInt(PIN / 1000000) % 10);
+	accum += 3 * (parseInt(PIN / 100000) % 10);
+	accum += 1 * (parseInt(PIN / 10000) % 10);
+	accum += 3 * (parseInt(PIN / 1000) % 10);
+	accum += 1 * (parseInt(PIN / 100) % 10);
+	accum += 3 * (parseInt(PIN / 10) % 10);
+	accum += 1 * (parseInt(PIN / 1) % 10);
+
+	return ((accum % 10) == 0);
+}
+
+function wpsTrigger(val, idx) {
+	var pinCode = wdk.getById('pinCode' + idx);
+	if (val) //PIN Code
+	{
+		//Remove non-number chars
+		var pin = pinCode.value.replace(/[^\d]/g, '');
+
+		if (!((pin.length == 4) || ((pin.length == 8) && (ValidateChecksum(pin))))) {
+			alert(wdk.msg("PIN Code is invalid! Please enter again!"));
+			pinCode.focus();
+			return;
+		}
+		wdk.cliCmd('wps ' + (idx - 1) + ' pin ' + pin);
+	} else //PBC
+		wdk.cliCmd('wps ' + (idx - 1) + ' button');
+
+	buttonDisable('mode' + idx, true);
+	buttonDisable('pinCode' + idx, true);
+	buttonDisable('trigger' + idx, true);
+	WPS_STATE = "Running";
+	intervalID[idx] = setInterval('PBCMsgDisp(' + idx + ')', 1000);
+	wdk.getById('PBCMsg' + idx).style.display = "block";
+}
+
+function pinCodeKeyDownEnter(event, idx) {
+	if (event.keyCode == 13) {
+		wpsTrigger(1, idx);
+	}
+}
+
+var pinCodeWaitTime = 120;
+var pinCodeTime = 0;
+
+function PBCMsgDisp(i) {
+	var s;
+
+	if ((pinCodeTime > 5) && (WPS_STATE == "Idle")) pinCodeTime = pinCodeWaitTime;
+
+	s = pinCodeWaitTime - pinCodeTime;
+
+	if (s != 0) {
+		wdk.getById('PBCMsg' + i).innerHTML = 'Please wait ' +
+			s + (s > 1 ? ' seconds' : ' second') +
+			' to re-trigger ' +
+			(wdk.getById('mode' + i).value == 0 ? 'PBC' : 'PIN Code') + ' again!';
+		pinCodeTime++;
+	} else {
+		clearInterval(intervalID[i]);
+		buttonDisable('mode' + i, false);
+		buttonDisable('pinCode' + i, false);
+		buttonDisable('trigger' + i, false);
+		wdk.getById('PBCMsg' + i).innerHTML = '';
+		wdk.getById('PBCMsg' + i).style.display = "none";
+		pinCodeTime = 0;
+
+		if (WPS_RESULT == "Pass")
+			alert(wdk.msg("WPS Provisioning is complete!"));
+		else
+			alert(wdk.msg("WPS Provisioning is failed!"));
+		WPS_RESULT = "Fail";
+	}
+}
+
+function buttonDisable(id, val) {
+	wdk.getById(id).disabled = val;
+}
+
+function style_display_on() {
+	if (window.ActiveXObject) //IE
+	{
+		return 'inline';
+	} else // Mozilla, Safari
+	{
+		return "table-row";
+	}
+}
+
+function fillTable(tn, val, id) {
+	var s;
+	var title_str = wdk.msg(tn);
+	var content_str = val;
+
+	s = '<tr><td width=250>';
+	for (var i = 0; i < title_str.length; i += 20) {
+		if (title_str.length > 20)
+			s += title_str.substring(i, i + 20) + '<br>';
+		else
+			s += title_str.substring(i);
+	}
+	s += '<' + '/td>';
+	s += '<td align=left id=' + id + '>';
+	for (var j = 0; j < content_str.length; j += 25) {
+		if (content_str.length > 25)
+			s += content_str.substring(j, j + 25) + '<br>';
+		else
+			s += content_str.substring(j);
+	}
+	s += '<' + '/td><' + '/tr>';
+	return s;
+}
+
+function transferKey(KeyOri) {
+	var k = 0;
+	var Keychar = "";
+	var keylen = KeyOri.length;
+
+	if (KeyOri.length == 0) return "";
+
+	for (i = 0; i < keylen; i++) {
+		k = i % 2;
+		if (k == 0) {
+			Keychar += String.fromCharCode(parseInt(KeyOri.substr(i, 2), 16));
+		}
+	}
+	return Keychar;
+}
+
+function statusInterval(idx) {
+	var infoLen = 8;
+	var info = wdk.cliCmd('wps ' + (idx - 1) + ' status').replace(/\w+\s*\w*=/g, '').split(',');
+
+	if (info[1] == undefined) return;
+	WPS_STATE = info[0];
+	WPS_RESULT = info[8];
+	for (var infoIdx = 0; infoIdx < infoLen; infoIdx++) {
+		if (wdk.getById("ssid" + idx + "_row" + infoIdx) != null) {
+			if (infoIdx == 6) // transfer Key from hex string to ascci string
+				wdk.getById("ssid" + idx + "_row" + infoIdx).innerHTML = transferKey(info[infoIdx]);
+			else
+				wdk.getById("ssid" + idx + "_row" + infoIdx).innerHTML = info[infoIdx]; //==''?"N/A":info[infoIdx];
+		}
+	}
+}
+
+function pinResult(j) {
+	wdk.cdbLoad(['$wl_wps_def_pin']);
+	wdk.getById('PINC' + j).innerHTML = wdk.cdbVal('$wl_wps_def_pin');
+}
+
+function GenPinCode(i) {
+	wdk.cliCmd('wps ' + (i - 1) + ' genpin');
+	wdk.getById('PINC' + i).innerHTML = '<img src="images/load.gif" width=18/>';
+	setTimeout('pinResult(' + i + ')', 2000);
+}
+ </SCRIPT>
+ <style type=text/css>
+div.col2l {
+ float: left;
+ width: 24.774em;
+}
+div.col2r {
+ float: left;
+ width: 24.774em;
+ margin-left: 0.906em;
+}
+ </style>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <script>
+for (var i = 1; i <= SSID_NUM; i++) {
+	var s = (i == 1) ? '' : '<br>',
+		t;
+	s += '<div id=ssid' + i + 'Disp>';
+	s += '<fieldset>';
+	s += '	<legend>' + "SSID" + i + "&nbsp;" + wdk.msg("Settings") + '<' + '/legend>';
+	s += '	<div class=setting>';
+	s += '		<div class=label>' + wdk.msg("Enable") + "&nbsp;WPS" + '<' + '/div>';
+	s += '		<input type=checkbox name=wl_bss_wps_enable id=wl_bss_sec_type' + i + '>';
+	s += '	<' + '/div>';
+	s += '	<div class=setting id=rwpsPinCodeDisp' + i + ' style="display:none;">';
+	s += '		<div class=label>' + wdk.msg("Router WPS PIN Code") + '<' + '/div>';
+	s += '		<label id=PINC' + i + '><' + '/label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+	s += '		<input type=button id=genpin' + i + ' value="Generate PIN Code" onclick="GenPinCode(' + i + ');">';
+	s += '	<' + '/div>';
+	s += '	<div class=setting id=wpsModeDisp' + i + ' style="display:none;">';
+	s += '	<div class=label>' + "WPS&nbsp;" + wdk.msg("Mode") + '<' + '/div>';
+	s += '		<select name=mode' + i + ' id=mode' + i + ' size=1 onchange="pinCodeDisp(this.value,' + i + ')">';
+	s += '			<option value=0>' + wdk.msg("PBC") + '<' + '/option>';
+	s += '			<option value=1>' + wdk.msg("PIN Code") + '<' + '/option>';
+	s += '		<' + '/select>';
+	s += '		<input name=pinCode' + i + ' id=pinCode' + i + ' size=20 maxlength=15 style="display:none" onkeydown="return pinCodeKeyDownEnter(event,' + i + ')">';
+	s += '		<input type=button id=trigger' + i + ' value="Trigger" onclick="wpsTrigger(Number(wdk.getById(\'mode' + i + '\').value),' + i + ')">';
+	s += '	<' + '/div>';
+	s += '	<div align=\'center\' id=PBCMsg' + i + ' style="display:block;"><' + '/div>';
+	s += '<' + '/fieldset>';
+	s += '<br>';
+	s += '<div id=statusDisp' + i + ' style="display:none">';
+	s += ' <fieldset>';
+	s += ' <legend>' + "SSID" + i + "&nbsp;" + wdk.msg("Status") + '<' + '/legend>';
+	s += '  <table id=tabContent3 class=setting border=0>';
+	t = [
+		["WPS", ''],
+		["Configured", ''],
+		["SSID" + i, ''],
+		["Authentication Mode", ''],
+		["Encryption Mode", ''],
+		["Key Selection", ''],
+		["Key", ''],
+		["UUID", '']
+	];
+	for (var k = 0; k < t.length; k++) {
+		var list = t[k];
+		s += fillTable(list[0], list[1], "ssid" + i + "_row" + k);
+	}
+	s += '    <' + '/table>';
+	s += '<' + '/fieldset>';
+	s += '<' + '/div>';
+	s += '<' + '/div>';
+	puts(s);
+}
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

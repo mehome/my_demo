@@ -1,0 +1,58 @@
+--- a/avahi-client/client.c
++++ b/avahi-client/client.c
+@@ -69,7 +69,7 @@
+ #ifdef HAVE_DBUS_CONNECTION_CLOSE
+                 dbus_connection_close(client->bus);
+ #else
+-                dbus_connection_disconnect(client->bus);
++                dbus_connection_close(client->bus);
+ #endif
+                 dbus_connection_unref(client->bus);
+                 client->bus = NULL;
+@@ -465,7 +465,7 @@
+ #ifdef HAVE_DBUS_CONNECTION_CLOSE
+         dbus_connection_close(c);
+ #else
+-        dbus_connection_disconnect(c);
++        dbus_connection_close(c);
+ #endif
+         dbus_connection_unref(c);
+         return NULL;
+@@ -631,7 +631,7 @@
+ #ifdef HAVE_DBUS_CONNECTION_CLOSE
+         dbus_connection_close(client->bus);
+ #else
+-        dbus_connection_disconnect(client->bus);
++        dbus_connection_close(client->bus);
+ #endif
+ 
+     while (client->groups)
+--- a/avahi-daemon/dbus-protocol.c
++++ b/avahi-daemon/dbus-protocol.c
+@@ -1133,7 +1133,7 @@
+ #ifdef HAVE_DBUS_CONNECTION_CLOSE
+         dbus_connection_close(server->bus);
+ #else
+-        dbus_connection_disconnect(server->bus);
++        dbus_connection_close(server->bus);
+ #endif
+         dbus_connection_unref(server->bus);
+         server->bus = NULL;
+@@ -1154,7 +1154,7 @@
+ #ifdef HAVE_DBUS_CONNECTION_CLOSE
+         dbus_connection_close(server->bus);
+ #else
+-        dbus_connection_disconnect(server->bus);
++        dbus_connection_close(server->bus);
+ #endif
+         dbus_connection_unref(server->bus);
+         server->bus = NULL;
+@@ -1201,7 +1201,7 @@
+ #ifdef HAVE_DBUS_CONNECTION_CLOSE
+         dbus_connection_close(server->bus);
+ #else
+-        dbus_connection_disconnect(server->bus);
++        dbus_connection_close(server->bus);
+ #endif
+ 
+         dbus_connection_unref(server->bus);

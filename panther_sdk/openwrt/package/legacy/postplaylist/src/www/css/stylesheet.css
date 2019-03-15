@@ -1,0 +1,56 @@
+#xzx_module_upload, #xzx_module_restoreToDefault, #xzx_module_recording, #xzx_module_VAD, #xzx_module_Conexant, #xzx_module_test_mode {
+	font-size: 24px;
+}
+
+#xzx_module_upload_content, #xzx_module_dot_recording_content, #xzx_module_bluetooth_upload_content, #xzx_module_VAD_content, #xzx_module_VAD_view, #xzx_module_Conexant_sfs_file, #xzx_module_Conexant_bin_file, #xzx_module_Conexant_upgrade_view {
+	font-size: 18px;
+}
+
+#xzx_module_upload_content_title
+{
+	font-size: 18px;
+	width: 90px; 
+	float: left;
+}
+
+#xzx_module_upload_centent_processcontainer
+{
+	float: left;
+	width: 450px;
+	border:1px solid #6C9C2C;
+	height: 25px;
+}
+
+#xzx_module_upload_centent_processbar
+{
+	background: #95CA0D;
+	float: left;
+	height: 100%;
+	text-align: center;
+	line-height: 150%;
+}
+
+#xzx_module_bluetooth_upload_content_title
+{
+	font-size: 18px;
+	width: 90px; 
+	float: left;
+}
+
+#xzx_module_bluetooth_upload_centent_processcontainer
+{
+	float: left;
+	width: 450px;
+	border: 1px solid #6C9C2C;
+	height: 25px;
+}
+
+#xzx_module_bluetooth_upload_centent_processbar
+{
+	background: #95CA0D;
+	float: left;
+	height: 100%;
+	text-align: center;
+	line-height: 150%;
+}
+

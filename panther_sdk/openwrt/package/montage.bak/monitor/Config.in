@@ -1,0 +1,10 @@
+menu "Support Input device" 
+depends on PACKAGE_monitor
+
+config MONITOR_GPIO_INPUTDEV
+	bool "Monitor gpio input device"
+
+config MONITOR_MADC_INPUTDEV
+	bool "Monitor madc input device"
+
+endmenu

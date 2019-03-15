@@ -1,0 +1,26 @@
+LIBNAME   = libspotify.so
+
+SPOTIFY_LIB = ../lib
+
+SPOTIFY_OBJS = linux_alsa.c dummy.c ring_buffer.c
+IPC_OBJS = ./ipc/ipc_message.c
+
+OBJS = $(SPOTIFY_OBJS) $(IPC_OBJS)
+
+SP_CFLAGS = $(CFLAGS) -I./ -I../include -fPIC
+#LDFLAGS += -Wl,-rpath,\$$ORIGIN/$${SPOTIFY_LIB} -Wl,-rpath,@loader_path/${SPOTIFY_LIB}
+
+SP_LDFLAGS = $(LDFLAGS) -L$(SPOTIFY_LIB)
+
+all: ${LIBNAME}
+
+$(LIBNAME): $(OBJS)
+	@echo "Building $< ..."
+	$(CC) $(SP_CFLAGS) $(SP_LDFLAGS) $^ $(LDLIBS) -shared -o $@ -lspotify_embedded_shared -lm
+
+%.o: %.c
+	@echo "Compiling $< ..."
+	$(CC) -c $(SP_CFLAGS) $^ -o $@
+
+clean:
+	rm -rf *.o $(LIBNAME)

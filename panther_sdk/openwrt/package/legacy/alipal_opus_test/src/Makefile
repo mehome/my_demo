@@ -1,0 +1,30 @@
+#common makefile header
+#CC=mips-openwrt-linux-gcc
+#LD=mips-openwrt-linux-ld
+DIR_INC = ./include
+DIR_LIB = ../libs
+
+TARGET	= alipal_opus_test
+
+CROSS_COMPILE = 
+CFLAGS =  -Wunused-function -Wunused-but-set-variable -g  -I$(DIR_INC)  -I$(STAGING_DIR)/usr/include
+LIBS = 
+#LDFLAGS += -luci  -lpthread -ljson-c -lcurl -lopus
+LDFLAGS += -lopus
+
+
+OBJECTS := $(patsubst %.c,%.o,$(wildcard *.c))
+
+all: $(TARGET)
+
+
+$(TARGET): $(OBJECTS)
+	@echo "Building $@ ..."
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+%.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+clean:
+	rm -f *.o $(TARGET)
+
+.PHONY:clean

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+ <title>Panther(Mobile Version)</title>
+
+ <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <script src="javascript/functions.js" type="text/javascript"></script>
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+
+ <script type="text/javascript">
+var curMediaState;
+/*--ifdef CONFIG_MOBWIFIAUDIO--*/
+var radioIndex;
+var audioIndex;
+var pandoraIndex;
+var raRadioType;
+/*--endif--*/
+function init() {
+	wdk.cdbLoad(['$op_work_mode', '$ra_func', '$ra_radiotype']);
+	var opWorkMode = wdk.cdbVal('$op_work_mode');
+	raRadioType = Number(wdk.cdbVal('$ra_radiotype'));
+	curMediaState = Number(wdk.cdbVal("$ra_func").trim());
+	/*--ifdef CONFIG_MOBWIFIAUDIO--*/
+	setAlias();
+	applyMediaConfig();
+	/*--endif--*/
+
+	if ((opWorkMode == "2") || (opWorkMode == "7")) {
+		get_by_id('wan').style.display = 'block';
+	} else {
+		get_by_id('wan').style.display = 'none';
+	}
+
+}
+
+/*--ifdef CONFIG_MOBWIFIAUDIO--*/
+function setAlias() {
+	radioIndex = get_by_id('radioIndex');
+	audioIndex = get_by_id('audioIndex');
+	pandoraIndex = get_by_id('pandoraIndex');
+}
+
+function applyMediaConfig() {
+	switch (curMediaState) {
+		case 0:
+		case 2:
+			radioIndex.style.display = 'none';
+			audioIndex.style.display = 'none';
+			pandoraIndex.style.display = 'none';
+			break;
+		case 1:
+			audioIndex.style.display = 'none';
+			radioIndex.style.display = (raRadioType == 0) ? 'block' : 'none';
+			pandoraIndex.style.display = (raRadioType == 1) ? 'block' : 'none';
+			// pandoraIndex.style.display = 'none';
+			break;
+		case 3:
+			radioIndex.style.display = 'none';
+			pandoraIndex.style.display = 'none';
+			break;
+		default:
+			console.log("Error");
+			break;
+	}
+}
+/*--endif--*/
+ </script>
+</head>
+
+<body onload="init()">
+ <div id="topbar">
+  <div id="title">Panther</div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+
+   <li class="menu">
+    <a href="adm.htm">
+     <span class="name">Admin</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="lan.htm">
+     <span class="name">LAN</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li id="wan" class="menu">
+    <a href="sel_wan.htm">
+     <span class="name">WAN</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="wifi.htm">
+     <span class="name">Wireless</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="files.htm">
+     <span class="name">Storage</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li class="menu">
+    <a href="status.htm">
+     <span class="name">Status</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <!--ifdef CONFIG_MOBWIFIAUDIO-->
+   <li class="menu">
+    <a href="mediaConfig.htm">
+     <span class="name">Media Config</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li id="radioIndex" class="menu">
+    <a href="radio.htm">
+     <span class="name">Radio</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li id="pandoraIndex" class="menu">
+    <a href="pandora_login.htm">
+     <span class="name">Pandora</span><span class="arrow"></span>
+    </a>
+   </li>
+
+   <li id="audioIndex" class="menu">
+    <a href="audio.htm">
+     <span class="name">Audio</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+   <!--ifdef CONFIG_VIDEO_STREAM-->
+   <li id="webcamIndex" class="menu">
+    <a href="webcamFunc.htm">
+     <span class="name">Webcam</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+  </ul>
+
+ </div>
+
+</body>
+
+</html>

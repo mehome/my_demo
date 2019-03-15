@@ -1,0 +1,12 @@
+diff -Nur a/examples/Makefile.am b/examples/Makefile.am
+--- a/examples/Makefile.am	2015-10-29 23:08:21.000000000 +0800
++++ b/examples/Makefile.am	2017-10-03 12:04:53.955892470 +0800
+@@ -6,7 +6,7 @@
+ 
+ LIBS =			\
+ 	$(top_builddir)/libsoup/libsoup-2.4.la \
+-	$(GLIB_LIBS)
++	$(GLIB_LIBS) -lm -lpthread -ldl
+ 
+ noinst_PROGRAMS =		\
+ 	get			\

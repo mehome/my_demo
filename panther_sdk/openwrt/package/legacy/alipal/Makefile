@@ -1,0 +1,64 @@
+#
+# Copyright (C) 2006-2009 OpenWrt.org
+#
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+
+include $(TOPDIR)/rules.mk
+
+# Name and release number of this package
+PKG_NAME:=alipal
+PKG_RELEASE:=1.1.0
+
+# This specifies the directory where we're going to build the program. 
+# The root build directory, $(BUILD_DIR), is by default the build_mipsel
+# directory in your OpenWrt SDK directory
+PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
+
+include $(INCLUDE_DIR)/package.mk
+ 
+# Specify package information for this program.
+# The variables defined here should be self explanatory.
+# If you are running Kamikaze, delete the DESCRIPTION
+# variable below and uncomment the Kamikaze define
+# directive for the description below
+define Package/alipal
+	SECTION:=utils
+	CATEGORY:=Utilities
+	TITLE:=alipal -- scan apply or ali configure network
+	DEPENDS:=+libpcap  +libpthread  +libnl-tiny +libutils +openssl +libcdb +libdl +libpal +libwebsockets +lcurl +libjson-c
+	
+endef
+
+# Uncomment portion below for Kamikaze and delete DESCRIPTION variable above
+define Package/alipal/description
+    This is a sample program to use alipal open API.
+endef
+ 
+
+TARGET_LDFLAGS += \
+	-Wl,-rpath-link=$(STAGING_DIR)/usr/lib -lssl -lcrypto -ldl -lnl-tiny -lutils -lcdb -lcurl -ljson-c
+
+TARGET_CFLAGS += $(FPIC) -I${STAGING_DIR}/usr/include/ -I$(STAGING_DIR)/usr/include/libnl-tiny -I $(PKG_BUILD_DIR)/include
+# TARGET_CFLAGS +=SANBOX_MODE_SUPPORTED
+
+
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) ./src/* $(PKG_BUILD_DIR)/
+endef
+
+define Package/alipal/install
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_DIR) $(1)/usr/lib
+	mkdir -p $(1)/wav
+	$(CP) ./files/wav/* $(1)/wav/
+	mkdir -p $(1)/alinkfile
+	$(CP) ./files/alinkfile/* $(1)/alinkfile/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/alipal $(1)/usr/bin/
+	$(CP) $(PKG_BUILD_DIR)/lib/libpal.so $(1)/usr/lib/
+endef
+
+
+$(eval $(call BuildPackage,alipal))

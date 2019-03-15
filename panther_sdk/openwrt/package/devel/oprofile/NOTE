@@ -1,0 +1,77 @@
+
+# make menuconfig & enable profiling
+Global build settings  ---> [*] Compile the kernel with profiling enabled
+Development  ---> <*> oprofile.....................
+                  <*>   oprofile-utils............. 
+
+# make kernel_menuconfig & enable oprof
+ General setup  --->
+   [*] Profiling support
+   <*> OProfile system profiling           <---- INSTRUCTION based
+or
+   <M> OProfile system profiling           <---- timer based
+
+# build and boot the system, then insert oprofile.ko with timer option
+# NOTE: you may build the oprofile with kernel, without using kernel module
+root@router:/# cd /lib/modules/4.4.14
+root@router:/lib/modules/4.4.14# ls
+gpio-button-hotplug.ko  nf_nat_ftp.ko
+nf_conntrack_ftp.ko     oprofile.ko
+
+# new/recommended profiling mechanism
+root@router:/lib/modules/4.4.14# insmod oprofile.ko
+
+# leagcy timer based profiling mechanism
+root@router:/lib/modules/4.4.14# insmod oprofile.ko timer=1
+
+root@router:/lib/modules/4.4.14# opcontrol --start
+Using 2.6+ OProfile kernel interface.
+Using log file /var/lib/oprofile/samples/oprofiled.log
+Daemon started.
+Profiler running.
+root@router:/lib/modules/4.4.14# opcontrol --dump
+root@router:/lib/modules/4.4.14# opreport
+Using /var/lib/oprofile/samples/ for samples directory.
+CPU: CPU with timer interrupt, speed 825 MHz (estimated)
+Profiling through timer interrupt
+          TIMER:0|
+  samples|      %|
+------------------
+     5435 99.1969 no-vmlinux
+       23  0.4198 libuClibc-0.9.33.2.so
+        6  0.1095 ld-uClibc-0.9.33.2.so
+        4  0.0730 busybox
+        3  0.0548 libupnp.so.6.3.3
+        3  0.0548 wpad
+        2  0.0365 libpthread-0.9.33.2.so
+        1  0.0183 oprofiled
+        1  0.0183 libmpdclient.so.2.0.10
+        1  0.0183 libnl-tiny.so
+root@router:/lib/modules/4.4.14#
+
+
+
+root@Panther:/tmp# opreport -l ./wakeup
+Using /var/lib/oprofile/samples/ for samples directory.
+CPU: MIPS 34K, speed 822 MHz (estimated)
+Counted INSTRUCTIONS events (1-0 Instructions completed) with a unit mask of
+0x00 (No unit mask) count 100000
+samples  %        symbol name
+12486    45.0677  resample_common_int16
+12103    43.6853  l531n
+1258      4.5407  i416m
+928       3.3496  h5ccj.constprop.6
+358       1.2922  s3b0j
+140       0.5053  conv_AV_SAMPLE_FMT_S16_to_AV_SAMPLE_FMT_S16
+
+root@Panther:/tmp# opreport -l /usr/lib/libMNPCSQE.so
+Using /var/lib/oprofile/samples/ for samples directory.
+CPU: MIPS 34K, speed 822 MHz (estimated)
+Counted INSTRUCTIONS events (1-0 Instructions completed) with a unit mask of
+0x00 (No unit mask) count 100000
+samples  %        symbol name
+56081    29.3116  ECProc
+32090    16.7723  UpdateTapsCoeff
+27720    14.4883  norm_l
+19888    10.3948  c_fft
+10563     5.5209  IFFT

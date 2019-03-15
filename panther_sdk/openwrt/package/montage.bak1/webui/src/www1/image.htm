@@ -1,0 +1,359 @@
+<!--ifdef CONFIG_WEBCAM_IMAGE_PARAMETERS-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$webcam_format']);
+var image_range = wdk.cliCmd("webcam img_rng");
+var target;
+
+function supportRange() {
+	var rc = false;
+	var e = document.createElement("input")
+	e.setAttribute("type", "range")
+	if (e.type == "range") {
+		rc = true;
+	}
+	return rc;
+}
+
+function outputUpdate(id, v) {
+	wdk.getById(id).value = v;
+}
+
+function parseRange(attr) {
+	var l = image_range.split("\n");
+	var re = new RegExp(attr + "=(.*)");
+	for (i in l) {
+		var s = l[i];
+		if (re.test(s)) {
+			var v1 = s.split('=');
+			if (v1[0] == attr) {
+				return v1[1].split(':');
+			}
+		}
+	}
+	return "";
+}
+
+function addInput(attr) {
+	//get min, max, step from image_range
+	if (image_range.length) {
+		var x = parseRange(attr);
+		if (x.length) {
+			min = x[0];
+			max = x[1];
+			step = x[2];
+		}
+	} else {
+		min = 0;
+		max = 0;
+		step = 1;
+	}
+	if (supportRange()) {
+		var str = "<input type=range id=" + attr;
+		str += " min=" + min;
+		str += " max=" + max;
+		if (step) str += " step=" + step;
+		str += " oninput=outputUpdate('" + attr + "_text',value)";
+		str += " onchange=outputUpdate('" + attr + "_text',value)";
+		str += " style=vertical-align:middle >";
+		str += "<input type=text id=" + attr + "_text readonly style=border:0;>";
+		puts(str);
+	} else {
+		var str = "<select id=" + attr + "><" + "/select>";
+		puts(str);
+		addOptions(wdk.getById(attr), range(min, max));
+	}
+}
+
+function addSelect(attr) {
+	//get min, max, step from image_range
+	var v = [];
+	if (image_range.length) {
+		var x = parseRange(attr);
+		if (x.length)
+			v = x;
+	}
+	var str = "<select id=" + attr + "><" + "/select>";
+	puts(str);
+	var e = wdk.getById(attr);
+	for (var i = 1; i < v.length; i++) {
+		var o = v[i].split(".");
+		var op = document.createElement("option");
+		op.value = o[0];
+		op.text = o[1];
+		e.add(op);
+	}
+}
+
+function getRuleName(rule) {
+	var r = rule.split('&');
+	var a = [];
+	for (i in r) {
+		var t = r[i].split('=');
+		a.push(t[0]);
+	}
+	return a;
+}
+
+function arrayMbrExist(arr, mbr) {
+	for (i in arr) {
+		if (arr[i] == mbr)
+			return true;
+	}
+	return false;
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var vdev = rule2var(format, "vdev");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+	var player_html = '<object classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921" codebase="http://downloads.videolan.org/pub/videolan/vlc/latest/win32/axvlc.cab" width="480" height="360" id="vlc"><param name="Src" value="' + url + '"><' + '/param><param name="AutoLoop" value="no"><' + '/param><param name="AutoPlay" value="yes"><' + '/param><embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" id="vlcfirefox" autoplay="yes" loop="no" width="480" height="360" target="' + url + '"><' + '/embed><' + '/object>';
+
+	wdk.getById("display").innerHTML = player_html;
+	showHide("display", 1);
+
+	//parse default value then store into wdk.cdb
+	var image = wdk.cliCmd("webcam img_dft");
+	target = getRuleName(image);
+	for (i in target) {
+		var n = target[i];
+		wdk.cdbNew(n, rule2var(image, n));
+		wdk.getById(n).parentElement.style.display = 'block';
+	}
+
+	f.reset();
+	wdk.init_form();
+
+	//add onchange function
+	if (arrayMbrExist(target, 'exposure_absolute'))
+		wdk.getById("exposure_auto").setAttribute("onchange", "exposure_auto_onchange(this.value)");
+	if (arrayMbrExist(target, 'white_balance_temperature'))
+		wdk.getById("white_balance_temperature_auto").setAttribute("onchange", "wbt_auto_onchange(this.checked)");
+
+	//call onchange function
+	for (i in target) {
+		var e = wdk.getById(target[i]);
+		if (e && e.onchange)
+			e.onchange();
+	}
+}
+
+function wbt_auto_onchange(checked) {
+	//restore when auto mode
+	var e = wdk.getById("white_balance_temperature");
+	if (checked) {
+		e.value = wdk.cdbVal("white_balance_temperature");
+		e.onchange();
+		e.disabled = true;
+	} else
+		e.disabled = false;
+}
+
+function exposure_auto_onchange(mode) {
+	//restore when auto mode
+	var e = wdk.getById("exposure_absolute");
+	if (mode == 3) {
+		e.value = wdk.cdbVal("exposure_absolute");
+		e.onchange();
+		e.disabled = true;
+	} else
+		e.disabled = false;
+}
+
+function apply() {
+	if (wdk.is_form_update()) {
+		//show prompt message
+		showHide('display', 0);
+		wdk.showResultBG();
+		wdk.redirect(5);
+
+		// sent commands
+		for (i in target) {
+			var n = target[i];
+			if (wdk.cdbChg(n))
+				wdk.cliCmd("webcam img_ctl " + n + " " + wdk.cdbVal(n));
+		}
+	} else
+		alert(wdk.msg('The settings are not changed!!'));
+}
+ </SCRIPT>
+ <style type=text/css>
+div.h {
+ display: none
+}
+ </style>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Image Parameters")
+    </script>
+   </legend>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Brightness")
+     </script>
+    </div>
+    <script>
+addInput("brightness")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Contrast")
+     </script>
+    </div>
+    <script>
+addInput("contrast")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Saturation")
+     </script>
+    </div>
+    <script>
+addInput("saturation")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Hue")
+     </script>
+    </div>
+    <script>
+addInput("hue")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("White Balance Temperature Mode, Auto:")
+     </script>
+    </div>
+    <input type=checkbox id=white_balance_temperature_auto>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Gamma")
+     </script>
+    </div>
+    <script>
+addInput("gamma")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Gain")
+     </script>
+    </div>
+    <script>
+addInput("gain")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Power Line Frequency")
+     </script>
+    </div>
+    <script>
+addSelect('power_line_frequency');
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("White Balance Temperature")
+     </script>
+    </div>
+    <script>
+addInput("white_balance_temperature")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Sharpness")
+     </script>
+    </div>
+    <script>
+addInput("sharpness")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Backlight Compensation")
+     </script>
+    </div>
+    <script>
+addInput("backlight_compensation")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Exposure Mode:")
+     </script>
+    </div>
+    <script>
+addSelect('exposure_auto');
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Exposure Time")
+     </script>
+    </div>
+    <script>
+addInput("exposure_absolute")
+    </script>
+   </div>
+   <div class="setting h">
+    <div class=label>
+     <script>
+wdk.putmsg("Exposure, Auto Priority")
+     </script>
+    </div>
+    <input type=checkbox id=exposure_auto_priority>
+   </div>
+  </fieldset>
+  <br>
+  <div id=display class=h align=center>
+  </div>
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

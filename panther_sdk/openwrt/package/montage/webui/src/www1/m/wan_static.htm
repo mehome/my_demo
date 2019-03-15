@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$wan_ip',
+	'$wan_msk',
+	'$wan_gw',
+	'$wan_mtu',
+	'$wan_clone_mac_enable',
+	'$wan_clone_mac',
+	'$wan_alias_ip1-5',
+	'$wan_alias',
+	'$dns_fix',
+	'$dns_svr1',
+	'$dns_svr2',
+	'$lan_ip',
+	'$nat_dmz_host1-6',
+	'$op_work_mode',
+	'$wan_mode'
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var staticCfg = {
+	'ip': mainObj.config_val('$wan_ip'),
+	'mask': mainObj.config_val('$wan_msk'),
+	'gateway': mainObj.config_val('$wan_gw'),
+	'mtu': mainObj.config_val('$wan_mtu'),
+	'fix_dns': 1,
+	'dns1': mainObj.config_val('$dns_svr1'),
+	'dns2': mainObj.config_val('$dns_svr2'),
+	'mc_enable': mainObj.config_val('$wan_clone_mac_enable'),
+	'mc_addr': mainObj.config_val('$wan_clone_mac'),
+	'lan_ip': mainObj.config_val('$lan_ip'),
+	'work_mode': mainObj.config_val('$op_work_mode'),
+	'wan_mode': mainObj.config_val('$wan_mode'),
+};
+
+function select_wan_page() {
+	var html_file;
+	var sel_wan = get_by_id("sel_wan").value;
+
+	switch (sel_wan) {
+		case "1":
+			html_file = "wan_static.htm";
+			break;
+		case "2":
+			html_file = "wan_dhcp.htm";
+			break;
+		case "3":
+			html_file = "wan_pppoe.htm";
+			break;
+		default:
+			html_file = "wan_dhcp.htm";
+			break;
+	}
+
+	location.href = html_file;
+}
+
+function send_request() {
+	var w_mode = get_by_id("sel_wan").value;
+	var ip = get_by_id("ip_addr").value;
+	var mask = get_by_id("ip_mask").value;
+	var gateway = get_by_id("ip_gateway").value;
+	var mtu = get_by_id("mtu").value;
+	var fdns = get_checked_value(get_by_id("fix_dns"));
+	var dns1 = get_by_id("dns1").value;
+	var dns2 = get_by_id("dns2").value;
+	var mc = get_checked_value(get_by_id("mac_clone_enable"));
+	var mcaddr = get_by_id("mac_clone_addr").value;
+	var lan_ip = staticCfg.lan_ip;
+	var need_reboot = 0;
+	var ret = 0;
+
+	if (!chkIP(get_by_id("ip_addr"), "IP Address")) {
+		return;
+	}
+
+	if (ip == lan_ip) {
+		alert(wdk.msg("WAN IP address can't be the same with LAN IP address !"));
+		return;
+	}
+
+	if (!chkIP(get_by_id("ip_gateway"), "Gateway IP")) {
+		return;
+	}
+
+	if (getIP(get_by_id("ip_addr")) == getIP(get_by_id("ip_gateway"))) {
+		alert(wdk.msg("IP Address and Gateway Address are same !"));
+		return;
+	}
+
+	if (!chkNum(get_by_id("mtu"), 576, 1500, "MTU")) {
+		return;
+	}
+
+	if (fdns == "1") {
+		if (!chkIP(get_by_id("dns1"), "Primary DNS")) {
+			return;
+		}
+	} else {
+		if (!chkIpOrNull(get_by_id("dns1"), "Primary DNS")) {
+			return;
+		}
+	}
+
+	if (!chkIpOrNull(get_by_id("dns2"), "Secondary DNS")) {
+		return;
+	}
+
+	mainObj.config_set(ip, '$wan_ip');
+	mainObj.config_set(mask, '$wan_msk');
+	mainObj.config_set(gateway, '$wan_gw');
+	mainObj.config_set(mtu, '$wan_mtu');
+	mainObj.config_set(fdns, '$dns_fix');
+	mainObj.config_set(dns1, '$dns_svr1');
+	mainObj.config_set(dns2, '$dns_svr2');
+	mainObj.config_set(mc, '$wan_clone_mac_enable');
+	mainObj.config_set(mcaddr, '$wan_clone_mac');
+	mainObj.config_set(w_mode, '$wan_mode');
+
+	if (mtu != staticCfg.mtu) {
+		alert(wdk.msg("MTU value is changed! Device will reboot!"));
+		need_reboot = 1;
+	}
+
+	if ((mc != staticCfg.mc_enable) || (mcaddr != staticCfg.mc_addr)) {
+		need_reboot = 1;
+	}
+
+	if (need_reboot) {
+		ret = wdk.request_submit();
+		if (ret) {
+			wdk.showResultBG();
+			reboot();
+		}
+	} else {
+		ret = wdk.request_submit(1);
+		if (ret) {
+			wdk.goThisPage();
+		}
+	}
+}
+
+function init() {
+	var host_ip = window.location.host;
+	var lan_ip = staticCfg.lan_ip;
+
+	get_by_id("ip_addr").value = staticCfg.ip;
+	get_by_id("ip_mask").value = staticCfg.mask;
+	get_by_id("ip_gateway").value = staticCfg.gateway;
+	get_by_id("mtu").value = staticCfg.mtu;
+
+	set_checked(staticCfg.fix_dns, get_by_id("fix_dns"));
+	get_by_id("fix_dns").disabled = true;
+
+	get_by_id("dns1").value = staticCfg.dns1;
+	get_by_id("dns2").value = staticCfg.dns2;
+
+	if (lan_ip != host_ip) {
+		get_by_id("mac_clone_enable").disabled = true;
+		get_by_id("mac_clone_addr").disabled = true;
+	} else {
+		get_by_id("mac_clone_enable").disabled = false;
+		get_by_id("mac_clone_addr").disabled = false;
+	}
+
+	set_checked(staticCfg.mc_enable, get_by_id("mac_clone_enable"));
+	get_by_id("mac_clone_addr").value = staticCfg.mc_addr;
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">Static IP</div>
+   <div id="rightbutton">
+    <a href="#" onclick="send_request()">
+     <script>
+show_words("Done")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("WAN Mode")</script></span>
+     <select name="sel_wan" id="sel_wan" class="duoselectionbuttons" size="1" onchange="select_wan_page()">
+      <option value="2">
+       <script>
+get_words('DHCP')
+       </script>
+      </option>
+      <option value="1" selected>
+       <script>
+get_words("Static IP")
+       </script>
+      </option>
+      <option value="3">
+       <script>
+get_words("PPPoE")
+       </script>
+      </option>
+     </select>
+    </li>
+   </ul>
+
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("IP Address")</script></span>
+     <input name="ip_addr" id="ip_addr" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Subnet Mask")</script></span>
+     <input name="ip_mask" id="ip_mask" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Gateway IP")</script></span>
+     <input name="ip_gateway" id="ip_gateway" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("MTU (576 ~ 1500)")</script></span>
+     <input name="mtu" id="mtu" type="text" maxlength="15">
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("Static DNS Server")</script></span>
+     <input name="fix_dns" id="fix_dns" type="checkbox" value="1">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Primary DNS")</script></span>
+     <input name="dns1" id="dns1" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Secondary DNS")</script></span>
+     <input name="dns2" id="dns2" type="text" maxlength="15">
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("MAC Cloning")</script></span>
+     <input name="mac_clone_enable" id="mac_clone_enable" type="checkbox" value="1">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("MAC Address")</script></span>
+     <input name="mac_clone_addr" id="mac_clone_addr" type="text" placeholder="00:00:00:00:00:00">
+    </li>
+   </ul>
+  </div>
+ </form>
+</body>
+
+</html>

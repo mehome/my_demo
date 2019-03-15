@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo -en "\r\n\r\n"
+
+# CDB dump
+/sbin/cdb -d
+#/sbin/cdb -d | sed 's/   (modified)//'

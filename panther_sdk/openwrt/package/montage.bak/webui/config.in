@@ -1,0 +1,358 @@
+menu "WEBUI Configuration"
+depends on TARGET_panther
+depends on PACKAGE_webui
+
+menu "Wireless LAN"
+depends on TARGET_panther
+#comment "===================="
+#comment "Wireless LAN"
+#comment "===================="
+config WLAN
+	bool "Support Wireless LAN AP"
+	default y
+	depends on TARGET_panther
+
+menu "Special function"
+config WLAN_GPIO_TRIGGER
+	bool "WiFi Station connection trigger GPIO output"
+	depends on OP_AP
+endmenu
+
+config WDS
+	bool "Support WDS"
+
+config WPA_1X
+	bool "Support WPA/802.1x"
+
+endmenu
+
+menu "Operation Work Mode"
+depends on TARGET_panther
+#comment "===================="
+#comment "Operation Work Mode"
+#comment "===================="
+config OP_2PWR
+	bool "Work AS 2-port Wireless Router"
+	depends on TARGET_panther
+
+config OP_AP
+	bool "Work AS AP"
+	depends on TARGET_panther
+
+config OP_WR
+	bool "Work AS Wireless Router"
+	depends on TARGET_panther
+
+config OP_WISP
+	bool "Work AS WISP"
+	depends on TARGET_panther
+
+config OP_BRG
+	bool "Work AS Bridge"
+	depends on TARGET_panther
+
+config OP_RPT
+	bool "Work AS Repeater"
+	depends on TARGET_panther
+
+config OP_3G
+	bool "Work AS 3G Router"
+	depends on TARGET_panther
+
+config OP_STA
+	bool "Work AS Wiress Station"
+	depends on TARGET_panther
+
+config OP_P2P
+	bool "Work AS Wifi direct(P2P)"
+	depends on TARGET_panther
+
+endmenu
+
+menu "WAN Connection"
+depends on TARGET_panther
+#comment "===================="
+#comment "WAN Connection"
+#comment "===================="
+config PPPOE
+	tristate "PPPOE"
+	depends on TARGET_panther
+
+config PPPOE_TERM_UNMATCH_SID
+	bool "Terminate unmatch session ID"
+	depends on PPPOE
+
+config PPP_AUTH_FAIL_HANG_UP
+	bool "Authentication failure give up dialing"
+	depends on PPPOE
+
+config PPP_PASSIVE_KEEP_ALIVE
+	bool "Passive Keep alive(echo request send by peer)"
+	depends on PPPOE
+
+config PPPOS
+	tristate "Mobile Network"
+	depends on USB
+
+config PPTP
+	tristate "PPTP"
+	depends on TARGET_panther
+
+config MPPE
+	bool "Support MPPE"
+	depends on PPTP
+
+config AUTO_MPPE
+	bool "Support AUTO MPPE"
+	depends on PPTP && MPPE
+
+config L2TP
+	tristate "L2TP"
+	depends on TARGET_panther
+
+config PPP
+	tristate "PPP"
+	depends on PPPOE || L2TP
+
+config CHAPMS
+	bool "Support MS CHAP"
+	depends on PPPOE || L2TP
+
+config PPP_LCP_PASSIVE_ECHO_REPLY
+	bool "Send LCP echo reply passively"
+	depends on PPPOE || L2TP
+
+config DHCPC
+	tristate "DHCP Client"
+	depends on TARGET_panther
+
+config DHCP_OPTION_SUPPORT_STATIC_ROUTES
+	bool "Support option - Static Routes"
+	depends on DHCPC
+
+config DHCP_OPTION_SUPPORT_CLASSLESS_STATIC_ROUTES
+	bool "Support option - Classless Static Routes"
+	depends on DHCPC
+
+config BPA
+	tristate "Big Pond Authentication Client"
+	depends on TARGET_panther
+
+config AUTO_WAN
+	tristate "Auto Wan Detection"
+
+endmenu
+
+menu "Advance Networking"
+depends on TARGET_panther
+#comment "===================="
+#comment "Advance Networking"
+#comment "===================="
+comment "Routing"
+
+config STATIC_ROUTE
+	tristate "add/delete static route"
+
+comment "NAT"
+config NAT
+	tristate "NAPT"
+
+comment "Firewall"
+config FW
+	tristate "Firewall"
+
+endmenu
+
+menu "Service"
+depends on TARGET_panther
+#comment "===================="
+#comment "Service"
+#comment "===================="
+config USB
+	tristate "USB Support"
+
+config USB_ETH
+	tristate "USB-Ethernet interface"
+	depends on USB
+
+config PRINTER_SERVER
+	tristate "Printer Server"
+	depends on USB
+
+config VIDEO_STREAM
+	tristate "Video Stream for Camera"
+	depends on USB
+
+config SONIX_MOTION_DETECTION
+	bool "the motion detection support of Sonix"
+	depends on VIDEO_STREAM
+
+config SONIX_OSD
+	bool "the OSD support of Sonix"
+	depends on VIDEO_STREAM
+
+config SONIX_IMAGE
+	bool "the extension image support of Sonix"
+	depends on VIDEO_STREAM
+
+config WEBCAM_IMAGE_PARAMETERS
+	bool "enable menu for image paramethers"
+	depends on VIDEO_STREAM
+
+config SAMBA
+	tristate "SAMBA Server"
+	depends on USB
+
+config HTTPD
+	tristate "HTTP Server"
+
+config ZPAGE
+	bool "Compress webpages (LZMA)"
+	depends on HTTPD
+
+config ZPAGE_GZIP
+	bool "Compress webpages with gzip"
+	depends on HTTPD && ZPAGE
+
+config WEB_AS_DATA
+	bool "Web pages as data"
+	depends on HTTPD
+
+config MULTI_LOGIN
+	bool "Allow multiple login"
+	depends on HTTPD
+
+config WEB_LOGIN
+	bool "Allow web-base login"
+	depends on TARGET_panther 
+
+config SUPPORT_MD5
+	bool "Digest Authenticatiion"
+	depends on HTTPD
+
+config HTTPS
+	bool "HTTPS"
+	depends on HTTPD
+
+config HOTSPOT
+	bool "Captive Portal"
+	depends on HTTPS
+
+config WWW
+	tristate "WWW"
+	default y
+
+choice
+	prompt "Compress HTML"
+	default COMPRESS_HTML_BY_HTMLMINIFIER
+	depends on WWW
+	help
+	  select tool to compress javascript
+
+	config COMPRESS_HTML_BY_NONE
+		bool "None"
+
+	config COMPRESS_HTML_BY_HTMLMINIFIER
+		bool "html-minifier"
+
+	config COMPRESS_HTML_BY_PYTHONSLIMMER
+		bool "PythonHTMLSlimmer"
+endchoice
+
+choice
+	prompt "Compress javascript"
+	default COMPRESS_JS_BY_UGLIFYJS
+	depends on WWW
+	help
+	  select tool to compress javascript
+
+	config COMPRESS_JS_BY_NONE
+		bool "None"
+
+	config COMPRESS_JS_BY_UGLIFYJS
+		bool "uglify-js"
+
+	config COMPRESS_JS_BY_YUICOMPRESSOR
+		bool "YUI-compressor"
+endchoice
+
+choice
+	prompt "Compress CSS"
+	default COMPRESS_CSS_BY_YUICOMPRESSOR
+	depends on WWW
+	help
+	  select tool to compress CSS
+
+	config COMPRESS_CSS_BY_NONE
+		bool "None"
+
+	config COMPRESS_CSS_BY_YUICOMPRESSOR
+		bool "YUI-compressor"
+endchoice
+
+config WIZARD_WEB
+	bool "Enable wizard subpage"
+	depends on WWW
+
+config FILE_EXPLORER
+	bool "Enable file explorer page"
+	depends on WWW
+	default y
+
+config DHCPS_PROBE
+	tristate "Auto disabling DHCP server when another DHCP server on LAN side"
+	depends on DHCPS
+
+config DHCPS_HIDE_GW
+	tristate "Hide the default gateway"
+	depends on DHCPS
+
+config UPNP
+	tristate "UPNP"
+	depends on TARGET_panther
+
+config LOG
+	tristate "Syslog"
+
+config SNMP
+	tristate "SNMP"
+
+endmenu
+
+menu "Miscellaneous"
+depends on TARGET_panther
+#comment "===================="
+#comment "Miscellaneous"
+#comment "===================="
+
+config NTP
+	tristate "NTP"
+
+config RECORDER
+	bool "Record Voice"
+
+config MEDIA
+	bool "Multimedia"
+
+config RADIO
+	bool "Internet Radio"
+
+config AUDIOPLAYER
+	bool "Audio Player"
+
+config MOBWIFIAUDIO
+	bool "Mobile wifi audio page"
+	default n
+
+config WEB_WPS
+	bool "Switch for WPS page"
+
+config SMARTCONFIG
+	bool "Smart Config"
+
+config OP_CHANGE_REBOOT
+	bool "Change Reboot Switch"
+
+endmenu
+
+endmenu

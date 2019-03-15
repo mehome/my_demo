@@ -1,0 +1,6 @@
+#!/bin/sh
+
+echo -en "\r\n\r\n"
+
+# log dump
+/lib/wdk/log -xymta

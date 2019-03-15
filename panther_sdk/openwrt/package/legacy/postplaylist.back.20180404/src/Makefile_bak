@@ -1,0 +1,118 @@
+#export WIFIAUDIO_MONTAGE=y
+#export WIFIAUDIO_MTK=y
+export WIFIAUDIO_DEBUG=y
+#澜起和MTK二选一
+
+
+ifeq ($(WIFIAUDIO_MONTAGE), y)
+export CC := mipsel-openwrt-linux-gcc
+export CFLAGS := -I/usr/local/montage_openwrt_lib/include -L/usr/local/montage_openwrt_lib/lib
+	CFLAGS += -DWIFIAUDIO_MONTAGE
+endif
+
+ifeq ($(WIFIAUDIO_MTK), y)
+export CC := mipsel-openwrt-linux-gcc
+export CFLAGS := -I/usr/local/mtk_openwrt_lib/include -L/usr/local/mtk_openwrt_lib/lib
+	CFLAGS += -DWIFIAUDIO_MTK
+endif
+
+ifeq ($(WIFIAUDIO_DEBUG), y)
+export CC := gcc
+export CFLAGS := -I/usr/local/openwrt_lib/include -L/usr/local/openwrt_lib/lib
+	CFLAGS += -DWIFIAUDIO_DEBUG
+endif
+
+#登录成功过来之后这两个二选一
+CFLAGS += -DWIFIAUDIO_POST_AMAZON_INFO_TO_UCI
+#CFLAGS += -DWIFIAUDIO_POST_AMAZON_INFO_TO_FILE
+
+.PHONY: all install lib lib_install clean 
+all:
+	mkdir -p bin
+	mkdir -p cgi-bin
+	mkdir -p html
+	$(MAKE) -C httpapi
+	cp httpapi/*.cgi cgi-bin/
+	cp httpapi/WIFIAudio_DownloadBurn bin/
+	cp httpapi/WIFIAudio_LightControl_LedMatrixScreen bin/
+	$(MAKE) -C postmusiclist
+	cp postmusiclist/*.cgi cgi-bin/
+	$(MAKE) -C Lenovo_cgi
+	cp Lenovo_cgi/*.cgi cgi-bin/
+	$(MAKE) -C htmlupdate/cgi-bin
+	cp htmlupdate/cgi-bin/*.cgi cgi-bin
+	cp htmlupdate/xzx.html html
+	cp htmlupdate/css html -rf
+	cp htmlupdate/js html -rf
+	
+install:	
+ifeq ($(WIFIAUDIO_MONTAGE), y)
+	mkdir -p /usr/local/montage_openwrt_lib/www/cgi-bin
+	mkdir -p /usr/local/montage_openwrt_lib/sbin
+	cp cgi-bin/* /usr/local/montage_openwrt_lib/www/cgi-bin/
+	cp bin/* /usr/local/montage_openwrt_lib/sbin/
+	cp -rf html/* /usr/local/montage_openwrt_lib/www
+	chmod 644 /usr/local/montage_openwrt_lib/www/css -R
+	chmod 644 /usr/local/montage_openwrt_lib/www/js -R
+	chmod 644 /usr/local/montage_openwrt_lib/www/xzx.html
+endif
+
+ifeq ($(WIFIAUDIO_MTK), y)
+	mkdir -p /usr/local/mtk_openwrt_lib/www/cgi-bin
+	mkdir -p /usr/local/mtk_openwrt_lib/sbin
+	cp cgi-bin/* /usr/local/mtk_openwrt_lib/www/cgi-bin/
+	cp bin/* /usr/local/mtk_openwrt_lib/sbin/
+	cp -rf html/* /usr/local/mtk_openwrt_lib/www
+	chmod 644 /usr/local/mtk_openwrt_lib/www/css -R
+	chmod 644 /usr/local/mtk_openwrt_lib/www/js -R
+	chmod 644 /usr/local/mtk_openwrt_lib/www/xzx.html
+endif
+
+ifeq ($(WIFIAUDIO_DEBUG), y)
+	mkdir -p /usr/local/openwrt_lib/www/cgi-bin
+	mkdir -p /usr/local/openwrt_lib/sbin
+	cp cgi-bin/* /usr/local/openwrt_lib/www/cgi-bin/
+	cp bin/* /usr/local/openwrt_lib/sbin/
+	cp -rf html/* /usr/local/openwrt_lib/www
+	chmod 644 /usr/local/openwrt_lib/www/css -R
+	chmod 644 /usr/local/openwrt_lib/www/js -R
+	chmod 644 /usr/local/openwrt_lib/www/xzx.html
+endif
+
+lib:
+	mkdir -p lib
+	mkdir -p include
+	$(MAKE) -C http_lib clean
+	$(MAKE) -C http_lib
+	cp http_lib/*.so lib
+	cp http_lib/*.h include
+	cp -rf http_lib/wdk include
+
+lib_install:
+ifeq ($(WIFIAUDIO_MONTAGE), y)
+	cp -rf lib/* /usr/local/montage_openwrt_lib/lib/
+	cp -rf include/* /usr/local/montage_openwrt_lib/include/
+endif
+
+ifeq ($(WIFIAUDIO_MTK), y)
+	cp -rf lib/* /usr/local/mtk_openwrt_lib/lib/
+	cp -rf include/* /usr/local/mtk_openwrt_lib/include/
+endif
+
+ifeq ($(WIFIAUDIO_DEBUG), y)
+	cp -rf lib/* /usr/local/openwrt_lib/lib/
+	cp -rf include/* /usr/local/openwrt_lib/include/
+endif
+	
+clean:
+	-$(MAKE) clean -C http_lib
+	-$(MAKE) clean -C httpapi
+	-$(MAKE) clean -C postmusiclist
+	-$(MAKE) clean -C Lenovo_cgi
+	-$(MAKE) clean -C htmlupdate/cgi-bin
+	-$(RM) -rf lib
+	-$(RM) -rf include
+	-$(RM) -rf bin
+	-$(RM) -rf cgi-bin
+	-$(RM) -rf html
+	

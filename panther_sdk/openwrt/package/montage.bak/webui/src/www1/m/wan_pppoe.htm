@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var WAN_USERNAME_MIN_LEN = 0;
+var WAN_USERNAME_MAX_LEN = 64;
+var WAN_PASSWD_MIN_LEN = 0;
+var WAN_PASSWD_MAX_LEN = 64;
+
+var param = [
+	'$poe_user',
+	'$poe_pass',
+	'$poe_mtu',
+	'$poe_svc',
+	'$poe_idle',
+	'$poe_auto',
+	'$wan_clone_mac_enable',
+	'$wan_clone_mac',
+	'$dns_fix',
+	'$dns_svr1',
+	'$dns_svr2',
+	'$lan_ip',
+	'$poe_sipe',
+	'$poe_sip',
+	'$op_work_mode',
+	'$wan_mode'
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var pppCfg = {
+	'static': mainObj.config_val('$poe_sipe'),
+	'static_ip': mainObj.config_val('$poe_sip'),
+	'user': mainObj.config_val('$poe_user'),
+	'password': mainObj.config_val('$poe_pass'),
+	'service_name': mainObj.config_val('$poe_svc'),
+	'mtu': mainObj.config_val('$poe_mtu'),
+	'idle_time': mainObj.config_val('$poe_idle'),
+	'conn_mode': mainObj.config_val('$poe_auto'),
+	'fix_dns': mainObj.config_val('$dns_fix'),
+	'dns1': mainObj.config_val('$dns_svr1'),
+	'dns2': mainObj.config_val('$dns_svr2'),
+	'mc_enable': mainObj.config_val('$wan_clone_mac_enable'),
+	'mc_addr': mainObj.config_val('$wan_clone_mac'),
+	'lan_ip': mainObj.config_val('$lan_ip'),
+	'work_mode': mainObj.config_val('$op_work_mode'),
+	'wan_mode': mainObj.config_val('$wan_mode'),
+};
+
+function select_wan_page() {
+	var html_file;
+	var sel_wan = get_by_id("sel_wan").value;
+
+	switch (sel_wan) {
+		case "1":
+			html_file = "wan_static.htm";
+			break;
+		case "2":
+			html_file = "wan_dhcp.htm";
+			break;
+		case "3":
+			html_file = "wan_pppoe.htm";
+			break;
+		default:
+			html_file = "wan_dhcp.htm";
+			break;
+	}
+
+	location.href = html_file;
+}
+
+function select_addr_mode() {
+	var sel_mode = get_by_id("addr_mode").value;
+
+	if (sel_mode == "1") {
+		showHide('ipaddr', 1);
+	} else {
+		showHide('ipaddr', 0);
+	}
+}
+
+function send_request() {
+	var w_mode = get_by_id("sel_wan").value;
+	var a_mode = get_by_id("addr_mode").value;
+	var ip_addr = get_by_id("ip_addr").value;
+	var user = get_by_id("account").value;
+	var pwd_0 = get_by_id("password_0").value;
+	var pwd_1 = get_by_id("password_1").value;
+	var s_name = get_by_id("srv_name").value;
+	var mtu = get_by_id("mtu").value;
+	var idle_time = get_by_id("idle_time").value;
+	var conn_mode = get_by_id("conn_mode").value;
+	var fdns = get_checked_value(get_by_id("fix_dns"));
+	var dns1 = get_by_id("dns1").value;
+	var dns2 = get_by_id("dns2").value;
+	var mc = get_checked_value(get_by_id("mac_clone_enable"));
+	var mcaddr = get_by_id("mac_clone_addr").value;
+	var lan_ip = pppCfg.lan_ip;
+	var need_reboot = 0;
+	var ret = 0;
+
+	if (!chkNum(get_by_id("mtu"), 546, 1492, "MTU")) {
+		return;
+	}
+
+	if (idle_time == "") {
+		alert(wdk.msg("Idle time out must input a value !"));
+		return;
+	} else {
+		if (idle_time != "0") {
+			if (!chkNum(get_by_id("idle_time"), 60, 3600, "Idle Time Out")) {
+				return;
+			}
+		}
+	}
+
+	if (!chkStr(get_by_id("account"), "PPPOE Account")) {
+		return;
+	}
+
+	if (!chkStrLen(get_by_id("account"), WAN_USERNAME_MIN_LEN, WAN_USERNAME_MAX_LEN, "PPPOE Account")) {
+		return;
+	}
+
+	if (!chkStrLen(get_by_id("password_0"), WAN_PASSWD_MIN_LEN, WAN_PASSWD_MAX_LEN, "PPPOE Password")) {
+		return;
+	}
+
+	if (!chkStr(get_by_id("srv_name"), wdk.msg("Service Name"))) {
+		return;
+	}
+
+	if (pwd_0 != pwd_1) {
+		alert("Password is not consistent!");
+		return;
+	}
+
+	if (!chkMAC(get_by_id("mac_clone_addr"), "MAC address")) {
+		return;
+	}
+
+	if (fdns == "1") {
+		if (!chkIP(get_by_id("dns1"), "Primary DNS")) {
+			return;
+		}
+	} else {
+		if (!chkIpOrNull(get_by_id("dns1"), "Primary DNS")) {
+			return;
+		}
+	}
+
+	if (!chkIpOrNull(get_by_id("dns2"), "Secondary DNS")) {
+		return;
+	}
+
+	mainObj.config_set(a_mode, '$poe_sipe');
+	mainObj.config_set(ip_addr, '$poe_sip');
+	mainObj.config_set(user, '$poe_user');
+	mainObj.config_set(pwd_0, '$poe_pass');
+	mainObj.config_set(s_name, '$poe_svc');
+	mainObj.config_set(mtu, '$poe_mtu');
+	mainObj.config_set(idle_time, '$poe_idle');
+	mainObj.config_set(conn_mode, '$poe_auto');
+	mainObj.config_set(fdns, '$dns_fix');
+	mainObj.config_set(dns1, '$dns_svr1');
+	mainObj.config_set(dns2, '$dns_svr2');
+	mainObj.config_set(mc, '$wan_clone_mac_enable');
+	mainObj.config_set(mcaddr, '$wan_clone_mac');
+	mainObj.config_set(w_mode, '$wan_mode');
+
+	if (mtu != pppCfg.mtu) {
+		alert(wdk.msg("MTU value is changed! Device will reboot!"));
+		need_reboot = 1;
+	}
+
+	if ((mc != pppCfg.mc_enable) || (mcaddr != pppCfg.mc_addr)) {
+		need_reboot = 1;
+	}
+
+	if (need_reboot) {
+		ret = wdk.request_submit();
+		if (ret) {
+			wdk.showResultBG();
+			reboot();
+		}
+	} else {
+		ret = wdk.request_submit(1);
+		if (ret) {
+			wdk.goThisPage();
+		}
+	}
+}
+
+function init() {
+	var host_ip = window.location.host;
+	var lan_ip = pppCfg.lan_ip;
+
+	set_checked(pppCfg.static, get_by_id("ip_addr"));
+	get_by_id("ip_addr").value = pppCfg.static_ip;
+	get_by_id("account").value = pppCfg.user;
+	get_by_id("password_0").value = pppCfg.password;
+	get_by_id("password_1").value = pppCfg.password;
+	get_by_id("srv_name").value = pppCfg.service_name;
+	get_by_id("mtu").value = pppCfg.mtu;
+	get_by_id("idle_time").value = pppCfg.idle_time;
+	set_checked(pppCfg.conn_mode, get_by_id("conn_mode"));
+
+	set_checked(pppCfg.fix_dns, get_by_id("fix_dns"));
+
+	get_by_id("dns1").value = pppCfg.dns1;
+	get_by_id("dns2").value = pppCfg.dns2;
+
+	if (lan_ip != host_ip) {
+		get_by_id("mac_clone_enable").disabled = true;
+		get_by_id("mac_clone_addr").disabled = true;
+	} else {
+		get_by_id("mac_clone_enable").disabled = false;
+		get_by_id("mac_clone_addr").disabled = false;
+	}
+
+	set_checked(pppCfg.mc_enable, get_by_id("mac_clone_enable"));
+	get_by_id("mac_clone_addr").value = pppCfg.mc_addr;
+
+	select_addr_mode();
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">PPPoE</div>
+   <div id="rightbutton">
+    <a href="#" onclick="send_request()">
+     <script>
+show_words("Done")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("WAN Mode")</script></span>
+     <select name="sel_wan" id="sel_wan" class="duoselectionbuttons" size="1" onchange="select_wan_page()">
+      <option value="2">
+       <script>
+get_words('DHCP')
+       </script>
+      </option>
+      <option value="1">
+       <script>
+get_words("Static IP")
+       </script>
+      </option>
+      <option value="3" selected>
+       <script>
+get_words("PPPoE")
+       </script>
+      </option>
+     </select>
+    </li>
+   </ul>
+
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("Address Mode")</script></span>
+     <select name="addr_mode" id="addr_mode" class="duoselectionbuttons" size="1" onchange="select_addr_mode()">
+      <option value="0">
+       <script>
+get_words('Dynamic PPPoE')
+       </script>
+      </option>
+      <option value="1">
+       <script>
+get_words("Static PPPoE")
+       </script>
+      </option>
+     </select>
+    </li>
+    <li id="ipaddr" class="smallfield">
+     <span class="name"><script>get_words("IP Address")</script></span>
+     <input name="ip_addr" id="ip_addr" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("PPPoE Account")</script></span>
+     <input name="account" id="account" type="text" maxlength="64">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("PPPoE Password")</script></span>
+     <input name="password_0" id="password_0" type="password" value="******" maxlength="64">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Retype Password")</script></span>
+     <input name="password_1" id="password_1" type="password" value="******" maxlength="64">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Service Name")</script></span>
+     <input name="srv_name" id="srv_name" type="text" maxlength="25">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("MTU (546 ~ 1492)")</script></span>
+     <input name="mtu" id="mtu" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Idle Time(60 ~ 3600)")</script></span>
+     <input name="idle_time" id="idle_time" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Connection Mode")</script></span>
+     <select name="conn_mode" id="conn_mode" class="duoselectionbuttons" size="1">
+      <option value="0">
+       <script>
+get_words('keep-alive')
+       </script>
+      </option>
+      <option value="1">
+       <script>
+get_words("auto-connect")
+       </script>
+      </option>
+      <option value="2">
+       <script>
+get_words("manual-on")
+       </script>
+      </option>
+     </select>
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("Static DNS Server")</script></span>
+     <input name="fix_dns" id="fix_dns" type="checkbox" value="1">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Primary DNS")</script></span>
+     <input name="dns1" id="dns1" type="text" maxlength="15">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Secondary DNS")</script></span>
+     <input name="dns2" id="dns2" type="text" maxlength="15">
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("MAC Cloning")</script></span>
+     <input name="mac_clone_enable" id="mac_clone_enable" type="checkbox" value="1">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("MAC Address")</script></span>
+     <input name="mac_clone_addr" id="mac_clone_addr" type="text" placeholder="00:00:00:00:00:00">
+    </li>
+   </ul>
+  </div>
+ </form>
+</body>
+
+</html>

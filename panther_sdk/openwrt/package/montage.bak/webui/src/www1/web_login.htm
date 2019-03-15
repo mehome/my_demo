@@ -1,0 +1,136 @@
+<!--ifdef CONFIG_WEB_LOGIN-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <style type="text/css">
+.form_body {
+ background-color: rgb(79, 111, 199);
+ width: 450px;
+ border-style: solid;
+ border-width: 10px;
+ border-color: white;
+ padding: 10px;
+ margin: 10% auto;
+}
+body {
+ background-color: rgb(17, 17, 17);
+}
+ </style>
+ <script>
+function onKeyPressEnter(event) {
+	var keycode = event.keyCode;
+	if (event.keyCode == 13)
+		return check_UserIDandPW();
+	else
+		return true;
+}
+
+function init() {
+	var f1 = document.form_1;
+	f1.User_ID.value = "";
+	f1.User_PW.value = "";
+	f1.User_ID.focus();
+}
+
+function check_UserIDandPW() {
+	var f1 = document.form_1;
+	var f2 = document.form_2;
+	var output = base64_encoder(f1.User_PW.value);
+
+	f2.UserID.value = f1.User_ID.value;
+	f2.UserPW.value = output;
+	f2.submit();
+	return false;
+}
+
+function base64_encoder(input) {
+	// private property
+	var _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	var padding = '=';
+	// public method for encoding
+	var output = "";
+	var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+	var i = 0,
+		j = 0;
+
+	while (i + 2 < input.length) {
+		chr1 = input.charCodeAt(i++);
+		chr2 = input.charCodeAt(i++);
+		chr3 = input.charCodeAt(i++);
+
+		enc1 = chr1 >> 2;
+		enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+		enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+		enc4 = chr3 & 63;
+
+		output = output +
+			_keyStr.charAt(enc1) + _keyStr.charAt(enc2) +
+			_keyStr.charAt(enc3) + _keyStr.charAt(enc4);
+	}
+
+	if (i != input.length) {
+		chr1 = chr2 = chr3 = '\0';
+		chr1 = input.charCodeAt(i++);
+		chr2 = input.charCodeAt(i++);
+		chr3 = input.charCodeAt(i++);
+
+		enc1 = chr1 >> 2;
+		enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+		enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+
+		output = output +
+			_keyStr.charAt(enc1) + _keyStr.charAt(enc2);
+
+		if (1 == input.length - (i - 3))
+			output = output + padding;
+		else
+			output = output + _keyStr.charAt(enc3);
+		output += padding;
+	}
+	return output;
+}
+ </script>
+</head>
+
+<body onload="init()">
+ <form name="form_1" class="form_body">
+  <b style="font-size:1.75em;font-style:italic;color:white;">Panther</b>
+  <table style="width:29em;margin-top:1.5em">
+   <tr>
+    <td style="font-size:1.5em;width:25%">Login</td>
+    <td style="color:#FF7777;width:75%"></td>
+   </tr>
+  </table>
+  <table style="width:29em;margin-top:1.5em">
+   <tr>
+    <td style="font-size:1.2em;">User Name</td>
+    <td>
+     <input type=text name="User_ID" onkeypress="return onKeyPressEnter(event)">
+    </td>
+   </tr>
+   <tr>
+    <td style="font-size:1.2em;">Password</td>
+    <td>
+     <input type=password name="User_PW" maxlength=15 onkeypress="return onKeyPressEnter(event)">
+    </td>
+   </tr>
+   <tr>
+    <td></td>
+    <td></td>
+    <td>
+     <input type=button name="LOGIN" value="login" onclick="check_UserIDandPW()">
+    </td>
+   </tr>
+  </table>
+ </form>
+ <form name="form_2" method="post" action="check_login.cgi">
+  <input type="hidden" name="UserID">
+  <input type="hidden" name="UserPW">
+ </form>
+</body>
+
+</html>
+<!--endif-->

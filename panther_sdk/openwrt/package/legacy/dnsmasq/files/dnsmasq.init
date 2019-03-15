@@ -1,0 +1,65 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2007 OpenWrt.org
+
+. /etc/cdb.sh
+
+START=60
+DNS_SERVERS=""
+DOMAIN=""
+DAEMON="/usr/sbin/dnsmasq"
+DAEMON_PID_FILE="/var/run/dnsmasq.pid"
+
+start() {
+	config_get dns_enable dns_enable
+
+	args=""
+	if [ "${dns_enable}" == "0" ]; then
+		# set port to 0 completely disable DNS function, leaving only DHCP
+		args="--port=0"
+	fi
+
+	start-stop-daemon -S -x ${DAEMON} \
+		-p ${DAEMON_PID_FILE} \
+		-- ${args} -K 2>/dev/null
+
+	[ -L /tmp/resolv.conf ] || {
+		rm -f /tmp/resolv.conf
+		ln -sf /tmp/resolv.conf.auto /tmp/resolv.conf
+	}
+	echo -n "" > /tmp/resolv.conf
+	[ -n "$DOMAIN" ] && echo "search $DOMAIN" >> /tmp/resolv.conf
+	DNS_SERVERS="$DNS_SERVERS 127.0.0.1"
+	for DNS_SERVER in $DNS_SERVERS ; do
+		echo "nameserver $DNS_SERVER" >> /tmp/resolv.conf
+	done
+}
+
+stop() {
+	[ -f ${DAEMON_PID_FILE} ] && {
+		local pid=`cat ${DAEMON_PID_FILE}`
+		local msec=0
+		start-stop-daemon -K -q -n ${DAEMON##*/} \
+			-p ${DAEMON_PID_FILE} -s TERM
+
+		# be sure dnsmasq is closed
+		while [ 1 ]
+		do
+			if pidof dnsmasq | grep "${pid}" > /dev/null; then
+				if [ ${msec} -ge 1000 ]; then
+					logger -t dnsmasq -p 3 "Fatal error, dnsmasq can't be closed"
+					exit 0
+				else
+					start-stop-daemon -K -q -n ${DAEMON##*/} \
+						-p ${DAEMON_PID_FILE} -s KILL
+				fi
+				usleep 1000
+				msec=$((${msec}+1))
+			else
+				break
+			fi
+		done
+
+		rm -f ${DAEMON_PID_FILE}
+	}                                 
+	return 0
+}

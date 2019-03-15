@@ -1,0 +1,328 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$wan_ip', '$wan_msk', '$wan_gw', '$wan_mtu', '$wan_clone_mac_enable', '$wan_clone_mac',
+	'$wan_alias_ip1-5', '$wan_alias', '$dns_fix', '$dns_svr1', '$dns_svr2', '$lan_ip', '$nat_dmz_host1-6', '$op_work_mode'
+]);
+
+wdk.cdbSet('$dns_fix', 1);
+var lanip = wdk.cdbVal('$lan_ip');
+var opWorkMode = wdk.cdbVal('$op_work_mode');
+var max = 5;
+var dmz_max = 6;
+var listnum;
+var dmz_listnum;
+var curIdx = -1;
+var currentHost = window.location.host;
+
+function init() {
+	var f = document.frm;
+	listnum = wdk.cdbLen('$wan_alias_ip', max);
+	dmz_listnum = wdk.cdbLen('$nat_dmz_host', max);
+	refreshList('entry', max, listnum);
+	for (var i = 1; i <= listnum; i++) {
+		var e = wdk.findChildNode(wdk.getById('entry' + i));
+		var t = wdk.getByName(e, 'ip');
+		t.id = '$wan_alias_ip' + i;
+	}
+	f.reset();
+	wdk.init_form();
+	switchList(wdk.cdbVal('$wan_alias'));
+	if (lanip != currentHost)
+		f.Btn.disabled = true;
+	else
+		f.Btn.disabled = false;
+}
+
+function apply() {
+	var f = document.frm;
+	if (!chkIP(f.IP, "IP Address")) {
+		highlight("$wan_ip");
+		return;
+	}
+	if (f.IP.value == lanip) {
+		alert(wdk.msg("WAN IP address can't be the same with LAN IP address !"));
+		highlight("$wan_ip");
+		return;
+	}
+	if (!chkMsk(f.NM, wdk.msg("Subnet mask"))) {
+		highlight("$wan_msk");
+		return;
+	}
+	if (!chkIP(f.GW, "Gateway IP")) {
+		highlight("$wan_gw");
+		return;
+	}
+	if (getIP(f.IP) == getIP(f.GW)) {
+		alert(wdk.msg("IP Address and Gateway Address are same !"));
+		return;
+	}
+	if (!chkNum(f.MTU, 576, 1500, "MTU")) {
+		highlight("$wan_mtu");
+		return;
+	}
+	//if (f.cloneEn.checked)
+	{
+		if (!chkMAC(f.mac, "MAC address")) {
+			highlight("$wan_clone_mac");
+			return;
+		} else {
+			wdk.cdbSet("$wan_clone_mac", f.mac.value)
+			wdk.cdbSet("$wan_clone_mac_enable", (f.cloneEn.checked) ? 1 : 0)
+		}
+	}
+	if (!chkIP(f.DS1, "Primary DNS")) {
+		highlight("$dns_svr1");
+		return;
+	}
+	if (!chkIpOrNull(f.DS2, "Secondary DNS")) {
+		highlight("$dns_svr2");
+		return;
+	}
+	if (f.MTU.value != wdk.cdbVal('$wan_mtu')) {
+		if (window.confirm(wdk.msg("MTU value is changed! Device will reboot!"))) {
+			wdk.showResultBG();
+			reboot();
+			wdk.save_form(0, 1);
+		}
+	} else if (wdk.cdbChg("$wan_clone_mac") || wdk.cdbChg("$wan_clone_mac_enable")) { // clone mac patch
+		wdk.showResultBG();
+		reboot();
+		wdk.save_form(0, 1);
+	} else {
+		wdk.save_form(2000);
+	}
+}
+
+function edit(ent) {
+	var idx = ent.id.match(/\d+$/);
+	var r = wdk.cdbVal('$wan_alias_ip' + idx);
+	wdk.fill_form_entry(wdk.getById('aip'), r);
+	markEntry(wdk.getById('entry' + idx));
+	curIdx = idx;
+}
+
+function Remove(ent) {
+	var idx = ent.id.match(/\d+$/);
+	var i;
+
+	/* syn with dmz */
+	for (i = 1; i <= dmz_listnum; i++) {
+		if (rule2var(wdk.cdbVal('$nat_dmz_host' + i), 'gip') == wdk.cdbVal('$wan_alias_ip' + idx))
+			wdk.cdbDel('$nat_dmz_host' + i, dmz_max);
+	}
+
+	wdk.cdbDel('$wan_alias_ip' + idx, max);
+	if (curIdx > 2)
+		curIdx--;
+	init();
+}
+
+function change(add) {
+	var r = '';
+	var IP = wdk.getById('$wan_ip');
+	var MSK = wdk.getById('$wan_msk');
+	var ip = wdk.getById('aip');
+	if (!chkIP(ip, "IP Address")) {
+		highlight("$wan_ip");
+		return;
+	}
+	if (wdk.cdbVal('$wan_ip') == ip.value) {
+		alert(wdk.msg('Duplicated alias ip') + ' with WAN IP !');
+		return;
+	}
+	var NetworkIP = ByMask_IPrange(ip.value, MSK.value, 0);
+	var NetworkIP1 = ByMask_IPrange(IP.value, MSK.value, 0);
+	if (NetworkIP != NetworkIP1) {
+		alert(wdk.msg("Alias IP address should be in the same subnet with WAN IP address !"));
+		highlight("$wan_ip");
+		return;
+	}
+
+	for (var i = 1; i <= listnum; i++) {
+		if (!add && i == curIdx) continue;
+		if (wdk.cdbVal('$wan_alias_ip' + i) == ip.value) {
+			alert(wdk.msg('Duplicated alias ip') + '!');
+			return;
+		}
+	}
+	var k = curIdx;
+	if (add) {
+		k = listnum + 1;
+		if (k > max) {
+			alert(wdk.msg("Too many entries, maximum is ") + max);
+			return
+		}
+	}
+	wdk.presubmit_form();
+	wdk.cdbSet('$wan_alias_ip' + k, ip.value);
+	init();
+}
+
+function switchList(on) {
+	showHide('alias_sec', on);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <script>
+wanModeList(1, opWorkMode);
+  </script>
+  <br>
+  <fieldset>
+   <legend>WAN Static IP</legend>
+   <h2><script>wdk.putmsg("Static IP Address")</script></h2>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("IP Address")
+     </script>
+    </div>
+    <input name=IP id=$wan_ip size=17 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Subnet Mask")
+     </script>
+    </div>
+    <input name=NM id=$wan_msk size=17 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Gateway IP")
+     </script>
+    </div>
+    <input name=GW id=$wan_gw size=17 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>MTU(576-1500)</div>
+    <input name=MTU id=$wan_mtu size=4 maxlength=4>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Static DNS Server")
+     </script>
+    </div>
+    <input type=checkbox name=DSEN value=1 checked disabled>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Primary DNS");
+     </script>
+    </div>
+    <input name=DS1 id=$dns_svr1 size=17 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Secondary DNS")
+     </script>
+    </div>
+    <input name=DS2 id=$dns_svr2 size=17 maxlength=15>
+    <script>
+wdk.putmsg("(Optional)")
+    </script>
+   </div>
+   <div class=setting>
+    <script>
+if (lanip != currentHost) {
+	puts('<div class=label><font color="#C0C0C0">' + wdk.msg("MAC Cloning") + '<' + '/font><' + '/div>');
+	puts('<input type=checkbox name=cloneEn id=$wan_clone_mac_enable disabled>');
+	puts('<font color="#C0C0C0">' + wdk.msg("Enabled") + '<' + '/font>');
+} else {
+	puts('<div class=label>' + wdk.msg("MAC Cloning") + '<' + '/div>');
+	puts('<input type=checkbox name=cloneEn id=$wan_clone_mac_enable>');
+	wdk.putmsg("Enabled");
+}
+    </script>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("MAC Address");
+     </script>(XX:XX:XX:XX:XX:XX)</div>
+    <input name=mac id=$wan_clone_mac size=17 maxlength=17>
+    <script>
+if (lanip != currentHost) {
+	puts('<input type=button name=Btn class=BtnGrey value="' + wdk.msg("Clone MAC") + '" onclick=cloneMac(cloneEn,mac)>');
+} else
+	puts('<input type=button name=Btn class=button value="' + wdk.msg("Clone MAC") + '" onclick=cloneMac(cloneEn,mac)>');
+    </script>
+   </div>
+   <h2><script>wdk.putmsg("More IP addresses")</script></h2>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Does ISP provide more IP addresses?")
+     </script>
+    </div>
+    <input type=checkbox name=alias_on id=$wan_alias onclick=switchList(alias_on.checked)>
+   </div>
+
+   <div id=alias_sec class=table1>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("More IP addresses")
+      </script>
+     </div>
+     <input id=aip name=ip size=17 maxlength=15>
+    </div>
+    <div class=setting align=center>
+     <script>
+puts('<input type=button class=button name=Add value="' + wdk.msg('Add') + '" onclick=change(1)>' +
+	'<input type=button class=button name=Mod value="' + wdk.msg('Modify') + '" onclick=change(0)>');
+     </script>
+    </div>
+    <div class=floatKiller></div>
+    <table class=infolist>
+     <tr>
+      <th>
+       <script>
+wdk.putmsg("IP Address")
+       </script>
+      </th>
+      <th>
+       <script>
+wdk.putmsg("Action")
+       </script>
+      </th>
+     </tr>
+     <tr align=center id=entry1>
+      <td>
+       <input name=ip id=$wan_alias_ip1 disabled size=17>
+       <input type=hidden name=dummy>
+      </td>
+      <td>
+       <img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode)>&nbsp;
+       <img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode);>
+      </td>
+     </tr>
+    </table>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

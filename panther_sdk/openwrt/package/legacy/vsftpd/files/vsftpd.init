@@ -1,0 +1,13 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006-2011 OpenWrt.org
+
+START=50
+
+start() {
+	mkdir -m 0755 -p /var/run/vsftpd
+	/usr/sbin/vsftpd &
+}
+
+stop() {
+	killall /usr/sbin/vsftpd
+}

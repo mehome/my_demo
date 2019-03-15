@@ -1,0 +1,247 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta content="text/html; charset=utf-8" />
+
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" type="text/css" />
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var RadioOnly = 1;
+var DLNAandAirplay = 2;
+var inputDevName;
+var devNameInp;
+var maxDevNameLength = 32;
+var mediaOpt;
+var curMediaState;
+var curadioType;
+var devName;
+var radioOpt;
+var radioType;
+
+function redirectPage(page) {
+	window.location.href = page;
+}
+
+
+function init() {
+	wdk.cdbLoad(['$ra_func', '$ra_name', '$ra_radiotype'
+			/*--ifdef CONFIG_DHCPS_HIDE_GW--*/
+			, '$dhcps_hide_gw'
+			/*--endif--*/
+	]);
+	curMediaState = wdk.cdbVal('$ra_func');
+	devName = wdk.cdbVal('$ra_name');
+	curadioType = Number(wdk.cdbVal('$ra_radiotype'));
+	setAlias();
+	// Set media type selection.
+	for (var pp = 0; pp < mediaOpt.options.length; pp++) {
+		if (curMediaState == mediaOpt.options[pp].value) {
+			mediaOpt.selectedIndex = pp;
+			break;
+		}
+	}
+
+	// Set radio type selection.
+	for (var i = 0; i < radioType.options.length; i++) {
+		if (curadioType == radioType.options[i].value) {
+			radioType.selectedIndex = i;
+			break;
+		}
+	}
+
+	devNameInp.value = devName;
+	showOpt(curMediaState);
+	/*--ifdef CONFIG_DHCPS_HIDE_GW--*/
+	wdk.init_form();
+	/*--endif--*/
+}
+
+function setAlias() {
+	inputDevName = document.getElementById("inputDevName");
+	devNameInp = document.getElementById("devNameInp");
+	mediaOpt = document.getElementById("mediaOpt");
+	radioOpt = document.getElementById("radioOpt");
+	radioType = document.getElementById("radioType");
+}
+
+
+function showOpt(mode) {
+	radioOpt.style.display = (mode == RadioOnly) ? 'block' : 'none';
+	inputDevName.style.display = (mode == DLNAandAirplay) ? 'block' : 'none';
+}
+
+// Control
+function setDevName() {
+	if (checkIllegalInput(devNameInp.value)) return;
+	wdk.cliCmd(encodeURI("$ra_name=") + encodeURI(devNameInp.value));
+}
+
+function updateRadioType() {
+	wdk.cliCmd(encodeURI("$ra_radiotype=") + radioType.selectedIndex);
+}
+
+function checkIllegalInput(InpVal) {
+	if (InpVal.length === 0) {
+		alert(wdk.msg("Device name can not be empty"));
+		return true;
+	} else if (!InpVal || /^\s*$/.test(InpVal)) {
+		alert(wdk.msg("Device name can not contain only whitespaces"));
+		return true;
+	} else if (/[;'#]/.test(InpVal)) {
+		alert(wdk.msg("Device name can not contain any of these illegal characters" + "\n" + "  ;  '  #"))
+	} else if (InpVal.length > maxDevNameLength) {
+		alert(wdk.msg("The length of the device name can't exceed") + maxDevNameLength);
+	}
+	return false;
+}
+
+// Confirm and cancel
+function apply() {
+	showModalWindow();
+
+	setTimeout(function() {
+		if (mediaOpt.selectedIndex == 1) {
+			updateRadioType();
+		} else if (mediaOpt.selectedIndex == 2) {
+			setDevName();
+		}
+
+
+		/*--ifdef CONFIG_DHCPS_HIDE_GW--*/
+		wdk.cliCmd(encodeURI("$dhcps_hide_gw=") + Number(wdk.getById('$dhcps_hide_gw').checked));
+		/*--endif--*/
+		var newRAFUNC = mediaOpt.options[mediaOpt.selectedIndex].value;
+		wdk.cliCmd(encodeURI("$ra_func=") + newRAFUNC);
+		wdk.cliCmd("commit");
+		hideModalWindow();
+	}, 500);
+
+}
+
+function cancel() {
+	window.location.reload();
+}
+
+// modal window
+function modal() {
+	showModalWindow();
+	setTimeout(hideModalWindow, pressLatency);
+}
+
+function showModalWindow() {
+	document.getElementById("modalWindow").style.display = "block";
+	document.getElementById("modalWindow").style.visibility = "visible";
+}
+
+function hideModalWindow() {
+	document.getElementById("modalWindow").style.display = "none";
+	document.getElementById("modalWindow").style.visibility = "hidden";
+}
+ </script>
+
+ <body onload="init()">
+
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/home.png" />
+    </a>
+   </div>
+  </div>
+
+  <span class="graytitle">Media Control</span>
+  <ul class="pageitem">
+   <li class="smallfield">
+    <span class="name">
+	<script>wdk.putmsg('Select media mode');</script>
+    </span>
+    <select id="mediaOpt" onchange="if (typeof(this.selectedIndex) != 'undefined' ) showOpt(this.selectedIndex)">
+     <option value="0">
+      <script>
+wdk.putmsg("Disable All")
+      </script>
+     </option>
+     <option value="1">
+      <script>
+wdk.putmsg("Radio Only")
+      </script>
+     </option>
+     <option value="2">
+      <script>
+wdk.putmsg("DLNA/Airplay")
+      </script>
+     </option>
+     <option value="3">
+      <script>
+wdk.putmsg("Audio Only")
+      </script>
+    </select>
+   </li>
+  </ul>
+  <ul id="inputDevName" class="pageitem">
+   <li class="smallfield">
+    <span class="name">
+		<script type="text/javascript">
+			wdk.putmsg("DLNA device name")
+		</script>
+	</span>
+    <input id="devNameInp" type="text" maxlength=32 value="" placeholder="MyDevice">
+   </li>
+  </ul>
+
+  <ul id="radioOpt" class="pageitem">
+   <li class="smallfield">
+    <span class="name">
+			<script type="text/javascript">
+				wdk.putmsg("Please select radio type")
+			</script>
+	</span> 
+
+    <select id="radioType">
+     <option value="0">
+      <script>
+wdk.putmsg("Radio")
+      </script>
+     </option>
+     <option value="1">
+      <script>
+wdk.putmsg("Pandora")
+      </script>
+     </option>
+    </select>
+   </li>
+  </ul>
+
+  <!--ifdef CONFIG_DHCPS_HIDE_GW-->
+  <ul class="pageitem">
+   <li class="checkbox">
+    <span class="name"><script>get_words("Sound Bar mode (iOS only)")</script></span>
+    <input id="$dhcps_hide_gw" type="checkbox" value="1">
+   </li>
+  </ul>
+  <!--endif-->
+
+  <!-- Confirm and Cancel-->
+  <ul class="pageitem">
+   <li class="button">
+    <input type=button value="OK" onclick=apply()>
+   </li>
+   <li class="button">
+    <input type=button value="Cancel" onclick=cancel()>
+   </li>
+  </ul>
+  <!-- Confirm and Cancel Done-->
+  <div id="modalWindow" style="display:none; visibility:hidden" class="black_overlay">
+   <div class="white_content">
+    <img src="../images/load.gif" alt="loading icon">
+   </div>
+  </div>
+
+ </body>
+
+</html>

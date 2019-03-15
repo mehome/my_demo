@@ -1,0 +1,137 @@
+diff -Nur a/binutils/Makefile.am b/binutils/Makefile.am
+--- a/binutils/Makefile.am	2013-11-04 23:33:37.000000000 +0800
++++ b/binutils/Makefile.am	2017-10-13 12:11:38.282731441 +0800
+@@ -221,7 +221,7 @@
+ bfdtest1_DEPENDENCIES =  $(LIBINTL_DEP) $(LIBIBERTY) $(BFDLIB)
+ bfdtest2_DEPENDENCIES =  $(LIBINTL_DEP) $(LIBIBERTY) $(BFDLIB)
+ 
+-LDADD = $(BFDLIB) $(LIBIBERTY) $(LIBINTL)
++LDADD = $(BFDLIB) $(LIBIBERTY) $(LIBINTL) -lgcc_s
+ 
+ size_SOURCES = size.c $(BULIBS)
+ 
+@@ -241,7 +241,7 @@
+ 
+ objdump_SOURCES = objdump.c dwarf.c prdbg.c $(DEBUG_SRCS) $(BULIBS) $(ELFLIBS)
+ EXTRA_objdump_SOURCES = od-xcoff.c
+-objdump_LDADD = $(OBJDUMP_PRIVATE_OFILES) $(OPCODES) $(BFDLIB) $(LIBIBERTY) $(LIBINTL)
++objdump_LDADD = $(OBJDUMP_PRIVATE_OFILES) $(OPCODES) $(BFDLIB) $(LIBIBERTY) $(LIBINTL) -lgcc_s
+ 
+ objdump.@OBJEXT@:objdump.c
+ if am__fastdepCC
+@@ -260,11 +260,11 @@
+ ar_SOURCES = arparse.y arlex.l ar.c not-ranlib.c arsup.c rename.c binemul.c \
+ 	emul_$(EMULATION).c $(BULIBS)
+ EXTRA_ar_SOURCES = $(CFILES)
+-ar_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL)
++ar_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL) -lgcc_s
+ 
+ ranlib_SOURCES = ar.c is-ranlib.c arparse.y arlex.l arsup.c rename.c \
+ 	binemul.c emul_$(EMULATION).c $(BULIBS)
+-ranlib_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL)
++ranlib_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL) -lgcc_s
+ 
+ addr2line_SOURCES = addr2line.c $(BULIBS)
+ 
+diff -Nur a/binutils/Makefile.in b/binutils/Makefile.in
+--- a/binutils/Makefile.in	2013-11-04 23:33:37.000000000 +0800
++++ b/binutils/Makefile.in	2017-10-13 12:11:42.750731673 +0800
+@@ -569,7 +569,7 @@
+ dllwrap_DEPENDENCIES = $(LIBINTL_DEP) $(LIBIBERTY)
+ bfdtest1_DEPENDENCIES = $(LIBINTL_DEP) $(LIBIBERTY) $(BFDLIB)
+ bfdtest2_DEPENDENCIES = $(LIBINTL_DEP) $(LIBIBERTY) $(BFDLIB)
+-LDADD = $(BFDLIB) $(LIBIBERTY) $(LIBINTL)
++LDADD = $(BFDLIB) $(LIBIBERTY) $(LIBINTL) -lgcc_s
+ size_SOURCES = size.c $(BULIBS)
+ objcopy_SOURCES = objcopy.c not-strip.c rename.c $(WRITE_DEBUG_SRCS) $(BULIBS)
+ strings_SOURCES = strings.c $(BULIBS)
+@@ -581,17 +581,17 @@
+ nm_new_SOURCES = nm.c $(BULIBS)
+ objdump_SOURCES = objdump.c dwarf.c prdbg.c $(DEBUG_SRCS) $(BULIBS) $(ELFLIBS)
+ EXTRA_objdump_SOURCES = od-xcoff.c
+-objdump_LDADD = $(OBJDUMP_PRIVATE_OFILES) $(OPCODES) $(BFDLIB) $(LIBIBERTY) $(LIBINTL)
++objdump_LDADD = $(OBJDUMP_PRIVATE_OFILES) $(OPCODES) $(BFDLIB) $(LIBIBERTY) $(LIBINTL) -lgcc_s
+ cxxfilt_SOURCES = cxxfilt.c $(BULIBS)
+ ar_SOURCES = arparse.y arlex.l ar.c not-ranlib.c arsup.c rename.c binemul.c \
+ 	emul_$(EMULATION).c $(BULIBS)
+ 
+ EXTRA_ar_SOURCES = $(CFILES)
+-ar_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL)
++ar_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL) -lgcc_s
+ ranlib_SOURCES = ar.c is-ranlib.c arparse.y arlex.l arsup.c rename.c \
+ 	binemul.c emul_$(EMULATION).c $(BULIBS)
+ 
+-ranlib_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL)
++ranlib_LDADD = $(BFDLIB) $(LIBIBERTY) $(LEXLIB) $(LIBINTL) -lgcc_s
+ addr2line_SOURCES = addr2line.c $(BULIBS)
+ srconv_SOURCES = srconv.c coffgrok.c $(BULIBS)
+ dlltool_SOURCES = dlltool.c defparse.y deflex.l $(BULIBS)
+diff -Nur a/gas/Makefile.am b/gas/Makefile.am
+--- a/gas/Makefile.am	2013-11-04 23:33:37.000000000 +0800
++++ b/gas/Makefile.am	2017-10-13 11:43:38.854644152 +0800
+@@ -393,7 +393,7 @@
+ 
+ as_new_SOURCES = $(GAS_CFILES)
+ as_new_LDADD = $(TARG_CPU_O) $(OBJ_FORMAT_O) $(ATOF_TARG_O) \
+-	$(extra_objects) $(GASLIBS) $(LIBINTL) $(LIBM)
++	$(extra_objects) $(GASLIBS) $(LIBINTL) $(LIBM) -lgcc_s
+ as_new_DEPENDENCIES = $(TARG_CPU_O) $(OBJ_FORMAT_O) $(ATOF_TARG_O) \
+ 	$(extra_objects) $(GASLIBS) $(LIBINTL_DEP)
+ EXTRA_as_new_SOURCES = $(CFILES) $(HFILES) $(TARGET_CPU_CFILES) \
+diff -Nur a/gas/Makefile.in b/gas/Makefile.in
+--- a/gas/Makefile.in	2013-11-04 23:33:37.000000000 +0800
++++ b/gas/Makefile.in	2017-10-13 11:43:37.018644057 +0800
+@@ -651,7 +651,7 @@
+ STAGESTUFF = *.@OBJEXT@ $(noinst_PROGRAMS)
+ as_new_SOURCES = $(GAS_CFILES)
+ as_new_LDADD = $(TARG_CPU_O) $(OBJ_FORMAT_O) $(ATOF_TARG_O) \
+-	$(extra_objects) $(GASLIBS) $(LIBINTL) $(LIBM)
++	$(extra_objects) $(GASLIBS) $(LIBINTL) $(LIBM) -lgcc_s
+ 
+ as_new_DEPENDENCIES = $(TARG_CPU_O) $(OBJ_FORMAT_O) $(ATOF_TARG_O) \
+ 	$(extra_objects) $(GASLIBS) $(LIBINTL_DEP)
+diff -Nur a/gprof/Makefile.am b/gprof/Makefile.am
+--- a/gprof/Makefile.am	2013-11-08 18:13:48.000000000 +0800
++++ b/gprof/Makefile.am	2017-10-13 12:25:36.894775028 +0800
+@@ -46,7 +46,7 @@
+ 	i386.c alpha.c vax.c tahoe.c sparc.c mips.c aarch64.c
+ gprof_SOURCES = $(sources) flat_bl.c bsd_callg_bl.c fsf_callg_bl.c
+ gprof_DEPENDENCIES = ../bfd/libbfd.la ../libiberty/libiberty.a $(LIBINTL_DEP)
+-gprof_LDADD = ../bfd/libbfd.la ../libiberty/libiberty.a $(LIBINTL)
++gprof_LDADD = ../bfd/libbfd.la ../libiberty/libiberty.a $(LIBINTL) -lgcc_s
+ 
+ noinst_HEADERS = \
+ 	basic_blocks.h call_graph.h cg_arcs.h cg_dfn.h cg_print.h \
+diff -Nur a/gprof/Makefile.in b/gprof/Makefile.in
+--- a/gprof/Makefile.in	2013-11-08 18:13:48.000000000 +0800
++++ b/gprof/Makefile.in	2017-10-13 12:25:37.778775074 +0800
+@@ -203,7 +203,7 @@
+ LIBINTL = @LIBINTL@
+ LIBINTL_DEP = @LIBINTL_DEP@
+ LIBOBJS = @LIBOBJS@
+-LIBS = @LIBS@
++LIBS = @LIBS@ -lgcc_s
+ LIBTOOL = @LIBTOOL@
+ LIPO = @LIPO@
+ LN_S = @LN_S@
+@@ -314,7 +314,7 @@
+ 
+ gprof_SOURCES = $(sources) flat_bl.c bsd_callg_bl.c fsf_callg_bl.c
+ gprof_DEPENDENCIES = ../bfd/libbfd.la ../libiberty/libiberty.a $(LIBINTL_DEP)
+-gprof_LDADD = ../bfd/libbfd.la ../libiberty/libiberty.a $(LIBINTL)
++gprof_LDADD = ../bfd/libbfd.la ../libiberty/libiberty.a $(LIBINTL) -lgcc_s
+ noinst_HEADERS = \
+ 	basic_blocks.h call_graph.h cg_arcs.h cg_dfn.h cg_print.h \
+ 	corefile.h gmon.h gmon_io.h gmon_out.h gprof.h hertz.h hist.h \
+diff -Nur a/ld/Makefile.in b/ld/Makefile.in
+--- a/ld/Makefile.in	2013-11-26 19:37:33.000000000 +0800
++++ b/ld/Makefile.in	2017-10-13 12:30:21.210789805 +0800
+@@ -246,7 +246,7 @@
+ LIBINTL = @LIBINTL@
+ LIBINTL_DEP = @LIBINTL_DEP@
+ LIBOBJS = @LIBOBJS@
+-LIBS = @LIBS@
++LIBS = @LIBS@ -lgcc_s
+ LIBTOOL = @LIBTOOL@
+ 
+ # Search path to override the default search path for -lfoo libraries.

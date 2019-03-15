@@ -1,0 +1,129 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+function real_submit() {
+	f = document.frm;
+	f.cmd.value = "";
+	f.encoding = "multipart/form-data";
+	//filetype=0
+	//fileid=0
+	f.submit();
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Configuration file uploading...");
+	//add delay to avoid not yet submit
+	setTimeout(function() {
+		wdk.showUpgradeResult(0, result_success, result_fail, false);
+	}, 1000);
+}
+
+function result_success() {
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Upgraded successfully!");
+	reboot();
+}
+
+function result_fail() {
+	var m = wdk.msg("Failed! Please check the configuration file.");
+	m += '<br><br><input class=button name=apply value=' + wdk.msg("Back") + ' type=button onclick=refreshPage()>'
+	wdk.getById('result').innerHTML = m;
+}
+
+function apply() {
+	var f = document.frm;
+
+	if (f.config[0].checked) //restore
+	{
+		if (!window.confirm(wdk.msg("Device will reboot automatically! All the settings will be restored to factory default value. If web page didn't refresh automatically, please check computer's internet settings and relogin again!"))) return;
+		wdk.cliCmd('cdbreset');
+		wdk.stopTimeout();
+		wdk.showResultBG();
+		reboot();
+	} else
+	if (f.config[2].checked) {
+		if (f.files.value == "") {
+			alert(wdk.msg("Please select file to restore settings!"));
+			return;
+		}
+		if (!window.confirm(wdk.msg("After restore data, device will reboot automatically! Are you sure to restore data?"))) return;
+		f.action = "upgrade.cgi";
+		wdk.stopTimeout();
+		wdk.showResultBG();
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Configuration file uploading...");
+		setTimeout("real_submit()", 500); /* wait loading picture */
+	} else
+	if (f.config[1].checked) {
+		f.cmd.value = "$";
+		var day = getDateStr();
+		f.action = day + "-cdb.bin";
+		f.submit();
+	} else
+		alert(wdk.msg("Please select option!"));
+}
+
+function init() {
+	var f = document.frm;
+	f.config[0].checked = false;
+	f.config[1].checked = false;
+	f.config[2].checked = false;
+	f.files.value = "";
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm method=POST target=save_frame>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings");
+    </script>
+   </legend>
+   <input type=hidden name=cmd>
+   <input type=hidden name=filetype value=0>
+   <input type=hidden name=fileid value=0>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Restore Factory Default");
+     </script>
+    </div>
+    <input name=config type=radio value=0>
+   </div>
+   <div class=floatKiller></div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Backup Settings");
+     </script>
+    </div>
+    <input name=config type=radio value=1>
+   </div>
+   <div class=floatKiller></div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Restore Settings");
+     </script>
+    </div>
+    <input name=config type=radio value=2>&nbsp;&nbsp;
+    <input type=file name=files>
+   </div>
+   <iframe id=save_frame name=save_frame src=# style="width:0;height:0;border:0px solid #fff;"></iframe>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

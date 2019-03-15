@@ -1,0 +1,24 @@
+# Copyright (C) 2006-2013 OpenWrt.org
+#
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+
+menu "Select your current project"
+
+		choice
+			prompt "Your project"
+			default PROJECT_K2_V1
+		config PROJECT_K2_V1
+			bool "K2_V1"
+		config PROJECT_BEDLAMP_V1
+			bool "W-KING"
+		config PROJECT_HUABEI_V1
+			bool "guangzhou huabei"
+		config PROJECT_DOSS_1MIC_V1
+			bool "a sample product for doss 1mic"
+		config PROJECT_	XIAOXIANGMJ_1MIC_V1
+			bool "a sample product for doss 1mic"
+	endchoice
+
+endmenu

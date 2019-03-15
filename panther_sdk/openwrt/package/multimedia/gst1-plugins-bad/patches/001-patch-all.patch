@@ -1,0 +1,67 @@
+diff -Nur a/configure.ac b/configure.ac
+--- a/configure.ac	2017-09-18 19:33:56.000000000 +0800
++++ b/configure.ac	2017-10-04 18:33:00.973593480 +0800
+@@ -3630,38 +3630,6 @@
+ sys/wasapi/Makefile
+ sys/winks/Makefile
+ sys/winscreencap/Makefile
+-tests/Makefile
+-tests/check/Makefile
+-tests/files/Makefile
+-tests/examples/Makefile
+-tests/examples/avsamplesink/Makefile
+-tests/examples/camerabin2/Makefile
+-tests/examples/codecparsers/Makefile
+-tests/examples/directfb/Makefile
+-tests/examples/audiomixmatrix/Makefile
+-tests/examples/gl/Makefile
+-tests/examples/gl/cocoa/Makefile
+-tests/examples/gl/clutter/Makefile
+-tests/examples/gl/generic/Makefile
+-tests/examples/gl/generic/cube/Makefile
+-tests/examples/gl/generic/cubeyuv/Makefile
+-tests/examples/gl/generic/doublecube/Makefile
+-tests/examples/gl/generic/recordgraphic/Makefile
+-tests/examples/gl/gtk/Makefile
+-tests/examples/gl/gtk/3dvideo/Makefile
+-tests/examples/gl/gtk/filternovideooverlay/Makefile
+-tests/examples/gl/gtk/filtervideooverlay/Makefile
+-tests/examples/gl/gtk/fxtest/Makefile
+-tests/examples/gl/gtk/switchvideooverlay/Makefile
+-tests/examples/gl/qt/Makefile
+-tests/examples/gl/sdl/Makefile
+-tests/examples/gtk/Makefile
+-tests/examples/mpegts/Makefile
+-tests/examples/mxf/Makefile
+-tests/examples/opencv/Makefile
+-tests/examples/uvch264/Makefile
+-tests/examples/waylandsink/Makefile
+-tests/icles/Makefile
+ ext/voamrwbenc/Makefile
+ ext/voaacenc/Makefile
+ ext/assrender/Makefile
+@@ -3728,7 +3696,6 @@
+ ext/dtls/Makefile
+ ext/webrtcdsp/Makefile
+ ext/ttml/Makefile
+-po/Makefile.in
+ docs/Makefile
+ docs/plugins/Makefile
+ docs/libs/Makefile
+diff -Nur a/Makefile.am b/Makefile.am
+--- a/Makefile.am	2017-05-15 23:46:30.000000000 +0800
++++ b/Makefile.am	2017-10-04 18:32:36.693592218 +0800
+@@ -2,11 +2,11 @@
+ 
+ SUBDIRS = \
+ 	gst-libs gst sys ext pkgconfig \
+-	m4 common docs tests po tools
++	m4 common docs tools
+ 
+ DIST_SUBDIRS = \
+ 	gst gst-libs sys ext pkgconfig \
+-	m4 common docs tests po tools
++	m4 common docs tools
+ 
+ # include before EXTRA_DIST for win32 assignment
+ include $(top_srcdir)/common/win32.mak

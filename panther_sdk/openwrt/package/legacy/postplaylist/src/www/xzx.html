@@ -1,0 +1,168 @@
+<html>
+	<head>
+		<title>WIFI Audio Test Page</title>  
+  		
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">  
+		<META http-equiv=Pragma content=no-cache>
+		<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">  
+		<link rel="stylesheet" href="css/stylesheet.css">
+		<script src="js/function.js" language="javascript"></script>
+	</head>  
+
+	<body bgcolor="#E6E6F2" onload=start_init();>  
+		<div id="xzx_title">
+			<center>
+				<h1>WIFI Audio Test Page</h1>  
+			</center>
+		</div>
+		<br />
+		
+		<hr>
+		
+		<div id="xzx_module_upload">
+			<p>upgrade:</p>
+			<div id="xzx_module_upload_content">
+				<p>
+					Please select the firmware: 
+					<input type="file" id="xzx_module_upload_content_file", name="xzx_module_upload_content_myfile" />
+					<input type="button" onclick="xzx_module_upload_content_uploadFile()" value="upload" />
+					<input type="button" onclick="xzx_module_upload_content_cancleUploadFile()" value="cancle" />
+				</p>
+				<div>
+					<font id="xzx_module_upload_content_Progress_title">Progress: </font>
+					<progress id="xzx_module_upload_content_progressBar" value="0" max="100" style="width: 300px;"></progress>
+					<span id="xzx_module_upload_content_percentage"></span><span id="xzx_module_upload_content_time"></span>
+				</div>
+			</div>
+			
+			<hr />
+			
+			<p>bluetooth upgrade:</p>
+
+			<div id="xzx_module_bluetooth_upload_content">
+				<p>
+					Please select the firmware: 
+					<input type="file" id="xzx_module_bluetooth_upload_content_file", name="xzx_module_upload_content_myfile" />
+					<input type="button" onclick="xzx_module_bluetooth_upload_content_uploadFile()" value="upload" />
+					<input type="button" onclick="xzx_module_bluetooth_upload_content_cancleUploadFile()" value="cancle" />
+				</p>
+				<div>
+					<font id="xzx_module_bluetooth_upload_content_Progress_title">Progress: </font>
+					<progress id="xzx_module_bluetooth_upload_content_progressBar" value="0" max="100" style="width: 300px;"></progress>
+					<span id="xzx_module_bluetooth_upload_content_percentage"></span><span id="xzx_module_bluetooth_upload_content_time"></span>
+				</div>
+			</div>
+			
+			<br />
+		</div>
+		
+		<hr>
+		
+		<div id="xzx_module_restoreToDefault">
+			<form method="get" name="form2" action="cgi-bin/httpapi.cgi">
+				<p>Restore the factory Settings:</p>
+				<button type="submit" name="command" value="restoreToDefault">Restore the factory Settings</button>
+			</form>
+		</div>
+		
+		<hr>
+		
+		<div id="xzx_module_recording">
+			<p>recording test:</p>
+			<input onclick=start_recording() type=button value="start recording"> 
+			<input onclick=stop_recording() type=button value="stop recording"> 
+			<input onclick=timing_recording() type=button value="timing recording"> 
+			<input onclick=get_recording_file() type=button value="get recording file">
+			<input onclick=compare_channel() type=button value="compare channel">
+			<div id="xzx_module_recording_content"></div>
+			
+			<p>dot recording test:</p>
+			<input onclick=dot_normal_recording() type=button value="dot normal recording"> 
+			<input onclick=dot_get_normal_recording_file() type=button value="dot get normal recording file"> 
+			<input onclick=dot_microphone_recording() type=button value="dot microphone recording"> 
+			<input onclick=dot_get_microphone_recording_file() type=button value="dot get microphone recording file"> 
+			<input onclick=dot_reference_signal_recording() type=button value="dot reference signal recording"> 
+			<input onclick=dot_get_reference_signal_recording_file() type=button value="dot get reference signal recording file"> 
+			<input onclick=dot_stop_recording() type=button value="dot stop recording"> 
+			<div id="xzx_module_dot_recording_content"></div>
+		</div>
+		
+		<hr>
+		
+		<div id="xzx_module_VAD">
+			<p>VAD test:</p>
+			<div id="xzx_module_VAD_content">
+				<p>
+					The sound card:
+					<select id="xzx_module_VAD_sound_card">
+						<option value="default">default</option>
+						<option value="plughw:0">plughw:0</option>
+						<option value="plughw:1">plughw:1</option>
+					</select>
+				</p>
+						
+				<p>
+					Scope of activities:
+					<input type="text" id="xzx_module_VAD_scope" size="6" maxlength="7" onchange=xzx_module_VAD_scope_change(this) value="500000">
+				</p>
+				<p>
+					<input onclick=start_VAD() type=button value="submit">
+					<input onclick=reset_VAD() type=button value="reset">
+				</p>
+
+			</div>
+			<div id="xzx_module_VAD_view"></div>
+		</div>
+		
+		<hr>
+		
+		<div id="xzx_module_Conexant">
+			<p>Conexant upgrade:</p>
+			<div id="xzx_module_Conexant_sfs_file">
+				<form name="Conexant_sys_usb_upload" enctype="multipart/form-data" action="/cgi-bin/PostConexantSfs.cgi" method="post" target="Conexant_sys_hidden_frame">
+					<p>
+						Please select a sfs file:<input id="Conexant_sys_uploadedfile" type="file" size="35" name="Conexant_sys_uploadedfile">
+						<input id="Conexant_sys_Upload" onclick=Conexant_sys_sendClicked(this.form) type=button name="Conexant_sys_Upload" value="upload"> 
+					</p>
+					<iframe name='Conexant_sys_hidden_frame' id="Conexant_sys_hidden_frame" style='display:none'></iframe>   
+				</form>
+				<iframe name='Conexant_sys_hidden_frame' id="Conexant_sys_hidden_frame" style='display:none'></iframe>  
+				<script type="text/javascript" language="javascript1.2">  
+					var Conexant_sys_MWJ_progBar = 0;  
+					var Conexant_sys_myProgBar = new Conexant_sys_progressBar(1,'#2e2e2e', '#2e2e2e','#043db2',300,15,1);  
+				</script>
+				<div id="Conexant_sys_current_directory" style="display:none"></div>
+			</div>
+			
+			<div id="xzx_module_Conexant_bin_file">
+				<form name="Conexant_bin_usb_upload" enctype="multipart/form-data" action="/cgi-bin/PostConexantBin.cgi" method="post" target="Conexant_bin_hidden_frame">
+					<p>
+						Please select a bin file:<input id="Conexant_bin_uploadedfile" type="file" size="35" name="Conexant_bin_uploadedfile">
+						<input id="Conexant_bin_Upload" onclick=Conexant_bin_sendClicked(this.form) type=button name="Conexant_bin_Upload" value="upload"> 
+					</p>
+					<iframe name='Conexant_bin_hidden_frame' id="Conexant_bin_hidden_frame" style='display:none'></iframe>   
+				</form>
+				<iframe name='Conexant_bin_hidden_frame' id="Conexant_bin_hidden_frame" style='display:none'></iframe>  
+				<script type="text/javascript" language="javascript1.2">  
+					var Conexant_bin_MWJ_progBar = 0;  
+					var Conexant_bin_myProgBar = new Conexant_bin_progressBar(1,'#2e2e2e', '#2e2e2e','#043db2',300,15,1);  
+				</script>
+				<div id="Conexant_bin_current_directory" style="display:none"></div>
+			</div>
+			<div id="xzx_module_Conexant_upgrade_button">
+				<input onclick=Conexant_upgrade() type=button value="upgrade Conexant">
+			</div>
+			<div id="xzx_module_Conexant_upgrade_view"></div>
+		</div>
+		
+		<hr>
+		
+		<div id="xzx_module_test_mode">
+			<p>Enable test mode:</p>
+			<input onclick=enable_test_mode() type=button value="enable test mode">
+			<input onclick=disable_test_mode() type=button value="disable test mode"> 
+			<div id="xzx_module_test_mode_view"></div>
+		</div>
+	</body>  
+</html>  
+

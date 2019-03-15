@@ -1,0 +1,12 @@
+{
+	"productId":"IMA699",
+	"clientId":"",
+    "locale":"en-US",
+    "endpoint":"https://avs-alexa-na.amazon.com",
+    "vad_Threshold":1000000,
+    "Notification_Enable":0,
+    "Notification_VisualIndicatorPersisted":0,
+    "displayCardsSupported":false,
+	"accessToken":"",
+	"refreshToken":""
+}

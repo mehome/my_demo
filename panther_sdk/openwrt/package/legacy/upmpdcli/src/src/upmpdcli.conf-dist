@@ -1,0 +1,394 @@
+# Configuration file for upmpdcli, the UPnP Media Renderer front-end to MPD
+
+# Note: the command line options have higher priorities than the values in
+# this file.
+
+# Host MPD runs on. Defaults to localhost. This can also be specified as -h host
+#mpdhost = localhost
+
+# Port for MPD. Can also be specified as -p port
+#mpdport = 6600
+
+# MPD password
+#mpdpassword =
+
+# Displayed "Friendly Name" for the UPnP Media Renderer
+#friendlyname = UpMpd
+
+# Log file name. Defaults to stderr. This can also be specified as
+# -d logfilename
+#logfilename = 
+
+# Log level. 0-4. Can also be specified as -l loglevel.
+#loglevel = 3
+
+# You can set a path to an icon here. The icon will be displayed by a control
+# point. The icon will only be read once, when upmpdcli starts up.
+iconpath = /usr/share/upmpdcli/icon.png
+
+# You can set a path to an html file here, to replace the default
+# presentation page. The page will only be read once, when upmpdcli starts
+# up.
+# presentationhtml = /usr/share/upmpdcli/presentation.html
+
+# Network interface to use for UPnP.
+#upnpiface = 
+# IP address to use for UPnP. Alternative to using an interface name
+#upnpip = 
+# Port number used for UPnP.
+#upnpport = 
+
+# Enable UPnP AV services. This is set by default, but it may useful to
+# disable it with some pure OpenHome Control Points.
+# upnpav = 1
+
+# Decide if we offer the OpenHome services. 0 or 1. 
+# The default is 'yes' as OpenHome queuing is superior for most usages.
+openhome = 1
+
+# Save queue metadata to disk to allow persistence across restart, like
+# MPD.
+ohmetapersist = 1
+
+# Directory used to store cached data (only the queue metadata for now). 
+# Default is ~/.cache/upmpdcli for normal users or /var/cache/upmpdcli when
+# started as root
+# cachedir = /var/cache/upmpdcli
+
+# Name of lock file used to store the current process pid. Only used if the
+# process is launched by user root. Used by the init system, and to avoid
+# multiple instances. The only reason to change the value is if you
+# actually want to have several instances running (also change cachedir in
+# this case).
+# pidfile = /var/run/upmpdcli.pid
+
+# Mimimum interval (Seconds) between 2 saves of the cache. Setting this may
+# improve playlist load speed on a slow device. The default is to start a
+# new save as soon as the previous one is done (if the list changed again
+# inbetween).
+# ohmetasleep = 0
+
+# Run a command when playback is about to begin. Specify the full path to the
+# program, e.g. /usr/bin/logger. Executable scripts work, but must have a
+# #!/bin/sh (or whatever) in the headline.
+# onstart =
+
+# Run a command when playback is about to begin. Specify the full path to the
+# program, e.g. /usr/bin/logger. Executable scripts work, but must have a
+# #!/bin/sh (or whatever) in the headline.
+# onplay =
+
+# Run a command when playback is about to end. Specify the full path to the
+# program, e.g. /usr/bin/logger. Executable scripts work, but must have a
+# #!/bin/sh (or whatever) in the headline.
+# onstop =
+
+# volume control can be done via mpd using alsa mixer controls. If you have an external amp
+# and it is capable of setting and reading volume via a script you can activate
+# externalvolumecontrol. No volumes will be set via mpd anylonger. It will call
+# scripts onvolumechange for setting and getexternalvolume for reading recent volume.
+# externalvolumecontrol = 
+
+# Run a command for reading volume from external device. upmpdcli will read 
+# volume from stdout of the script given.
+# getexternalvolume =
+
+# Run a command when volume is changed. Specify the full path to the program,
+# e.g. /usr/bin/logger. Executable scripts work, but must have a #!/bin/sh (or
+# whatever) in the headline.
+# The command is called with the volume as the first argument, e.g.
+# <command> 85.
+# onvolumechange =
+
+### Parameters for the OpenHome Product service
+# Manufacturer name. Does not vary at run-time.
+#ohmanufacturername = UpMPDCli heavy industries Co.
+# Manufacturer information. Does not vary at run-time.
+#ohmanufacturerinfo = Such nice guys and gals
+# URL for manufacturer web site. Does not vary at run-time.
+#ohmanufacturerurl = http://www.lesbonscomptes.com/upmpdcli
+# Uri for manufacturer’s logo. Does not vary at run-time.
+#ohmanufacturerimageuri =
+# Model name. Does not vary at run-time.
+#ohmodelname = UpMPDCli UPnP-MPD gateway
+# Model information. Does not vary at run-time.
+#ohmodelinfo =
+# URL for model web site. Does not vary at run-time.
+#ohmodelurl = http://www.lesbonscomptes.com/upmpdcli
+# Uri for model’s icon. Does not vary at run-time.
+#ohmodelimageuri =
+# User-visible product name. By default this is set to ModelName.
+#ohproductname = Upmpdcli
+# The name of the room where the Product is located. Set to “Main Room” by
+# default.
+# ProductRoom is used to group the Product with other related Products in the
+# same physical room (e.g. a source with a pre-amp). Products which are
+# physically linked must always share the same ProductRoom name.
+#ohproductroom = Main Room
+# Product information. Does not vary at run-time.
+#ohproductinfo =
+# URL for product web site. This may be the UPnP presentation page.
+#ohproducturl =
+# Uri for product image. Does not vary at run-time.
+#ohproductimageuri =
+
+### Parameters for the Songcast modes. These are read by either/both the
+### songcast and upmpdcli.
+
+#  Log file name for sc2mpd (default stderr), and level. The file must
+#  *not* be the same as the one used for upmpdcli
+#sclogfilename = /tmp/scmpdcli.log
+#scloglevel = 6
+
+# Play method. This can be either mpd or alsa. alsa is the only way to
+# really avoid skips (and control the synchronization in multi-room setups). 
+#scplaymethod = mpd
+
+# For the mpd play method only: port for connections from MPD to
+# sc2mpd. The latter only accepts connections from localhost.
+#schttpport = 8768
+
+# For the alsa play method only: Alsa device to use
+#scalsadevice = default
+
+# Resampling method. The default is SRC_SINC_FASTEST and works on a
+# Rasberry Pi.
+# Possible values: SRC_SINC_BEST_QUALITY SRC_SINC_MEDIUM_QUALITY
+# SRC_SINC_FASTEST SRC_ZERO_ORDER_HOLD SRC_LINEAR
+# See libsamplerate doc for descriptions. Anything above SRC_SINC_FASTEST
+# needs a serious CPU
+# BEST_QUALITY uses approx 25% cpu on a core i7 4770T. Obviously too much,
+# actually might not be sustainable (it's almost 100% of 1 cpu)
+# MEDIUM_QUALITY is around 10% on the same machine, FASTEST is 4-5%. Given
+# that this measured for the full process, probably a couple % for the
+# conversion in fact. 
+# Raspberry Pi: FASTEST is 30% CPU on a Pi2 with USB audio. It's
+# 25-30% on a Pi 1 with i2s audio. 
+# sccvttype = SRC_SINC_FASTEST.
+
+# Path to sc2mpd if it is not in /usr/bin and the location is not in the
+# PATH for the init scripts.
+#sc2mpd = /usr/bin/sc2mpd
+
+## Parameters tor the Sender/Receiver mode. Only does anything if
+## scplaymethod is alsa 
+
+# Path to the script which starts the auxiliary mpd and the sender process
+#scsenderpath = /usr/bin/scmakempdsender
+
+# Decide if we scale the songcast stream (apply software volume control to
+# it). True by default, the volume set from a control point on the upmpdcli
+# instance which started the sender affects the volume for all receivers.
+#scstreamscaled = 1
+
+# localhost port to use by the auxiliary mpd
+#scsendermpdport = 6700
+
+# Scripts_dir holds scripts to set up additional external sources. See the
+# documentation. 
+#scripts_dir = /usr/share/upmpdcli/src_scripts
+
+
+# Initial / default List of radios borrowed from misc sources. Edit to taste
+#
+# Maybe this should be XML, but it's not. The section markers are the radio
+# names, and then there are two possible entries:
+#  url (mandatory) points to the radio playlist or stream
+#  artUrl (optional) points to the radio icon
+
+[radio FIP autour du rock]
+url = http://webradiofip1.scdn.arkena.com/webradiofip1.mp3
+artUrl = http://www.fipradio.fr/sites/all/themes/custom/fip/img/logo_fip_header.png
+
+[radio Radio Eins]
+url = http://opml.radiotime.com/Tune.ashx?id=s25111
+artUrl = http://cdn-radiotime-logos.tunein.com/s25111q.png
+
+[radio InfoRadio]
+url = http://opml.radiotime.com/Tune.ashx?id=s9176
+artUrl = http://cdn-radiotime-logos.tunein.com/s9176q.png
+
+[radio Radio Teddy]
+url = http://opml.radiotime.com/Tune.ashx?id=s80044
+artUrl = http://cdn-radiotime-logos.tunein.com/s80044q.png
+
+[radio Deutschlandfunk]
+url = http://opml.radiotime.com/Tune.ashx?id=s55698
+artUrl = http://cdn-radiotime-logos.tunein.com/s42828q.png
+
+[radio Naim Radio]
+url =  http://37.130.228.60:8090/listen.pls
+
+[radio 96.2 | The Revolution (Rock)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s45508
+
+[radio 102.0 | Capital Manchester (Top 40/Pop)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s18587
+
+[radio 97.7 | XFM Manchester (Alternative Rock)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s81256
+
+[radio Linn Radio (Variety)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s122119
+artUrl = http://small.linncdn.com/website/responsive/images/logo-black-chunky.png
+[radio Linn Classical (Classical)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s122116
+artUrl = http://small.linncdn.com/website/responsive/images/logo-black-chunky.png
+
+[radio Linn Jazz (Jazz)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s122120
+artUrl = http://small.linncdn.com/website/responsive/images/logo-black-chunky.png
+
+[radio BBC Radio 1Xtra (Soul and R&B)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s20277
+
+[radio 98.2 | BBC Radio 1 (Top 40/Pop)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s83464
+
+[radio 88.6 | BBC Radio 2 (Adult Contemporary)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s83463
+
+[radio 91.3 | BBC Radio 3 (Classical)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s24941
+
+[radio 93.0 | BBC Radio 4 (National News)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s83461
+
+[radio 198 | BBC Radio 4 LW (Public Radio)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s50577
+
+[radio BBC Radio 4 Extra (Comedy)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s6839
+
+[radio 909 | BBC Radio 5 live (Sports Talk)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s24943
+
+[radio BBC Radio 5 live sports extra (Sports)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s50459
+
+[radio BBC Radio 6 Music (AAA)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s44491
+
+[radio BBC World Service (World News)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s50646
+
+[radio 95.1 | BBC Manchester (Community)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s18214
+
+[radio 1107 | talkSPORT (Sports Talk)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s46580
+
+[radio 100.9 | Classic FM (Classical)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s8439
+
+[radio 103.0 | Key 103 (Top 40/Pop)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s6910
+
+[radio 181.FM Beatles (60's)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s113658
+
+[radio Ministry of Sound Radio (Electronic and Dance)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s2262
+
+[radio 106.1 | Real Radio XS Manchester (Classic Rock)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s91723
+
+[radio 100.4 | Smooth North West (Soul and R&B)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s45501
+
+[radio Radio Caroline (Classic Rock)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s10517
+
+[radio Offshore Radio Sounds (Nostalgia)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s141022
+
+[radio Radio 10 Classic (Oldies)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s130799
+
+[radio 94.4 | Salford City Radio (Local Music)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s67827
+
+[radio 106.9 | Silk 106.9 (Top 40/Pop)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s45584
+
+[radio 97.2 | Wythenshawe FM (Local Music)]
+url =  http://opml.radiotime.com/Tune.ashx?id=s37352
+
+[radio Smooth Jazz]
+url = http://smoothjazz.com/streams/smoothjazz_128.pls
+
+[radio Sonic Universe]
+url = http://somafm.com/sonicuniverse.pls
+
+[radio Onda Tropical]
+url = http://yp.shoutcast.com/sbin/tunein-station.pls?id=506392
+
+[radio Top Latino Radio]
+url = http://online.radiodifusion.net:8020/listen.pls
+
+[radio .977 Classic Rock]
+url = http://www.977music.com/tunein/web/classicrock.asx
+
+[radio Covers]
+url = http://somafm.com/covers.pls
+
+[radio KDFC]
+url = http://provisioning.streamtheworld.com/pls/KDFCFM.pls
+
+[radio Classic FM]
+url = http://media-ice.musicradio.com/ClassicFMMP3.m3u
+
+[radio WCPE]
+url = http://www.ibiblio.org/wcpe/wcpe.pls
+
+[radio CINEMIX]
+url = http://cinemix.us/cine.asx
+
+[radio Radio Paradise]
+url = http://www.radioparadise.com/musiclinks/rp_128aac.m3u
+
+[radio Indie Pop Rocks!]
+url = http://somafm.com/indiepop.pls
+
+[radio PopTron]
+url = http://somafm.com/poptron.pls
+
+[radio AM 1710]
+url = http://lin2.ash.fast-serv.com:9022/listen.pls
+
+[radio WNAR]
+url = http://live.wnar-am.com:8500/listen.pls
+
+[radio Beat Blender]
+url = http://somafm.com/beatblender.pls
+
+[radio Secret Agent]
+url = http://somafm.com/secretagent.pls
+
+[radio Groove Salad]
+url = http://somafm.com/groovesalad.pls
+
+[radio Illinois Street Lounge]
+url = http://somafm.com/illstreet.pls
+
+[radio Boot Liquor]
+url = http://somafm.com/bootliquor.pls
+
+[radio Country 108]
+url = http://www.country108.com/listen.pls
+
+[radio Drone Zone]
+url = http://somafm.com/dronezone.pls
+
+[radio Space Station Soma]
+url = http://somafm.com/spacestation.pls
+
+[radio cliqhop idm]
+url = http://somafm.com/cliqhop.pls
+
+[radio Black Rock FM]
+url = http://somafm.com/brfm.pls
+
+[radio New Dance Radio]
+url = http://jbstream.net/tunein.php/blackoutworm/playlist.asx
+

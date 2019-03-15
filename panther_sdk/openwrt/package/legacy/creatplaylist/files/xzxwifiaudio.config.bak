@@ -1,0 +1,81 @@
+config xzx config
+	option ip '000.000.000.000'
+	
+	option playmode '000'
+	#000 wifi
+	#001 bt
+	#002 aux
+	#003 usb
+	#004 tf
+	#005 alexa
+	#006 coll
+
+	option channel '000'
+	#000 stereo
+	#001 left
+	#002 right
+	
+	option volume ' '
+	#000-100
+	
+
+	option wificonnectstatus '0'
+	#0 init
+	#1 configing
+	#2 connecting
+	#3 connected
+	#4 connect failed
+
+	option audiodetectstatus '0'
+	option audionamestatus '0'
+	option audioname ' '
+	option playlist_directory /usr/script/playlist.m3u
+
+	option timer1 ' '
+	option timer1_url ' '
+	option timer2 ' '
+	option timer2_url ' '
+	
+	option manufacturer 'DOSS 1210'
+	option manufacturer_url 'http://www.dossav.com'
+	option model_description 'F-8088'
+	option model_name 'F-8088'
+	option model_number 'F-8088'
+	option model_url 'http://www.dossav.com'
+	
+	option function_support 'bt tf-card'
+	option language_support 'cn en'
+	option language 'en'
+	option project 'F-8088'
+	option current_artist ' '
+	option current_title ' '
+	option current_album ' '
+	option current_contentURL ' '
+	option current_coverURL ' '
+	option recordstatus '0'
+	option multiroom_status '0'
+	#0 init/master
+	#1 slave
+	option key_num '7'
+	option wifiaudio_uuid ' '
+	option amazon_authorizationCode ' '
+	option amazon_redirectUri ' '
+	option amazon_clientId ' '
+	option amazon_ProductId ' '
+	option amazon_Dsn ' '
+	option amazon_CodeChallengeMethod 'S256'
+	option amazon_CodeChallenge ' '
+	option amazon_code_verifier ' '
+	option amazon_AccessToken ' '
+	option amazon_RefreshToken ' '
+	option amazon_loginStatus '0'	
+	option usb_status ' '
+	#0 off
+	#1 on
+	option tf_status ' '
+	#0 off
+	#1 on
+	option platform '2'
+	#1 mtk
+	#2 montage
+	option token ' '

@@ -1,0 +1,294 @@
+diff -Nur avs-device-sdk-1.2/ACL/test/CMakeLists.txt avs-device-sdk-1.2.p/ACL/test/CMakeLists.txt
+--- avs-device-sdk-1.2/ACL/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/ACL/test/CMakeLists.txt	2017-11-02 09:44:12.802082758 +0800
+@@ -3,3 +3,9 @@
+ set(LIBRARIES ACL ACLTransportCommonTestLib ${CMAKE_THREAD_LIBS_INIT})
+ set(INCLUDE_PATH ${AVSCommon_INCLUDE_DIRS} "${ACL_SOURCE_DIR}/include")
+ discover_unit_tests( "${INCLUDE_PATH}" "${LIBRARIES}")
++
++target_link_libraries(AVSConnectionManagerTest atomic)
++target_link_libraries(MessageRouterTest atomic)
++target_link_libraries(MimeParserTest atomic)
++target_link_libraries(HTTP2StreamTest atomic)
++target_link_libraries(HTTP2StreamPoolTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/ADSL/test/CMakeLists.txt avs-device-sdk-1.2.p/ADSL/test/CMakeLists.txt
+--- avs-device-sdk-1.2/ADSL/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/ADSL/test/CMakeLists.txt	2017-11-02 09:44:12.802082758 +0800
+@@ -6,3 +6,8 @@
+ 
+ set(ADSL_TEST_LIBS ADSL ADSLTestCommon)
+ discover_unit_tests("${INCLUDE_PATH}" "${ADSL_TEST_LIBS}")
++
++target_link_libraries(DirectiveRouterTest atomic)
++target_link_libraries(DirectiveSequencerTest atomic)
++target_link_libraries(MessageInterpreterTest atomic)
++target_link_libraries(DirectiveProcessorTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/AFML/test/CMakeLists.txt avs-device-sdk-1.2.p/AFML/test/CMakeLists.txt
+--- avs-device-sdk-1.2/AFML/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AFML/test/CMakeLists.txt	2017-11-02 09:44:12.802082758 +0800
+@@ -1 +1,3 @@
+ discover_unit_tests("${AFML_SOURCE_DIR}/include" AFML)
++
++target_link_libraries(FocusManagerTest atomic)
+diff -Nur avs-device-sdk-1.2/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt avs-device-sdk-1.2.p/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt
+--- avs-device-sdk-1.2/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt	2017-11-02 09:44:12.802082758 +0800
+@@ -6,4 +6,4 @@
+     ${AVSCommon_SOURCE_DIR}/AVS/include
+     ${AVSCommon_SOURCE_DIR}/Utils/include)
+ target_link_libraries(ExampleAuthDelegateClient
+-    AuthDelegate AVSCommon)
++    AuthDelegate AVSCommon atomic)
+diff -Nur avs-device-sdk-1.2/AuthDelegate/test/CMakeLists.txt avs-device-sdk-1.2.p/AuthDelegate/test/CMakeLists.txt
+--- avs-device-sdk-1.2/AuthDelegate/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AuthDelegate/test/CMakeLists.txt	2017-11-02 09:44:12.802082758 +0800
+@@ -1 +1,3 @@
+ discover_unit_tests("${AuthDelegate_SOURCE_DIR}/include" AuthDelegate)
++
++target_link_libraries(AuthDelegateTest atomic)
+diff -Nur avs-device-sdk-1.2/AVSCommon/AVS/test/CMakeLists.txt avs-device-sdk-1.2.p/AVSCommon/AVS/test/CMakeLists.txt
+--- avs-device-sdk-1.2/AVSCommon/AVS/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AVSCommon/AVS/test/CMakeLists.txt	2017-11-02 09:44:12.802082758 +0800
+@@ -4,3 +4,14 @@
+     "${AVSCommon_SOURCE_DIR}/AVS/test"
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ discover_unit_tests("${INCLUDE_PATH}" "AVSCommon;AttachmentCommonTestLib")
++
++target_link_libraries(AlexaClientSDKInitTest atomic)
++target_link_libraries(DialogUXStateAggregatorTest atomic)
++target_link_libraries(ExceptionEncounteredSenderTest atomic)
++target_link_libraries(HandlerAndPolicyTest atomic)
++target_link_libraries(CapabilityAgentTest atomic)
++target_link_libraries(NamespaceAndNameTest atomic)
++target_link_libraries(AttachmentWriterTest atomic)
++target_link_libraries(AttachmentManagerV2Test atomic)
++target_link_libraries(AttachmentReaderTest atomic)
++target_link_libraries(AttachmentTest atomic)
+diff -Nur avs-device-sdk-1.2/AVSCommon/Utils/src/Configuration/ConfigurationNode.cpp avs-device-sdk-1.2.p/AVSCommon/Utils/src/Configuration/ConfigurationNode.cpp
+--- avs-device-sdk-1.2/AVSCommon/Utils/src/Configuration/ConfigurationNode.cpp	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AVSCommon/Utils/src/Configuration/ConfigurationNode.cpp	2017-11-02 09:44:12.802082758 +0800
+@@ -161,7 +161,7 @@
+     Type defaultValue,
+     bool (rapidjson::Value::*isType)() const,
+     Type (rapidjson::Value::*getType)() const) const {
+-    if (key.empty() || !m_object) {
++    if (!m_object || key.empty()) {
+         if (out) {
+             *out = defaultValue;
+         }
+diff -Nur avs-device-sdk-1.2/AVSCommon/Utils/src/LibcurlUtils/LibcurlUtils.cpp avs-device-sdk-1.2.p/AVSCommon/Utils/src/LibcurlUtils/LibcurlUtils.cpp
+--- avs-device-sdk-1.2/AVSCommon/Utils/src/LibcurlUtils/LibcurlUtils.cpp	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AVSCommon/Utils/src/LibcurlUtils/LibcurlUtils.cpp	2017-11-02 09:44:12.806082759 +0800
+@@ -89,8 +89,13 @@
+     }
+     if (!(SETOPT(handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2) &&
+           SETOPT(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0) &&
++#if defined(SSL_NO_CACERT_CHECK)
++          SETOPT(handle, CURLOPT_USE_SSL, CURLUSESSL_ALL) && SETOPT(handle, CURLOPT_SSL_VERIFYPEER, 0L) &&
++          SETOPT(handle, CURLOPT_SSL_VERIFYHOST, 0L))) {
++#else          
+           SETOPT(handle, CURLOPT_USE_SSL, CURLUSESSL_ALL) && SETOPT(handle, CURLOPT_SSL_VERIFYPEER, 1L) &&
+           SETOPT(handle, CURLOPT_SSL_VERIFYHOST, 2L))) {
++#endif          
+         return false;
+     }
+ 
+diff -Nur avs-device-sdk-1.2/AVSCommon/Utils/test/CMakeLists.txt avs-device-sdk-1.2.p/AVSCommon/Utils/test/CMakeLists.txt
+--- avs-device-sdk-1.2/AVSCommon/Utils/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/AVSCommon/Utils/test/CMakeLists.txt	2017-11-02 09:44:12.806082759 +0800
+@@ -1,2 +1,15 @@
+ add_subdirectory("Common")
+ discover_unit_tests("${AVSCommon_INCLUDE_DIRS}" AVSCommon)
++
++target_link_libraries(ConfigurationNodeTest atomic)
++target_link_libraries(SharedDataStreamTest atomic)
++target_link_libraries(JSONUtilTest atomic)          
++target_link_libraries(TaskQueueTest atomic)
++target_link_libraries(LogEntryStreamTest atomic)    
++target_link_libraries(TaskThreadTest atomic)
++target_link_libraries(ConfigurationNodeTest atomic) 
++target_link_libraries(LoggerTest atomic)            
++target_link_libraries(TimerTest atomic)
++target_link_libraries(ExecutorTest atomic)          
++target_link_libraries(RequiresShutdownTest atomic)  
++target_link_libraries(UUIDGenerationTest atomic)
+diff -Nur avs-device-sdk-1.2/build/cmake/BuildOptions.cmake avs-device-sdk-1.2.p/build/cmake/BuildOptions.cmake
+--- avs-device-sdk-1.2/build/cmake/BuildOptions.cmake	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/build/cmake/BuildOptions.cmake	2017-11-02 09:51:27.258105339 +0800
+@@ -47,7 +47,7 @@
+ 
+ # Determine the platform and compiler dependent flags.
+ if (UNIX)
+-    set(CXX_PLATFORM_DEPENDENT_FLAGS_DEBUG      "-DDEBUG -DACSDK_DEBUG_LOG_ENABLED -Wall -Wsign-compare -g")
++    set(CXX_PLATFORM_DEPENDENT_FLAGS_DEBUG      "-DDEBUG -DACSDK_DEBUG_LOG_ENABLED -Wall -Wsign-compare -g -Os")
+     set(CXX_PLATFORM_DEPENDENT_FLAGS_RELEASE    "-DNDEBUG -Wall -O2")
+     set(CXX_PLATFORM_DEPENDENT_FLAGS_MINSIZEREL "-DNDEBUG -Wall -Os")
+ elseif(MSVC)
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/AIP/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/AIP/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/AIP/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/AIP/test/CMakeLists.txt	2017-11-02 09:44:12.806082759 +0800
+@@ -6,3 +6,4 @@
+     "${AVSCommon_SOURCE_DIR}/AVS/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" AIP)
++target_link_libraries(AudioInputProcessorTest atomic)
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/AudioPlayer/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/AudioPlayer/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/AudioPlayer/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/AudioPlayer/test/CMakeLists.txt	2017-11-02 09:44:12.806082759 +0800
+@@ -6,3 +6,5 @@
+ 	"${AVSCommon_SOURCE_DIR}/Utils/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" "AudioPlayer;UtilsCommonTestLib")
++
++target_link_libraries(AudioPlayerTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/PlaybackController/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/PlaybackController/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/PlaybackController/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/PlaybackController/test/CMakeLists.txt	2017-11-02 09:44:12.806082759 +0800
+@@ -7,3 +7,5 @@
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" "PlaybackController")
++
++target_link_libraries(PlaybackControllerTest atomic)
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/Settings/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/Settings/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/Settings/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/Settings/test/CMakeLists.txt	2017-11-02 09:44:12.806082759 +0800
+@@ -6,4 +6,6 @@
+     "${AVSCommon_SOURCE_DIR}/AVS/test"
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+-discover_unit_tests("${INCLUDE_PATH}" "Settings")
+\ No newline at end of file
++discover_unit_tests("${INCLUDE_PATH}" "Settings")
++
++target_link_libraries(SettingsTest atomic)
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/SpeakerManager/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/SpeakerManager/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/SpeakerManager/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/SpeakerManager/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -6,3 +6,5 @@
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" SpeakerManager)
++
++target_link_libraries(SpeakerManagerTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -3,3 +3,5 @@
+ set(INCLUDE_PATH "${SpeechSynthesizer_INCLUDE_DIRS}" "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test" "${AVSCommon_SOURCE_DIR}/Utils/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" "SpeechSynthesizer;UtilsCommonTestLib")
++
++target_link_libraries(SpeechSynthesizerTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/System/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/System/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/System/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/System/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -7,3 +7,6 @@
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" "AVSSystem;ADSL")
++
++target_link_libraries(EndpointHandlerTest atomic)
++target_link_libraries(UserInactivityMonitorTest atomic)
+diff -Nur avs-device-sdk-1.2/CapabilityAgents/TemplateRuntime/test/CMakeLists.txt avs-device-sdk-1.2.p/CapabilityAgents/TemplateRuntime/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CapabilityAgents/TemplateRuntime/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CapabilityAgents/TemplateRuntime/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -7,3 +7,5 @@
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" "TemplateRuntime")
++
++target_link_libraries(TemplateRuntimeTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/CertifiedSender/test/CMakeLists.txt avs-device-sdk-1.2.p/CertifiedSender/test/CMakeLists.txt
+--- avs-device-sdk-1.2/CertifiedSender/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/CertifiedSender/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -4,4 +4,6 @@
+ 
+ set(TEST_FOLDER "${CertifiedSender_SOURCE_DIR}/test")
+ 
+-discover_unit_tests("${INCLUDE_PATH}" "CertifiedSender" "${TEST_FOLDER}")
+\ No newline at end of file
++discover_unit_tests("${INCLUDE_PATH}" "CertifiedSender" "${TEST_FOLDER}")
++
++target_link_libraries(MessageStorageTest atomic)
+diff -Nur avs-device-sdk-1.2/ContextManager/test/CMakeLists.txt avs-device-sdk-1.2.p/ContextManager/test/CMakeLists.txt
+--- avs-device-sdk-1.2/ContextManager/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/ContextManager/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -1 +1,2 @@
+ discover_unit_tests("${ContextManager}/include" ContextManager)
++target_link_libraries(ContextManagerTest atomic)
+diff -Nur avs-device-sdk-1.2/Integration/test/CMakeLists.txt avs-device-sdk-1.2.p/Integration/test/CMakeLists.txt
+--- avs-device-sdk-1.2/Integration/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/Integration/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -96,3 +96,12 @@
+         message("Skipping build of NetworkIntegrationTests.cpp.")
+     endif()
+ endif()
++
++target_link_libraries(AlexaAuthorizationDelegateTest atomic)
++target_link_libraries(AlertsIntegrationTest atomic)
++target_link_libraries(AlexaCommunicationsLibraryTest atomic)
++target_link_libraries(AlexaDirectiveSequencerLibraryTest atomic)
++target_link_libraries(AudioInputProcessorIntegrationTest atomic)
++target_link_libraries(AudioPlayerIntegrationTest atomic)
++target_link_libraries(ServerDisconnectIntegrationTest atomic)
++target_link_libraries(SpeechSynthesizerIntegrationTest atomic)
+diff -Nur avs-device-sdk-1.2/KWD/test/CMakeLists.txt avs-device-sdk-1.2.p/KWD/test/CMakeLists.txt
+--- avs-device-sdk-1.2/KWD/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/KWD/test/CMakeLists.txt	2017-11-02 09:44:12.810082759 +0800
+@@ -1 +1,3 @@
+-discover_unit_tests("${KWD_SOURCE_DIR}/include" KWD)
+\ No newline at end of file
++discover_unit_tests("${KWD_SOURCE_DIR}/include" KWD)
++
++target_link_libraries(AbstractKeywordDetectorTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/MediaPlayer/src/MediaPlayer.cpp avs-device-sdk-1.2.p/MediaPlayer/src/MediaPlayer.cpp
+--- avs-device-sdk-1.2/MediaPlayer/src/MediaPlayer.cpp	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/MediaPlayer/src/MediaPlayer.cpp	2017-11-02 09:44:12.814082759 +0800
+@@ -463,7 +463,7 @@
+     }
+ 
+     // AVS Volume will be between 0 and 100.
+-    settings->volume = static_cast<int8_t>(std::round(avsVolume));
++    settings->volume = static_cast<int8_t>(std::ceil(avsVolume - 0.5));
+     settings->mute = mute;
+ 
+     promise->set_value(true);
+diff -Nur avs-device-sdk-1.2/MediaPlayer/test/CMakeLists.txt avs-device-sdk-1.2.p/MediaPlayer/test/CMakeLists.txt
+--- avs-device-sdk-1.2/MediaPlayer/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/MediaPlayer/test/CMakeLists.txt	2017-11-02 09:44:12.814082759 +0800
+@@ -10,3 +10,7 @@
+ set(INPUT_FOLDER "${MediaPlayer_SOURCE_DIR}/inputs")
+ 
+ discover_unit_tests("${INCLUDES}" "${LIBRARIES}" "${INPUT_FOLDER}")
++
++target_link_libraries(MediaPlayerTest atomic)
++target_link_libraries(ErrorTypeConversionTest atomic)
++target_link_libraries(NormalizerTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/PlaylistParser/test/CMakeLists.txt avs-device-sdk-1.2.p/PlaylistParser/test/CMakeLists.txt
+--- avs-device-sdk-1.2/PlaylistParser/test/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/PlaylistParser/test/CMakeLists.txt	2017-11-02 09:44:12.814082759 +0800
+@@ -1,3 +1,5 @@
+ cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+ 
+ discover_unit_tests("${PlaylistParser_SOURCE_DIR}/include" PlaylistParser)
++
++target_link_libraries(PlaylistParserTest atomic)
+\ No newline at end of file
+diff -Nur avs-device-sdk-1.2/SampleApp/src/CMakeLists.txt avs-device-sdk-1.2.p/SampleApp/src/CMakeLists.txt
+--- avs-device-sdk-1.2/SampleApp/src/CMakeLists.txt	2017-10-31 22:36:26.000000000 +0800
++++ avs-device-sdk-1.2.p/SampleApp/src/CMakeLists.txt	2017-11-02 09:44:12.814082759 +0800
+@@ -44,3 +44,5 @@
+ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+     message(FATAL_ERROR "Windows is unsupported at the moment")  
+ endif()
++
++target_link_libraries(SampleApp atomic)

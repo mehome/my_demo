@@ -1,0 +1,29 @@
+# Configuration for Panther driver
+CARDINFO{mixername}=="mp320", GOTO="pcm_mp320"
+CARDINFO{mixername}=="tlv320aic3111", GOTO="pcm_ti"
+CARDINFO{mixername}=="es9023", GOTO="cchip_es9023"
+RESULT="false", EXIT="return"
+
+LABEL="cchip_es9023"
+CTL{reset}="mixer"
+# playback
+CTL{name}="Left Mixer Playback Switch", CTL{value}="on"
+CTL{name}="Right Mixer Playback Switch", CTL{value}="on"
+CTL{name}="PCM Volume", CTL{value}="255,255"
+RESULT="true", EXIT="return"
+
+
+LABEL="pcm_mp320"
+CTL{reset}="mixer"
+# capture
+CTL{name}="Capture Switch", CTL{value}="on,on"
+CTL{name}="Right PGA Mux", CTL{value}="0"
+CTL{name}="Left PGA Mux", CTL{value}="0"
+CTL{name}="Capture Volume", CTL{value}="55,55"
+RESULT="true", EXIT="return"
+
+LABEL="pcm_ti"
+CTL{reset}="mixer"
+#playback
+CTL{name}="DAC Playback Volume", CTL{value}="163,163"
+RESULT="true", EXIT="return"

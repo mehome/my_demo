@@ -1,0 +1,57 @@
+diff -Nur a/configure.ac b/configure.ac
+--- a/configure.ac	2017-09-18 19:30:51.000000000 +0800
++++ b/configure.ac	2017-10-04 18:06:44.521511543 +0800
+@@ -942,29 +942,6 @@
+ pkgconfig/gstreamer-video-uninstalled.pc
+ pkgconfig/gstreamer-plugins-base.pc
+ pkgconfig/gstreamer-plugins-base-uninstalled.pc
+-tests/Makefile
+-tests/check/Makefile
+-tests/examples/Makefile
+-tests/examples/app/Makefile
+-tests/examples/audio/Makefile
+-tests/examples/decodebin_next/Makefile
+-tests/examples/dynamic/Makefile
+-tests/examples/encoding/Makefile
+-tests/examples/fft/Makefile
+-tests/examples/gio/Makefile
+-tests/examples/overlay/Makefile
+-tests/examples/seek/Makefile
+-tests/examples/snapshot/Makefile
+-tests/examples/playback/Makefile
+-tests/examples/playrec/Makefile
+-tests/files/Makefile
+-tests/icles/Makefile
+-tests/icles/playback/Makefile
+-docs/Makefile
+-docs/libs/Makefile
+-docs/plugins/Makefile
+-docs/version.entities
+-po/Makefile.in
+ common/Makefile
+ common/m4/Makefile
+ m4/Makefile
+diff -Nur a/Makefile.am b/Makefile.am
+--- a/Makefile.am	2017-05-15 23:46:23.000000000 +0800
++++ b/Makefile.am	2017-10-04 18:06:25.581510559 +0800
+@@ -11,20 +11,14 @@
+ 	gst-libs 		\
+ 	gst sys $(SUBDIRS_EXT) 	\
+ 	tools 			\
+-	tests 			\
+-	docs			\
+-	po 			\
+ 	common 			\
+ 	m4
+ 
+ DIST_SUBDIRS = 			\
+ 	pkgconfig		\
+-	docs			\
+ 	gst-libs		\
+ 	gst sys ext		\
+ 	tools 			\
+-	tests 			\
+-	po 			\
+ 	common 			\
+ 	m4
+ 

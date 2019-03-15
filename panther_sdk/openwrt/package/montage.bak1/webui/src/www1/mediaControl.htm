@@ -1,0 +1,212 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <link rel=stylesheet type=text/css href=demo2.css>
+ <script type="text/javascript">
+var RadioOnly = 1;
+var DLNAandAirplay = 2;
+var inputDevName;
+var devNameInp;
+var maxDevNameLength = 32;
+var mediaOpt;
+var curMediaState;
+var curadioType;
+var devName;
+var radioOpt;
+var radioType;
+
+function init() {
+	wdk.cdbLoad(['$ra_func', '$ra_name', '$ra_radiotype'
+			/*--ifdef CONFIG_DHCPS_HIDE_GW--*/
+			, '$dhcps_hide_gw'
+			/*--endif--*/
+	]);
+	curMediaState = wdk.cdbVal('$ra_func');
+	devName = wdk.cdbVal('$ra_name');
+	curadioType = Number(wdk.cdbVal('$ra_radiotype'));
+	setAlias();
+	// Set media type selection.
+	for (var pp = 0; pp < mediaOpt.options.length; pp++) {
+		if (curMediaState == mediaOpt.options[pp].value) {
+			mediaOpt.selectedIndex = pp;
+			break;
+		}
+	}
+
+	// Set radio type selection.
+	for (var i = 0; i < radioType.options.length; i++) {
+		if (curadioType == radioType.options[i].value) {
+			radioType.selectedIndex = i;
+			break;
+		}
+	}
+
+	devNameInp.value = devName;
+	showOpt(curMediaState);
+	/*--ifdef CONFIG_DHCPS_HIDE_GW--*/
+	wdk.init_form();
+	/*--endif--*/
+}
+
+function setAlias() {
+	inputDevName = document.getElementById("inputDevName");
+	devNameInp = document.getElementById("devNameInp");
+	mediaOpt = document.getElementById("mediaOpt");
+	radioOpt = document.getElementById("radioOpt");
+	radioType = document.getElementById("radioType");
+}
+
+
+function showOpt(mode) {
+	radioOpt.style.display = (mode == RadioOnly) ? 'block' : 'none';
+	inputDevName.style.display = (mode == DLNAandAirplay) ? 'block' : 'none';
+}
+
+function setDevName() {
+	if (checkIllegalInput(devNameInp.value)) return;
+	wdk.cliCmd(encodeURI("$ra_name=") + encodeURI(devNameInp.value));
+}
+
+function updateRadioType() {
+	wdk.cliCmd(encodeURI("$ra_radiotype=") + radioType.selectedIndex);
+}
+
+function checkIllegalInput(InpVal) {
+	if (InpVal.length === 0) {
+		alert(wdk.msg("Device name can not be empty"));
+		return true;
+	} else if (!InpVal || /^\s*$/.test(InpVal)) {
+		alert(wdk.msg("Device name can not contain only whitespaces"));
+		return true;
+	} else if (/[;'#]/.test(InpVal)) {
+		alert(wdk.msg("Device name can not contain any of these illegal characters" + "\n" + "  ;  '  #"))
+	} else if (InpVal.length > maxDevNameLength) {
+		alert(wdk.msg("The length of the device name can't exceed") + maxDevNameLength);
+	}
+	return false;
+}
+
+function apply() {
+	var show_result_bg = true;
+	delayTime = 1000;
+	if (show_result_bg)
+		wdk.showResultBG();
+
+
+	if (mediaOpt.selectedIndex == 1) {
+		updateRadioType();
+	} else if (mediaOpt.selectedIndex == 2) {
+		setDevName();
+	}
+
+	/*--ifdef CONFIG_DHCPS_HIDE_GW--*/
+	wdk.cliCmd(encodeURI("$dhcps_hide_gw=") + Number(wdk.getById('$dhcps_hide_gw').checked));
+	/*--endif--*/
+	var newRAFUNC = mediaOpt.options[mediaOpt.selectedIndex].value;
+	wdk.cliCmd(encodeURI("$ra_func=") + newRAFUNC);
+	wdk.cliCmd("commit");
+	if (show_result_bg)
+		setTimeout(function() {
+			var message = "Success" + '<br><br><input class=button value=' + wdk.msg('Continue') + ' type=button onclick="wdk.hideResultBG(), window.location.reload()">';
+			document.getElementById("result").innerHTML = '<center><b>' + message + '<' + '/b><' + '/center><br>';
+		}, delayTime);
+}
+
+function cancel() {
+	window.location.reload();
+}
+ </script>
+</head>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <fieldset>
+  <legend>
+   <script type="text/javascript">
+wdk.putmsg("Media Control");
+   </script>
+  </legend>
+  <div class="setting">
+   <label class="label">
+    <script type="text/javascript">
+wdk.putmsg("Please select media mode")
+    </script>
+   </label>
+   <select id="mediaOpt" onchange="if (typeof(this.selectedIndex) != 'undefined' ) showOpt(this.selectedIndex)">
+    <option value="0">
+     <script>
+wdk.putmsg("Disable All")
+     </script>
+    </option>
+    <option value="1">
+     <script>
+wdk.putmsg("Radio Only")
+     </script>
+    </option>
+    <option value="2">
+     <script>
+wdk.putmsg("DLNA/Airplay")
+     </script>
+    </option>
+    <option value="3">
+     <script>
+wdk.putmsg("Audio Only")
+     </script>
+   </select>
+  </div>
+
+  <div id="inputDevName" class="setting">
+   <label class="label">
+    <script type="text/javascript">
+wdk.putmsg("Please enter the device name")
+    </script>
+   </label>
+   <input placeholder="MyDevice" id="devNameInp" type="text" maxlength=32 value="">
+  </div>
+
+  <div id="radioOpt" class="setting">
+   <label class="label">
+    <script type="text/javascript">
+wdk.putmsg("Please select radio type")
+    </script>
+   </label>
+   <select id="radioType">
+    <option value="0">
+     <script>
+wdk.putmsg("Radio")
+     </script>
+    </option>
+    <option value="1">
+     <script>
+wdk.putmsg("Pandora")
+     </script>
+    </option>
+   </select>
+  </div>
+  <!--ifdef CONFIG_DHCPS_HIDE_GW-->
+  <div class=setting>
+   <div class=label>
+    <script>
+wdk.putmsg('Sound Bar mode (iOS only)')
+    </script>
+   </div>
+   <input type=checkbox id=$dhcps_hide_gw>
+   <script>
+wdk.putmsg('Enabled')
+   </script>
+  </div>
+  <!--endif-->
+ </fieldset>
+ <script>
+footer()
+ </script>
+
+</html>

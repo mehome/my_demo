@@ -1,0 +1,203 @@
+<!--ifdef CONFIG_SONIX_OSD-->
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Webcam OSD</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+wdk.cdbLoad(['$webcam_format', '$webcam_osd']);
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var vdev = rule2var(format, "vdev");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+
+	f.reset();
+	wdk.init_form();
+
+	showHide('osdopt', wdk.getById("en").checked);
+}
+
+function send_request() {
+	var str;
+	var en = wdk.getById("en").checked ? 1 : 0;
+	var ostr = wdk.getById("ostr").value;
+	var srow = wdk.getById("srow").value;
+	var scol = wdk.getById("scol").value;
+	var ffg = wdk.getById("ffg").value;
+	var fbg = wdk.getById("fbg").value;
+	var size = wdk.getById("size").value;
+
+	//check
+	var legal = /[^A-Z0-9-\s:]/;
+	if (!chkStr(wdk.getById("ostr"), "string", legal)) {
+		highlight("ostr");
+		return;
+	}
+	if (!chkNum(wdk.getById("srow"), 0, 70, "row")) {
+		highlight("srow");
+		return;
+	}
+	if (!chkNum(wdk.getById("scol"), 0, 70, "column")) {
+
+		highlight("scol");
+		return;
+	}
+
+	// set $webcam_osd
+	str = "en=" + en;
+	str += "&str=" + ostr;
+	str += "&srow=" + srow;
+	str += "&scol=" + scol;
+	str += "&ffg=" + ffg;
+	str += "&fbg=" + fbg;
+	str += "&size=" + size;
+	wdk.cdbSet("$webcam_osd", str)
+	if (wdk.cdbChg("$webcam_osd")) {
+		wdk.showResultBG();
+		wdk.redirect(5);
+		wdk.save_form(0, 1);
+
+		// sent commands
+		wdk.cliCmd("webcam osd_ctl en " + en);
+		//padding to 19 chars
+		ostr = (ostr + Array(20).join(" ")).slice(0, 19);
+		//replace ' ' to '_' 
+		ostr = ostr.replace(/\s/g, "_");
+		/*WSIM_BEGIN*/
+		alert("webcam osd_ctl str " + ostr);
+		alert("webcam osd_ctl start " + srow + " " + scol);
+		alert("webcam osd_ctl fcolor " + ffg + " " + fbg);
+		alert("webcam osd_ctl size " + size);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam osd_ctl str " + ostr);
+		wdk.cliCmd("webcam osd_ctl start " + srow + " " + scol);
+		wdk.cliCmd("webcam osd_ctl fcolor " + ffg + " " + fbg);
+		wdk.cliCmd("webcam osd_ctl size " + size);
+	} else
+		alert(wdk.msg('The settings are not changed!!'));
+}
+ </script>
+
+</head>
+
+<body onload=init()>
+
+ <!-- Block window -->
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="webcamFunc.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">Webcam OSD</div>
+  <div id="rightbutton">
+   <a onclick="send_request()">
+    <script>
+show_words("Done")
+    </script>
+   </a>
+  </div>
+ </div>
+
+ <form name="frm">
+  <fieldset id="$webcam_osd">
+   <span class="graytitle">Settings</span> 
+
+   <ul class="pageitem">
+    <li class="checkbox">
+     <span class="name"><script>get_words("Enabled")</script></span>
+     <input type="checkbox" name="en" id="en" value="1" onclick="showHide('osdopt',this.checked)">
+    </li>
+   </ul>
+
+   <div id="osdopt">
+    <span class="graytitle"><script>get_words("2nd string")</script></span>
+    <ul class="pageitem">
+     <li class="smallfield">
+      <div class="leftname">
+       <script>
+get_words(" 0-9 A-Z - : space")
+       </script>
+      </div>
+      <input name="str" id="ostr" maxlength="19">
+     </li>
+    </ul>
+
+    <span class="graytitle"><script>get_words("Start Position")</script></span>
+    <ul class="pageitem">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Row")</script></span>
+      <input name="srow" id="srow" size="10">
+     </li>
+     <li class="smallfield">
+      <span class="name"><script>get_words("Column")</script></span>
+      <input name="scol" id="scol" size="10">
+     </li>
+    </ul>
+
+    <span class="graytitle"><script>get_words("Font Color")</script></span>
+    <ul class="pageitem">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Foreground")</script></span>
+      <select name="ffg" id="ffg" size="1">
+       <option value="0">Black</option>
+       <option value="1">Red</option>
+       <option value="2">Green</option>
+       <option value="3">Blue</option>
+       <option value="4">White</option>
+      </select>
+     </li>
+     <li class="smallfield">
+      <span class="name"><script>get_words("Background")</script></span>
+      <select name="fbg" id="fbg" size="1">
+       <option value="0">Black</option>
+       <option value="1">Red</option>
+       <option value="2">Green</option>
+       <option value="3">Blue</option>
+       <option value="4">White</option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Font Size")</script></span>
+      <select name="size" id="size" size="1">
+       <option value="0">Auto</option>
+       <option value="1">1</option>
+       <option value="2">2</option>
+       <option value="3">3</option>
+       <option value="4">4</option>
+      </select>
+     </li>
+    </ul>
+   </div>
+   <!--osdpopt-->
+
+  </fieldset>
+ </form>
+</body>
+
+</html>
+<!--endif-->

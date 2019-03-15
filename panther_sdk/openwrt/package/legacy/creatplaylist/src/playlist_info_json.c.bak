@@ -1,0 +1,2277 @@
+#include <stdio.h>
+//#include <json/json.h>
+#include <json-c/json.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
+#include "playlist_info_json.h"
+#include "uciConfig.h"
+#include "playlist_set_to_cdb.h"
+
+#define CONFIG  1
+#define COLL 1
+#define ALEXA_ORI 0
+#define ALEXA_CHANGE 1
+#define INSERT  1
+
+
+
+struct json_object* WIFIAudio_RealTimeInterface_pMusicTopJsonObject(WARTI_pMusic p)
+{
+	char *ret;
+	struct json_object *object;
+
+
+	if(p==NULL)
+	{
+		PRINTF("ä¼ å…¥æŒ‡å‘WARTI_Musicç»“æ„ä½“æŒ‡é’ˆä¸ºNULLï¼Œå‡ºé”™è¿”å›\r\n");
+		return NULL;
+	}
+	object = json_object_new_object();//æ–°å»ºä¸€ä¸ªç©ºçš„JSONå¯¹ç›¸é›†
+
+	if(NULL == p->pArtist)
+	{
+		json_object_object_add(object,"artist", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"artist", json_object_new_string(p->pArtist));
+	}
+
+	if(NULL == p->pTitle)
+	{
+		json_object_object_add(object,"title", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"title", json_object_new_string(p->pTitle));
+	}
+	
+	if(NULL == p->pAlbum)
+	{
+		json_object_object_add(object,"album", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"album", json_object_new_string(p->pAlbum));
+	}
+	
+	
+	if(NULL == p->pContentURL)
+	{
+		json_object_object_add(object,"content_url", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"content_url", json_object_new_string(p->pContentURL));
+	}
+	
+	if(NULL == p->pCoverURL)
+	{
+		json_object_object_add(object,"cover_url", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"cover_url", json_object_new_string(p->pCoverURL));
+	}
+	
+	if(NULL == p->pToken)
+	{
+		json_object_object_add(object,"token", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"token", json_object_new_string(p->pToken));
+	}
+  
+		 /*
+	if(NULL == p->pCharFlag)
+	{
+		json_object_object_add(object,"pCharFlag", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"pCharFlag", json_object_new_string(p->pCharFlag));
+	}
+
+	*/
+	return object;//è¿™è¾¹ä¸æ˜¯åœ¨æ ˆä¸­åˆ†é…å‘¢,å¯ä»¥ç›´æ¥è¿”å›ï¼Œä½†æ˜¯è®°å¾—ä½¿ç”¨å®Œéœ€è¦é‡Šæ”¾
+}
+
+
+struct json_object* WIFIAudio_RealTimeInterface_pMusicListInfoTopJsonObject(WARTI_pMusicList inlp,WARTI_pMusicList outlp)
+{
+	char *ret;
+	int i = 0;
+	struct json_object *object;
+	struct json_object *array;
+	
+	
+	PRINTF("inlp->Num num ===%d\n",inlp->Num);
+	PRINTF("outlp->Num num ===%d\n",outlp->Num);
+	if(inlp==NULL)
+	{
+		PRINTF("1111111ä¼ å…¥æŒ‡å‘WARTI_Musicç»“æ„ä½“æŒ‡é’ˆä¸ºNULLï¼Œå‡ºé”™è¿”å›\r\n");
+		return NULL;
+	}
+	object = json_object_new_object();//æ–°å»ºä¸€ä¸ªç©ºçš„JSONå¯¹ç›¸é›†
+	if(inlp->Index==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE && outlp->Index==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE )
+	{
+		  json_object_object_add(object,"index", NULL);
+	}
+  else{
+	    json_object_object_add(object,"index", json_object_new_int(inlp->Index));
+	}
+	
+	if(inlp->Num==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE && outlp->Num==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE )
+	{
+		json_object_object_add(object,"num", NULL);
+	}
+	
+	else if((inlp->Num + outlp->Num)<30)
+	{
+		json_object_object_add(object,"num", json_object_new_int(inlp->Num + outlp->Num));
+	}else if((inlp->Num + outlp->Num)>30 ||(inlp->Num + outlp->Num)==30)
+	{
+		json_object_object_add(object,"num", json_object_new_int(30));
+	} 
+	
+	if(inlp->pMusicList==NULL && outlp->pMusicList==NULL)
+	{
+		json_object_object_add(object,"content", NULL);
+	}else if(inlp->Num ==30){
+		array = json_object_new_array();
+		PRINTF("inlp->Num ====30 \r\n");
+		 {  for(i = 0;i<(inlp->Num);i++)
+		   {
+			   json_object_array_add(array,WIFIAudio_RealTimeInterface_pMusicTopJsonObject((inlp->pMusicList)[i]));
+			   PRINTF("inlp->pMusicList)[i]  %s\n",(inlp->pMusicList)[i]->pTitle);
+			//è™½ç„¶JSONå¯¹è±¡ä¸æ˜¯åœ¨æ ˆåˆ†é…ï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é‡Šæ”¾ï¼Œä½†æ˜¯è¿™è¾¹å·²ç»æ·»åŠ åˆ°arrayæ‰€ä»¥ä¸éœ€è¦æ‰‹åŠ¨é‡Šæ”¾
+		  }
+	   }
+	 }
+	else if((inlp->Num + outlp->Num)<30)
+	{
+		array = json_object_new_array();
+		if((inlp->Num)>0)
+		 {  for(i = 0;i<(inlp->Num);i++)
+		   {
+			   json_object_array_add(array,WIFIAudio_RealTimeInterface_pMusicTopJsonObject((inlp->pMusicList)[i]));
+			    PRINTF("555555inlp->pMusicList)[i]  %s\n",(inlp->pMusicList)[i]->pTitle);
+			//è™½ç„¶JSONå¯¹è±¡ä¸æ˜¯åœ¨æ ˆåˆ†é…ï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é‡Šæ”¾ï¼Œä½†æ˜¯è¿™è¾¹å·²ç»æ·»åŠ åˆ°arrayæ‰€ä»¥ä¸éœ€è¦æ‰‹åŠ¨é‡Šæ”¾
+		  }
+	   }
+	   if((outlp->Num)>0)
+		 {  for(i = 0;i<(outlp->Num);i++)
+		   {
+			   json_object_array_add(array,WIFIAudio_RealTimeInterface_pMusicTopJsonObject((outlp->pMusicList)[i]));
+			 PRINTF("555555outlp->pMusicList)[i]  %s\n",(outlp->pMusicList)[i]->pTitle);
+			//è™½ç„¶JSONå¯¹è±¡ä¸æ˜¯åœ¨æ ˆåˆ†é…ï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é‡Šæ”¾ï¼Œä½†æ˜¯è¿™è¾¹å·²ç»æ·»åŠ åˆ°arrayæ‰€ä»¥ä¸éœ€è¦æ‰‹åŠ¨é‡Šæ”¾
+		  }
+	   }
+	 }
+	else if(((inlp->Num + outlp->Num)>30) || ((inlp->Num + outlp->Num)==30))
+		{
+			array = json_object_new_array();
+			if((inlp->Num)>0)
+		 {  for(i = 0;i<(inlp->Num);i++)
+		   {
+			   json_object_array_add(array,WIFIAudio_RealTimeInterface_pMusicTopJsonObject((inlp->pMusicList)[i]));
+		  }
+	   }
+			 if((outlp->Num)>0)
+		 {  for(i = 0;i<(30-(inlp->Num));i++)
+		   {
+			   json_object_array_add(array,WIFIAudio_RealTimeInterface_pMusicTopJsonObject((outlp->pMusicList)[i]));
+			//è™½ç„¶JSONå¯¹è±¡ä¸æ˜¯åœ¨æ ˆåˆ†é…ï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é‡Šæ”¾ï¼Œä½†æ˜¯è¿™è¾¹å·²ç»æ·»åŠ åˆ°arrayæ‰€ä»¥ä¸éœ€è¦æ‰‹åŠ¨é‡Šæ”¾
+		  }
+	   }
+		}
+		   
+		json_object_object_add(object,"musiclist",array);
+	
+	
+	return object;//è¿™è¾¹ä¸æ˜¯åœ¨æ ˆä¸­åˆ†é…å‘¢,å¯ä»¥ç›´æ¥è¿”å›ï¼Œä½†æ˜¯è®°å¾—ä½¿ç”¨å®Œéœ€è¦é‡Šæ”¾
+}
+
+int my_system(const char * cmd)   
+{   
+FILE * fp;   
+int res; char buf[1024];
+
+if (cmd == NULL)   
+ {   
+ printf("my_system cmd is NULL!\n");  
+ return -1;  
+ } 
+
+if ((fp = popen(cmd, "r") ) == NULL)   
+{   
+ perror("popen");  
+ printf("popen error: %s/n", strerror(errno)); return -1;   
+}else  
+{  
+ while(fgets(buf, sizeof(buf), fp))   
+   {   
+     printf("%s", buf);   
+   } 
+ 
+if ( (res = pclose(fp)) == -1)   
+  {   
+    printf("close popen file pointer fp error!\n"); return res;  
+  }   
+else if (res == 0)   
+  {  
+    return res;  
+  }   
+else   
+  {   
+  printf("popen res is :%d\n", res); return res;   
+  }   
+}  
+}   
+
+
+
+char * get_file_name(char * long_name)
+{
+    int i = 0;
+    char *point = NULL;
+    int len = 0,total_len = 0;
+    char *short_name = NULL; 
+    int copy_len = 0;
+    
+
+    if(0 != strncmp(long_name,"/media",6))
+    {
+          return long_name;
+    }
+    total_len = strlen(long_name);
+    short_name = (char *)malloc(total_len+1);
+    if(NULL == short_name)
+    {
+        return long_name;
+    }
+    memset(short_name,0,total_len);
+    for(i=0 ; i< total_len; i++)
+    {
+        short_name[i] = long_name[total_len-i-1];
+    }
+    if(NULL !=(point = strchr(short_name,'/')))
+    {
+        copy_len = point - short_name ;  
+    }
+    else
+    {
+        free(short_name);
+        return long_name;
+    }
+    len = total_len - copy_len;
+    memset(short_name,0,total_len);
+    strncpy(short_name,long_name+len,copy_len);
+
+    return short_name;
+}
+
+int write_playing_song_to_config(WARTI_pMusicList inlp,char *current_song)
+{
+	char *ret=NULL;
+	int i = 0;
+	struct json_object *object;
+
+		
+	if(current_song!=NULL){
+	
+	PRINTF("inlp->Num num =============%d\n",inlp->Num);
+
+	if(inlp==NULL)
+	{
+		PRINTF("1111111ä¼ å…¥æŒ‡å‘WARTI_Musicç»“æ„ä½“æŒ‡é’ˆä¸ºNULLï¼Œå‡ºé”™è¿”å›\r\n");
+		return NULL;
+	}
+	object = json_object_new_object();//æ–°å»ºä¸€ä¸ªç©ºçš„JSONå¯¹ç›¸é›†
+	if(inlp->Index==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE)
+	{
+		  json_object_object_add(object,"index", NULL);
+	}
+  else{
+	    json_object_object_add(object,"index", json_object_new_int(inlp->Index));
+	}
+	
+	if(inlp->Num==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE)
+	{
+		json_object_object_add(object,"num", NULL);
+	}
+
+	
+	
+	for(i=0;i<(inlp->Num);i++)
+	{        
+	        PRINTF("(inlp->pMusicList)[%d]->pContentURL===========[%s]\n",i,(inlp->pMusicList)[i]->pContentURL);
+			if(strncmp((inlp->pMusicList)[i]->pContentURL,current_song,strlen((inlp->pMusicList)[i]->pContentURL)) == 0)
+			{
+          
+
+	       char tempbuff[512];
+		   
+		   if((inlp->pMusicList)[i]->pArtist!="null"&&(inlp->pMusicList)[i]->pArtist!=NULL&&(inlp->pMusicList)[i]->pArtist!="")
+		   	{
+	  	   memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+	       sprintf(tempbuff, "%s", (inlp->pMusicList)[i]->pArtist);
+	       ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_artist", tempbuff);
+		   	}else
+        	{
+                ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_artist", "unknown");
+        	}
+		  
+		   
+		   if((inlp->pMusicList)[i]->pTitle!="null"&&(inlp->pMusicList)[i]->pTitle!=NULL&&(inlp->pMusicList)[i]->pTitle!="")
+		   	{
+	       memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+	       sprintf(tempbuff, "%s", (inlp->pMusicList)[i]->pTitle);
+		   ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_title", tempbuff);
+		   	}else
+            {
+                memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+                char *name = get_file_name((inlp->pMusicList)[i]->pContentURL);
+                sprintf(tempbuff, "%s",name );
+                free(name);
+                ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_title", tempbuff);
+            }
+		 
+		   
+		   if((inlp->pMusicList)[i]->pAlbum!="null"&&(inlp->pMusicList)[i]->pAlbum!=NULL&&(inlp->pMusicList)[i]->pAlbum!="")
+		   	{
+	       memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		   sprintf(tempbuff, "%s", (inlp->pMusicList)[i]->pAlbum);
+		   ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_album", tempbuff);
+		   	}
+		   else
+		   {   
+					  
+			 ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_album", "unknown");
+		    }
+		   
+       
+		   if((inlp->pMusicList)[i]->pContentURL!="null"&&(inlp->pMusicList)[i]->pContentURL!=NULL&&(inlp->pMusicList)[i]->pContentURL!="")
+		   	{
+	       memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		   sprintf(tempbuff, "%s", (inlp->pMusicList)[i]->pContentURL);
+		   ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_contentURL", tempbuff);
+		   	}else
+        	{
+                ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_contentURL", "unknown");
+        	}
+		   
+          
+		   if((inlp->pMusicList)[i]->pCoverURL!="null"&&(inlp->pMusicList)[i]->pCoverURL!=NULL&&(inlp->pMusicList)[i]->pCoverURL!="")
+		   	{
+	       memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		   sprintf(tempbuff, "%s", (inlp->pMusicList)[i]->pCoverURL);
+		   ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_coverURL", tempbuff);
+		   	}
+		   else
+			{
+			ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.current_coverURL", "unknown");
+			}
+		  
+		   
+			if((inlp->pMusicList)[i]->pToken!="null"&&(inlp->pMusicList)[i]->pToken!=NULL&&(inlp->pMusicList)[i]->pToken!="")
+			{
+			memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			sprintf(tempbuff, "%s", (inlp->pMusicList)[i]->pToken);
+			ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.token", tempbuff);
+			}
+			
+             break;
+
+		     }
+		
+				
+		  }
+	    }
+		
+    
+	json_object_put(object);
+	return ret;//è¿™è¾¹ä¸æ˜¯åœ¨æ ˆä¸­åˆ†é…å‘¢,å¯ä»¥ç›´æ¥è¿”å›ï¼Œä½†æ˜¯è®°å¾—ä½¿ç”¨å®Œéœ€è¦é‡Šæ”¾
+}
+
+struct json_object* pMusicListInfoTopJsonObject(WARTI_pMusicList p)
+{
+	char *ret;
+	int i = 0;
+	struct json_object *object;
+	struct json_object *array;
+	
+	
+	PRINTF("pppp num ===%d\n",p->Num);
+	if(p==NULL)
+	{
+		PRINTF("222222ä¼ å…¥æŒ‡å‘WARTI_Musicç»“æ„ä½“æŒ‡é’ˆä¸ºNULLï¼Œå‡ºé”™è¿”å›\r\n");
+		return NULL;
+	}
+	object = json_object_new_object();//æ–°å»ºä¸€ä¸ªç©ºçš„JSONå¯¹ç›¸é›†
+	if(p->Index==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE)
+	{
+		  json_object_object_add(object,"index", NULL);
+	}
+  else{
+	    json_object_object_add(object,"index", json_object_new_int(p->Index));
+	}
+	if(p->Num==WIFIAUDIO_REALTIMEINTERFACE_INTERRORCODE)
+	{
+		json_object_object_add(object,"num", NULL);
+	}
+	else
+	{
+		json_object_object_add(object,"num", json_object_new_int(p->Num));
+	}
+	
+	if(p->pMusicList==NULL)
+	{
+		json_object_object_add(object,"content", NULL);
+	}
+	else
+	{
+		array = json_object_new_array();
+		
+		for(i = 0;i<(p->Num);i++)
+		{
+			json_object_array_add(array,WIFIAudio_RealTimeInterface_pMusicTopJsonObject((p->pMusicList)[i]));
+			//è™½ç„¶JSONå¯¹è±¡ä¸æ˜¯åœ¨æ ˆåˆ†é…ï¼Œå¯èƒ½éœ€è¦æ‰‹åŠ¨é‡Šæ”¾ï¼Œä½†æ˜¯è¿™è¾¹å·²ç»æ·»åŠ åˆ°arrayæ‰€ä»¥ä¸éœ€è¦æ‰‹åŠ¨é‡Šæ”¾
+		}
+		
+		json_object_object_add(object,"musiclist",array);
+	}
+	
+	return object;//è¿™è¾¹ä¸æ˜¯åœ¨æ ˆä¸­åˆ†é…å‘¢,å¯ä»¥ç›´æ¥è¿”å›ï¼Œä½†æ˜¯è®°å¾—ä½¿ç”¨å®Œéœ€è¦é‡Šæ”¾
+}
+
+WARTI_pMusicList getplaylist_parse_json(char *filepatch){
+	
+	WARTI_pMusicList p=NULL;
+	struct stat filestat;
+	char filename[128];
+	FILE *fp = NULL;
+	char *pjsonstring = NULL;
+	char *pgetstring = NULL;
+	//PRINTF("playlist filepatch == %s\n", filepatch);
+	int i = 0,ret;
+
+   	
+	fp = fopen(filepatch, "r");
+		if(NULL != fp)
+		{
+
+			stat(filepatch, &filestat);
+			pjsonstring = (char *)calloc(1,(filestat.st_size + 1) * sizeof(char)); //yes
+			if(NULL != pjsonstring)
+			{    
+
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{   
+
+
+				//PRINTF("pjsonstring _____1== %s\n", pjsonstring);
+				p = WIFIAudio_RealTimeInterface_pStringTopGetCurrentPlaylist(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+				//WIFIAudio_RealTimeInterface_pBufFree(&pjsonstring);//æî„å´²ç€¹å±¼ç°¡æ¶”å¬ªæ‚—çå—šç¥«å©§æ„¬æ´–é€?
+			}
+			fclose(fp);
+
+
+
+			free(pjsonstring);
+			pjsonstring=NULL;
+		}
+	return p;
+	}
+
+
+WARTI_pMusicList gethttp_playlist_parse_json(char *filepatch){
+	
+	WARTI_pMusicList p;
+	struct stat filestat;
+	char filename[128];
+	FILE *fp = NULL;
+	char *pjsonstring = NULL;
+	char *pgetstring = NULL;
+	PRINTF("playlist http filepatch == %s\n", filepatch);
+	int i = 0,ret;
+	  fp = fopen(filepatch, "r");
+		if(NULL != fp)
+		{
+			stat(filepatch, &filestat);
+			pjsonstring = (char *)calloc(1,(filestat.st_size + 1) * sizeof(char)); //yes
+			if(NULL != pjsonstring)
+			{
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{
+						PRINTF("pjsonstring == %s\n", pjsonstring);
+					p = WIFIAudio_RealTimeInterface_pStringTopGetCurrentPlaylist(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+				//WIFIAudio_RealTimeInterface_pBufFree(&pjsonstring);//æî„å´²ç€¹å±¼ç°¡æ¶”å¬ªæ‚—çå—šç¥«å©§æ„¬æ´–é€?
+			}
+			fclose(fp);
+			free(pjsonstring);
+			pjsonstring=NULL;
+    }
+	return p;
+	}
+
+int parse_playlistinfo_add_playlist(char *infilepatch,char *outplaylist){
+		struct stat filestat;
+	  char filename[128];
+	  char tempbuff[256];
+	  FILE *fp = NULL;
+	  int i = 0,ret,num;
+	 // WARTI_pMusic addMusic; 
+	  struct json_object *object,*getnumobject,*getlistobject,*musiclistobj,*urlobject;
+	  char *pjsonstring = NULL;
+	   fp = fopen(infilepatch, "r");
+		if(NULL != fp)
+		{
+			stat(infilepatch, &filestat);
+			pjsonstring = (char *)calloc(1, (filestat.st_size + 1) * sizeof(char)); //yes
+			if(NULL == pjsonstring )
+			{		
+			printf("malloc failed!\n");		
+			exit(1);   
+			}
+		}
+			if(NULL != pjsonstring)
+			{
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{
+					//	PRINTF("pjsonstring == %s\n", pjsonstring);
+					object = json_tokener_parse(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+			}
+	
+			PRINTF("fp is ==%s\n",fp);
+			PRINTF("pjsonstring is ==%s\n",pjsonstring);
+			getnumobject = json_object_object_get(object,"num");
+	   if(getnumobject==NULL)
+	   {
+		  PRINTF("getnumobject is error");
+	   }
+	   else
+	   {
+		   num = json_object_get_int(getnumobject);
+		   PRINTF("Num =%d\n",num);
+	   }
+	  getlistobject = json_object_object_get(object,"musiclist");//è¿™è¾¹è·å–åˆ°çš„æ˜¯JSONarrayå¯¹è±¡
+	 // PRINTF("getlistobject =%s\n",json_object_to_json_string(getlistobject));
+	  if(outplaylist!=NULL)
+	 { 
+	 	  fp = fopen(outplaylist, "w+");
+	    for(i = 0;i<num;i++)
+	    {
+		    musiclistobj =json_object_array_get_idx(getlistobject,i);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+				if(NULL == musicurl) {
+			
+						PRINTF("json_object_get_string get musicurl failed");
+						goto failed;
+				}
+		   PRINTF("musicurl == %s\n",musicurl);
+		   fputs(musicurl, fp);
+		   fputs("\n", fp);
+		  
+		//my_system("playlist.sh load outplaylist");
+	   }
+	    fclose(fp);
+	     fp = NULL;
+	  
+	     memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh load %s",outplaylist);
+			 my_system(tempbuff);
+	 
+	}else{
+		    musiclistobj =json_object_array_get_idx(getlistobject,0);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+		   //my_system("playlist.sh add addMusic->pContentURL");
+		   memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh add \"%s\"", musicurl);
+			 my_system(tempbuff);
+		}
+
+/********************************************/
+	  json_object_put(object);
+
+  
+	   
+	   return 0;
+	  failed:
+		ret = -1;
+		//parse_failed();
+		return ret;			
+	
+}	
+
+int replace_parse_playlistinfo_add_playlist(char *infilepatch,char *outplaylist){
+		struct stat filestat;
+	  char filename[128];
+	  char tempbuff[256];
+	  FILE *fp = NULL;
+	  int i = 0,ret,num;
+	 // WARTI_pMusic addMusic; 
+	  struct json_object *object,*getnumobject,*getlistobject,*musiclistobj,*urlobject;
+	  char *pjsonstring = NULL;
+	   fp = fopen(infilepatch, "r");
+		if(NULL != fp)
+		{
+			stat(infilepatch, &filestat);
+			pjsonstring = (char *)calloc(1, (filestat.st_size + 1) * sizeof(char));  //yes
+			if(NULL == pjsonstring )
+			{		
+			printf("malloc failed!\n");		
+			exit(1);   
+			}
+		}
+			if(NULL != pjsonstring)
+			{
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{
+					//	PRINTF("pjsonstring == %s\n", pjsonstring);
+					object = json_tokener_parse(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+			}
+	
+			PRINTF("fp is ==%s\n",fp);
+			PRINTF("pjsonstring is ==%s\n",pjsonstring);
+			getnumobject = json_object_object_get(object,"num");
+	   if(getnumobject==NULL)
+	   {
+		  PRINTF("getnumobject is error");
+	   }
+	   else
+	   {
+		   num = json_object_get_int(getnumobject);
+		   PRINTF("Num =%d\n",num);
+	   }
+	  getlistobject = json_object_object_get(object,"musiclist");//è¿™è¾¹è·å–åˆ°çš„æ˜¯JSONarrayå¯¹è±¡
+	 // PRINTF("getlistobject =%s\n",json_object_to_json_string(getlistobject));
+	  if(outplaylist!=NULL)
+	 { 
+	 	  fp = fopen(outplaylist, "w+");
+	    for(i = 0;i<num;i++)
+	    {
+		    musiclistobj =json_object_array_get_idx(getlistobject,i);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+				if(NULL == musicurl) {
+			
+						PRINTF("json_object_get_string get musicurl failed");
+						goto failed;
+				}
+		   PRINTF("musicurl == %s\n",musicurl);
+		   fputs(musicurl, fp);
+		   fputs("\n", fp);
+		  
+		//my_system("playlist.sh load outplaylist");
+	   }
+	    fclose(fp);
+	     fp = NULL;
+	  
+	     memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh replace %s",outplaylist);
+			 my_system(tempbuff);
+			 
+        //  my_system("cp /usr/script/playlists/httpPlayListInfoJson.txt  /usr/script/playlists/currentPlaylistInfoJson.txt");
+			 
+	 
+	}
+
+	   json_object_put(object);
+	  
+	   return 0;
+	  failed:
+		ret = -1;
+		//parse_failed();
+		return ret;			
+	
+}	
+
+
+int load_parse_playlistinfo_add_playlist(char *infilepatch,char *outplaylist){
+		struct stat filestat;
+	  char filename[128];
+	  char tempbuff[256];
+	  FILE *fp = NULL;
+	  int i = 0,ret,num,index;
+	 // WARTI_pMusic addMusic; 
+	  struct json_object *object,*getnumobject,*getlistobject,*musiclistobj,*urlobject,*getIndexObject;
+	  char *pjsonstring = NULL;
+	   fp = fopen(infilepatch, "r");
+		if(NULL != fp)
+		{
+			stat(infilepatch, &filestat);
+			pjsonstring = (char *)calloc(1, (filestat.st_size + 1) * sizeof(char));  //yes
+			if(NULL == pjsonstring )
+			{		
+			printf("malloc failed!\n");		
+			exit(1);   
+			}
+		}
+			if(NULL != pjsonstring)
+			{
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{
+					//	PRINTF("pjsonstring == %s\n", pjsonstring);
+					object = json_tokener_parse(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+			}
+	
+			PRINTF("fp is ==%s\n",fp);
+			PRINTF("pjsonstring is ==%s\n",pjsonstring);
+			getnumobject = json_object_object_get(object,"num");
+	   if(getnumobject==NULL)
+	   {
+		  PRINTF("getnumobject is error");
+	   }
+	   else
+	   {
+		   num = json_object_get_int(getnumobject);
+		   PRINTF("Num =%d\n",num);
+	   }
+	   
+	   getIndexObject = json_object_object_get(object,"index");
+	   if(getnumobject==NULL)
+	   {
+		  PRINTF("getIndexObject is error");
+	   }
+	   else
+	   {
+		   index = json_object_get_int(getIndexObject);
+		   PRINTF("index =%d\n",index);
+	   }
+	   
+	  getlistobject = json_object_object_get(object,"musiclist");//è¿™è¾¹è·å–åˆ°çš„æ˜¯JSONarrayå¯¹è±¡
+	 // PRINTF("getlistobject =%s\n",json_object_to_json_string(getlistobject));
+	  if(outplaylist!=NULL)
+	 { 
+	 	  fp = fopen(outplaylist, "w+");
+	    for(i = 0;i<num;i++)
+	    {
+		    musiclistobj =json_object_array_get_idx(getlistobject,i);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+				if(NULL == musicurl) {
+			
+						PRINTF("json_object_get_string get musicurl failed");
+						goto failed;
+				}
+		   PRINTF("musicurl == %s\n",musicurl);
+		   fputs(musicurl, fp);
+		   fputs("\n", fp);
+		  
+		//my_system("playlist.sh load outplaylist");
+	   }
+	    fclose(fp);
+	     fp = NULL;
+	  
+	     memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh load %s %d",outplaylist,index);
+			 my_system(tempbuff);
+			// my_system("cp /usr/script/playlists/httpPlayListInfoJson.txt  /usr/script/playlists/currentPlaylistInfoJson.txt");
+	 
+	}else{
+		    musiclistobj =json_object_array_get_idx(getlistobject,0);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+		   //my_system("playlist.sh add addMusic->pContentURL");
+		   memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh add %s", musicurl);
+			 my_system(tempbuff);
+		}
+
+     json_object_put(object);
+	  
+	   return 0;
+	  failed:
+		ret = -1;
+		//parse_failed();
+		return ret;			
+	
+}	
+
+
+int insert_songs_parse_playlistinfo_add_playlist(char *infilepatch,char *outplaylist){
+		struct stat filestat;
+	  char filename[128];
+	  char tempbuff[256];
+	  FILE *fp = NULL;
+	  int i = 0,ret,num;
+	 // WARTI_pMusic addMusic; 
+	  struct json_object *object,*getnumobject,*getlistobject,*musiclistobj,*urlobject;
+	  char *pjsonstring = NULL;
+	   fp = fopen(infilepatch, "r");
+		if(NULL != fp)
+		{
+			stat(infilepatch, &filestat);
+			pjsonstring = (char *)calloc(1, (filestat.st_size + 1) * sizeof(char)); //yes
+			if(NULL == pjsonstring )
+			{		
+			printf("malloc failed!\n");		
+			exit(1);   
+			}
+		}
+			if(NULL != pjsonstring)
+			{
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{
+					//	PRINTF("pjsonstring == %s\n", pjsonstring);
+					object = json_tokener_parse(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+			}
+	
+			PRINTF("fp is ==%s\n",fp);
+			PRINTF("pjsonstring is ==%s\n",pjsonstring);
+			getnumobject = json_object_object_get(object,"num");
+	   if(getnumobject==NULL)
+	   {
+		  PRINTF("getnumobject is error");
+	   }
+	   else
+	   {
+		   num = json_object_get_int(getnumobject);
+		   PRINTF("Num =%d\n",num);
+	   }
+	  getlistobject = json_object_object_get(object,"musiclist");//è¿™è¾¹è·å–åˆ°çš„æ˜¯JSONarrayå¯¹è±¡
+	 // PRINTF("getlistobject =%s\n",json_object_to_json_string(getlistobject));
+	  if(outplaylist!=NULL)
+	 { 
+	 	  fp = fopen(outplaylist, "w+");
+	    for(i = 0;i<num;i++)
+	    {
+		    musiclistobj =json_object_array_get_idx(getlistobject,i);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+				if(NULL == musicurl) {
+			
+						PRINTF("json_object_get_string get musicurl failed");
+						goto failed;
+				}
+		   PRINTF("musicurl == %s\n",musicurl);
+		   fputs(musicurl, fp);
+		   fputs("\n", fp);
+		  
+	   }
+	    fclose(fp);
+	     fp = NULL;
+	  
+	    // memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			// sprintf(tempbuff, "playlist.sh load %s",outplaylist);
+			// my_system(tempbuff);
+	 
+	}else{
+		    musiclistobj =json_object_array_get_idx(getlistobject,0);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				
+				char *musicurl = json_object_get_string(urlobject);
+		   
+		 //  memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			// sprintf(tempbuff, "playlist.sh add %s", musicurl);
+		//	 my_system(tempbuff);
+		}
+
+		json_object_put(object);
+	   
+	   return 0;
+	  failed:
+		ret = -1;
+		//parse_failed();
+		return ret;			
+	
+}
+
+
+	int update_playlist(char *infilepatch,char *outplaylist){
+		struct stat filestat;
+	  char filename[128];
+	  char tempbuff[256];
+	  FILE *fp = NULL;
+	  int i = 0,ret,num;
+	 // WARTI_pMusic addMusic; 
+	  struct json_object *object,*getnumobject,*getlistobject,*musiclistobj,*urlobject;
+	  char *pjsonstring = NULL;
+	   fp = fopen(infilepatch, "r");
+		if(NULL != fp)
+		{
+			stat(infilepatch, &filestat);
+			pjsonstring = (char *)calloc(1, (filestat.st_size + 1) * sizeof(char));//yes
+			if(NULL == pjsonstring )
+			{		
+			printf("malloc failed!\n");		
+			exit(1);   
+			}
+		}
+			if(NULL != pjsonstring)
+			{
+				ret = fread(pjsonstring, sizeof(char), filestat.st_size, fp);
+				if(ret > 0)
+				{
+					//	PRINTF("pjsonstring == %s\n", pjsonstring);
+					object = json_tokener_parse(pjsonstring);
+				//	pstr = WIFIAudio_RealTimeInterface_newStr(WARTI_STR_TYPE_SYNCHRONOUSCONFIGINFO, pjsonstring);
+				}
+			}
+	
+			PRINTF("fp is ==%s\n",fp);
+			PRINTF("pjsonstring is ==%s\n",pjsonstring);
+			getnumobject = json_object_object_get(object,"num");
+	   if(getnumobject==NULL)
+	   {
+		  PRINTF("getnumobject is error");
+	   }
+	   else
+	   {
+		   num = json_object_get_int(getnumobject);
+		   PRINTF("Num =%d\n",num);
+	   }
+	  getlistobject = json_object_object_get(object,"musiclist");//è¿™è¾¹è·å–åˆ°çš„æ˜¯JSONarrayå¯¹è±¡
+	 // PRINTF("getlistobject =%s\n",json_object_to_json_string(getlistobject));
+	  if(outplaylist!=NULL)
+	 { 
+	 	  fp = fopen(outplaylist, "w+");
+	    for(i = 0;i<num;i++)
+	    {
+		    musiclistobj =json_object_array_get_idx(getlistobject,i);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+				if(NULL == musicurl) {
+			
+						PRINTF("json_object_get_string get musicurl failed");
+						goto failed;
+				}
+		   PRINTF("musicurl == %s\n",musicurl);
+		   fputs(musicurl, fp);
+		   fputs("\n", fp);
+		  
+		//my_system("playlist.sh load outplaylist");
+	   }
+	    fclose(fp);
+	     fp = NULL;
+	   
+	     memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh update \"%s\"",outplaylist);
+			 my_system(tempbuff);
+	 
+	}else{
+		    musiclistobj =json_object_array_get_idx(getlistobject,0);
+     	  urlobject = json_object_object_get(musiclistobj, "content_url");
+     	  if(NULL == urlobject) {
+
+					PRINTF("json_object_object_get get urlobject failed");
+					goto failed;
+				}
+				//addMusic->pContentURL = json_object_get_string(urlobject);
+				char *musicurl = json_object_get_string(urlobject);
+		   //my_system("playlist.sh add addMusic->pContentURL");
+		   memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			 sprintf(tempbuff, "playlist.sh add \"%s\"", musicurl);
+			 my_system(tempbuff);
+		}
+
+
+	json_object_put(object);
+	
+	return 0;
+	failed:
+		ret = -1;
+		//parse_failed();
+		return ret;			
+	
+	}	
+
+unsigned int  parse_currentplaylist_to_index(void)
+{
+
+
+	FILE *fp =NULL;
+	char buff[200];
+    int i=0;
+    unsigned int sum=0;
+     
+   // relute= cmd_system("mpc");
+
+    my_system("mpc >/tmp/file.txt");
+    if(NULL != (fp = fopen("/tmp/file.txt", "r")))
+	    {
+			int ret=fread(buff,1,sizeof(buff),fp);
+			if(ret==0)
+			{
+				printf("fread error\n");
+			}
+		}
+		fclose(fp);
+	
+    PRINTF("buff:%s\n",buff);
+	
+    char *rp=strstr(buff,"[playing] #");
+ 
+   
+	if(rp == NULL)
+		{
+    	 rp=strstr(buff,"[paused]  #");
+		}
+	
+    if(rp!=NULL)
+    {
+		
+		while(buff[i]!='#')
+			i++;
+			
+		while(buff[i]!='/')
+	      {
+			
+
+			if(buff[i]>='0' && buff[i]<='9')//Èç¹ûÊÇÊı×Ö
+			{			
+			sum=sum*10+(buff[i]-'0');//Á¬ĞøÊı×Ö×ª»»ÎªÊı.
+			}
+			i++;
+		 }
+	   }
+	
+	
+
+
+	return sum;
+}
+
+char* parse_currentplaylist_to_URL(char *currentplaylist,int num)
+{
+    FILE *dp =NULL;
+	char *buf,*deline;
+    int i=0;
+
+
+   if(num!=0){
+    buf=(char*)malloc(256);
+	if(NULL == buf)
+		{		
+		printf("malloc failed!\n");	
+		exit(1);   
+		}
+	memset(buf,0,256);
+	    dp= fopen(currentplaylist, "r");
+	    if( dp ) 
+          { 
+            
+	         for(i=0;i<num;i++)
+	         {
+			 deline = fgets(buf,256, dp);
+			 if(deline==NULL)
+			 	{
+			 	 PRINTF("parse currentplaylist to URL = error ");
+				 return 0;
+			 	}
+			 }
+	      	 PRINTF("deline===[%s]\n",deline);
+			 
+			 fclose(dp);
+			 dp= NULL;
+		  }
+		return  deline;
+  	}	
+	return 0;
+}
+
+#if 0
+WARTI_pMusic parse_currentplaylist_to_JSON(char *curplaylistinfo,int num)
+{
+    char *ret;
+	WARTI_pMusicList lp;
+	int i;
+
+	PRINTF("num====[%d]\n",num);
+    lp = getplaylist_parse_json(curplaylistinfo);
+	PRINTF("lp->Num==========[%d]\n",lp->Num);
+	PRINTF("(lp->pMusicList)[num]->pTitle=======[%s]\n",(lp->pMusicList)[num-1]->pTitle);
+    //ret = strdup((lp->pMusicList)[num]);
+    return (lp->pMusicList);
+}
+#endif
+
+// direction    0 Îª  ·Åµ½ÁĞ±íºóÃæ    1 Îª·Åµ½ÁĞ±íÇ°Ãæ
+
+int json_to_currentplaylist(char *collplaylist,WARTI_pMusic pmusiclist,int direction)
+{
+
+ struct json_object *createobj;
+ struct json_object *array;
+ struct json_object *addmusicobject;
+ 
+ char *pjsontostring=NULL;
+ FILE *fp =NULL;
+
+ 
+ WARTI_pMusicList lp;
+ 
+ PRINTF("pmusiclist->pToken=====[%s\n]",pmusiclist->pToken);
+
+ addmusicobject = create_music_content_object(pmusiclist);
+ PRINTF("addmusicobject=%s\n", json_object_to_json_string(addmusicobject));
+
+ if((access(collplaylist,F_OK))==0){
+    
+	 
+	 lp = getplaylist_parse_json(collplaylist);  //yes
+
+	//// direction    0 Îª  ·Åµ½ÁĞ±íºóÃæ    1 Îª·Åµ½Ç°Ãæ
+	 createobj = add_one_musicjson_to_json_array(lp,addmusicobject,direction);
+	
+	 }else{
+	
+     createobj = json_object_new_object();
+	
+	 json_object_object_add(createobj,"num",json_object_new_int(1));
+	
+	 array = json_object_new_array();
+	
+	 json_object_array_add(array,addmusicobject);
+	
+	 json_object_object_add(createobj,"musiclist",array);
+	
+	 }	
+
+
+	
+
+    pjsontostring = json_object_to_json_string(createobj);
+	
+    PRINTF("pjsontostring=============[%s]\n",pjsontostring);
+
+
+	if(NULL != (fp = fopen(collplaylist, "w+")))
+	{
+	    
+		int ret=fwrite(pjsontostring, sizeof(char), strlen(pjsontostring) + 1, fp);
+		if(ret==0)
+			{
+			  PRINTF("collplaylist no write............\n");
+			  return 0;
+			}
+		free( pjsontostring);
+		pjsontostring=NULL;
+		fclose(fp);
+		fp = NULL;
+	}
+
+
+return 0;
+
+}
+
+void PrintSysTime(char *pSrc)  //ÓÃÀ´¼ÆËã´úÂëÔËĞĞÊ±¼ä
+{
+#if 0
+	struct   tm     *ptm; 
+	long       ts; 
+	int         y,m,d,h,n,s; 
+
+	ts  = time(NULL); 
+	ptm = localtime(&ts); 
+
+	y = ptm-> tm_year+1900; 
+	m = ptm-> tm_mon+1;     
+	d = ptm-> tm_mday;      
+	h = ptm-> tm_hour;      
+	n = ptm-> tm_min;       
+	s = ptm-> tm_sec;       
+
+	DEBUG_PRINTF("[%s]---sys_time:%02d.%02d.%02d.%02d.%02d.%02d", pSrc, y, m, d, h, n, s);
+#endif
+	struct timeval start;
+    gettimeofday( &start, NULL );
+   	printf("\033[1;31;40m [%s]---sys_time:%d.%d \033[0m\n", pSrc, start.tv_sec, start.tv_usec);
+}
+
+
+
+
+	
+int main(int argc, char *argv[])
+{
+	struct json_object *creatobject;
+	WARTI_pMusicList inlp,lp,outlp;
+//	WARTI_pMusicList clp;
+	FILE *fp =NULL;
+	FILE *dp =NULL;
+	int i = 0,ret,len = 0;
+	char *reline=NULL;
+	char *pjsontostring=NULL;
+  char *outplaylistinfo = "/usr/script/playlists/httpPlayListInfoJson.txt";
+  char *tmpoutplaylistinfo = "/usr/script/playlists/tmphttpPlayListInfoJson.txt";
+  char *tmpPlaylist = "/tmp/httpPlayList.m3u";  
+  char *outplaylist = "/usr/script/playlists/playlist.m3u";
+  char *tfplaylist = "/usr/script/playlists/tfPlaylist";
+  char *usbplaylist = "/usr/script/playlists/usbPlaylist";
+  char *alexaplaylistinfo = "/usr/script/playlists/alexaPlayListInfoJson.txt";
+  char *alexaplaylist = "/usr/script/playlists/alexaPlayList.m3u";
+
+  //°´¼üÊÕ²Ø 
+  char *collplaylist = "/usr/script/playlists/collPlaylist.m3u";
+  char *collplaylistinfo = "/usr/script/playlists/collPlaylistInfoJson.txt";
+  char *tank_one="/usr/script/playlists/tank_one.m3u";
+  char *tank_two="/usr/script/playlists/tank_two.m3u";
+  char *tank_three="/usr/script/playlists/tank_three.m3u";
+  char *tank_four="/usr/script/playlists/tank_four.m3u";
+  char *tank_five="/usr/script/playlists/tank_five.m3u";
+
+  
+  //µ±Ç°²¥·Å
+  char *currentplaylistinfo = "/usr/script/playlists/currentPlaylistInfoJson.txt";
+  char *currentplaylist="/usr/script/playlists/currentplaylist.m3u";
+  //ÊÕ²Ø²¥·ÅÁĞ±íºÍ´æ·ÅjsonÎÄ¼ş
+  char *coll_playlist_one="/usr/script/playlists/coll_one.m3u";
+  char *coll_playlist_two="/usr/script/playlists/coll_two.m3u";
+  char *coll_playlist_three="/usr/script/playlists/coll_three.m3u";
+  char *coll_playlist_four="/usr/script/playlists/coll_four.m3u";
+  char *coll_playlist_five="/usr/script/playlists/coll_five.m3u";
+  
+  char *coll_playlist_info_one = "/usr/script/playlists/one_collPlaylistInfoJson.txt";
+  char *coll_playlist_info_two = "/usr/script/playlists/two_collPlaylistInfoJson.txt";
+  char *coll_playlist_info_three = "/usr/script/playlists/three_collPlaylistInfoJson.txt";
+  char *coll_playlist_info_four = "/usr/script/playlists/four_collPlaylistInfoJson.txt";
+  char *coll_playlist_info_five = "/usr/script/playlists/five_collPlaylistInfoJson.txt";
+/**************************************************/
+//getplaylist     
+//loadplaylist      ¼ÓÔØÁĞ±í
+//insertplaylist    ²åÈëÁĞ±í
+//insertonesong     ²åÈë¸èÇú
+//deleteonesong     É¾³ı¸èÇú
+//loadSongs         ¼ÓÔØ¸èÇú
+//wPlayingSong
+//modifyConf
+
+//tfmode
+//usbmode      
+//createUJ    ´´½¨usb ÁĞ±í
+//createTJ    ´´½¨tf¿¨ ÁĞ±í 
+//cuptu       ¸üĞÂusb tf¿¨ ÁĞ±í
+//playTF
+//playUSB
+//wifimode
+//reloadplay  ÖØĞÂ¼ÓÔØÁĞ±í²¢²¥·Å
+//alexaOne    ²¥·ÅURL£¬ÓÃÓÚÑÇÂíÑ·
+
+/**************************************************/
+  
+if(!strcmp(argv[1],"getplaylist"))
+  	{
+         //lp = getplaylist_parse_json(argv[2]);
+        // int i=get_playing_num();
+		 //PRINTF("\n====i======[%d]\n",i);
+		
+	}
+else if(!strcmp(argv[1],"loadplaylist"))
+	{
+		PRINTF("enter loadplaylist\n");
+
+		inlp = getplaylist_parse_json(argv[2]); //yes
+		PRINTF("enter inlp==%d\n",inlp->Num);
+
+		/*
+
+		if((access(outplaylistinfo,F_OK))==0){
+		dp=fopen(outplaylistinfo,"r");
+		if(dp==NULL){	 	
+		PRINTF("dp=====NULL\n");  
+		}else{
+		PRINTF("dp ==========%d\n",dp);  
+		fseek(dp,0L,SEEK_END); 
+		len=ftell(dp); 
+		PRINTF("len=====%d\n",len);  
+		}
+		fclose(dp);
+
+		}
+		if((access(outplaylistinfo,F_OK))==0 && (len!=0)){
+		// outlp = (WARTI_pMusicList)calloc(1,sizeof(WARTI_MusicList));
+		// if(outlp==NULL)
+		// {
+		//       PRINTF("åˆ†é…ç©ºé—´è¿”å›ä¸ºç©ºï¼Œå‡ºé”™è¿”å›\r\n");
+		//       return NULL;
+		//  }
+		//outlp = getplaylist_parse_json(outplaylistinfo);
+		*/
+		
+		/******************************cqq æ”¹ åˆ—è¡¨30**********************************/
+
+		creatobject=pMusicListInfoTopJsonObject(inlp);
+#if 0
+		outlp = gethttp_playlist_parse_json(outplaylistinfo);
+		PRINTF("inlp NUM==%d\n", inlp->Num);
+		creatobject=WIFIAudio_RealTimeInterface_pMusicListInfoTopJsonObject(inlp,outlp);
+		}else{
+  	    creatobject=pMusicListInfoTopJsonObject(inlp);
+    	}
+#endif		
+    
+
+	/****************************************************/
+  	
+	
+		PRINTF("creat object==%s\n", json_object_to_json_string(creatobject));
+
+		pjsontostring =  json_object_to_json_string(creatobject);
+		
+		//  if(NULL != (fp = fopen(argv[3], "w+")))
+		if(NULL != (fp = fopen(outplaylistinfo, "w+")))
+		{
+			ret = fwrite(pjsontostring, sizeof(char), strlen(pjsontostring) + 1, fp);
+			free( pjsontostring);
+			pjsontostring=NULL;
+			fclose(fp);
+			fp = NULL;
+		}
+		
+		char *tmpPlaylist = "/tmp/httpPlayList.m3u";           
+		// parse_playlistinfo_add_playlist(argv[3],argv[9]);   
+		load_parse_playlistinfo_add_playlist(outplaylistinfo,tmpPlaylist); 
+
+		//½«wifiÄ£Ê½µÄjsonÊı¾İ¿½±´µ½currentplaylist ÖĞ
+		//my_system("cp /usr/script/playlists/httpPlayListInfoJson.txt  /usr/script/playlists/currentPlaylistInfoJson.txt");
+	
+	
+	
+//    playlist_set_to_cdb(outplaylist);
+//    json_playlist_set_to_cdb(outplaylistinfo);
+//    parse_playlistinfo_add_playlist(argv[3]);
+      }
+
+#if  1  //²åÈë¸èÇúÔİÊ±ÓÃ²»µ½£¬app ÏÖÔÚÃ»ÓĞÕâ¸ö¹¦ÄÜ
+else if(!strcmp(argv[1],"insertplaylist")){
+		if(!strcmp(argv[2],"null")){
+		argv[2] = NULL;
+		}
+		if(!strcmp(argv[3],"null")){
+		argv[3] = NULL;
+		}
+		if(!strcmp(argv[4],"null")){
+		argv[4] = NULL;
+		}
+		if(!strcmp(argv[5],"null")){
+		argv[5] = NULL;
+		}
+		if(!strcmp(argv[6],"null")){
+		argv[6] = NULL;
+		}
+
+		insert_music_to_playlistinfo(outplaylistinfo,tmpoutplaylistinfo,argv[2],argv[3], \
+		argv[4],argv[5],argv[6]);
+		rename(tmpoutplaylistinfo,outplaylistinfo);
+		parse_playlistinfo_add_playlist(outplaylistinfo,NULL);                          
+		}
+
+
+else if(!strcmp(argv[1],"insertonesong")){
+		
+		//int insert_music_to_playlistinfo(char *infilepatch,char *outfilepatch,char *artist,char *title, \
+		//char *album,char *contentURL,char *coverURL){
+		
+		// char *httpPlayListInfo = "/tmp/httpPlayListInfoJson.txt";
+		if(!strcmp(argv[2],"null")){
+		argv[2] = NULL;
+		}
+		if(!strcmp(argv[3],"null")){
+		argv[3] = NULL;
+		}
+		if(!strcmp(argv[4],"null")){
+		argv[4] = NULL;
+		}
+		if(!strcmp(argv[5],"null")){
+		argv[5] = NULL;
+		}
+		if(!strcmp(argv[6],"null")){
+		argv[6] = NULL;
+		}
+		insert_one_music_to_playlistinfo(outplaylistinfo,tmpoutplaylistinfo,argv[2],argv[3], \
+		argv[4],argv[5],argv[6]);
+		char buf[1024];
+		// sprintf(buf,"creatPlayList insertplaylist %s %s %s %s %s",argv[2],argv[3],argv[4],argv[5],argv[6]);
+
+		sprintf(buf,"mpc insert %s",argv[5]);
+		PRINTF("buf ==%s\n",buf);
+		my_system(buf);
+		rename(tmpoutplaylistinfo,outplaylistinfo);
+		update_playlist(outplaylistinfo,tmpPlaylist);  
+		//       playlist_set_to_cdb(outplaylist);
+		//       json_playlist_set_to_cdb(outplaylistinfo);
+		//parse_playlistinfo_add_playlist(outplaylistinfo,NULL);                          
+		}
+#endif
+
+else if(!strcmp(argv[1],"deleteonesong")){
+		/*
+		int insert_music_to_playlistinfo(char *infilepatch,char *outfilepatch,char *artist,char *title, \
+		char *album,char *contentURL,char *coverURL){
+		*/
+		// char *httpPlayListInfo = "/tmp/httpPlayListInfoJson.txt";
+		if(!strcmp(argv[2],"null")){
+		argv[2] = NULL;
+		}
+		int num = atoi(argv[2]);
+		delete_one_music_to_playlistinfo(outplaylistinfo,tmpoutplaylistinfo,num);
+		char buf[1024];
+		// sprintf(buf,"creatPlayList insertplaylist %s %s %s %s %s",argv[2],argv[3],argv[4],argv[5],argv[6]);
+
+		sprintf(buf,"mpc del %d",num);
+		PRINTF("buf ==%s\n",buf);
+		my_system(buf);
+		rename(tmpoutplaylistinfo,outplaylistinfo);
+		update_playlist(outplaylistinfo,tmpPlaylist);                          
+		}
+else if(!strcmp(argv[1],"replacePlaylist")){
+
+		
+		inlp = getplaylist_parse_json(argv[2]);  //yes
+		PRINTF("enter inlp==%d\n",inlp->Num);
+
+		creatobject=pMusicListInfoTopJsonObject(inlp);
+		PRINTF("creat object==%s\n", json_object_to_json_string(creatobject));
+
+		pjsontostring =  json_object_to_json_string(creatobject);
+		//  if(NULL != (fp = fopen(argv[3], "w+")))
+		if(NULL != (fp = fopen(outplaylistinfo, "w+")))
+		{
+			ret = fwrite(pjsontostring, sizeof(char), strlen(pjsontostring) + 1, fp);
+			free(pjsontostring);
+			pjsontostring = NULL;
+			fclose(fp);
+			fp = NULL;
+		}
+		char *tmpPlaylist = "/tmp/httpPlayList.m3u";           
+		replace_parse_playlistinfo_add_playlist(outplaylistinfo,tmpPlaylist); 	 
+		}
+else if(!strcmp(argv[1],"loadSongs")){  //¼ÓÔØ¸èÇú
+
+		inlp = getplaylist_parse_json(argv[2]);
+		PRINTF("enter inlp==%d\n",inlp->Num);
+		if((access(outplaylistinfo,F_OK))==0){
+		dp=fopen(outplaylistinfo,"r");
+		if(dp==NULL){	 	
+		PRINTF("dp=====NULL\n");  
+		}else{
+		PRINTF("dp ==========%d\n",dp);  
+		fseek(dp,0L,SEEK_END); 
+		len=ftell(dp); 
+		PRINTF("len=====%d\n",len);  
+		}
+		fclose(dp);
+
+		}
+		if((access(outplaylistinfo,F_OK))==0 && (len!=0))
+		{
+
+			outlp = getplaylist_parse_json(outplaylistinfo); //yes
+			PRINTF("inlp NUM==%d\n", inlp->Num);
+			creatobject=Insert_Songs_pMusicListInfoTopJsonObject(inlp,outlp);
+		}
+		else
+		{
+		    creatobject=pMusicListInfoTopJsonObject(inlp);
+		}
+		PRINTF("creat object==%s\n", json_object_to_json_string(creatobject));
+
+		pjsontostring =  json_object_to_json_string(creatobject);
+		//  if(NULL != (fp = fopen(argv[3], "w+")))
+		if(NULL != (fp = fopen(outplaylistinfo, "w+")))
+		{
+			ret = fwrite(pjsontostring, sizeof(char), strlen(pjsontostring) + 1, fp);
+			free(pjsontostring);
+			pjsontostring = NULL;
+			fclose(fp);
+			fp = NULL;
+		}
+		char *tmpPlaylist = "/tmp/httpPlayList.m3u";           
+		// parse_playlistinfo_add_playlist(argv[3],argv[9]);   
+		insert_songs_parse_playlistinfo_add_playlist(outplaylistinfo,tmpPlaylist);   
+		my_system("cp /tmp/httpPlayList.m3u /usr/script/playlists/playlist.m3u");
+		//  playlist_set_to_cdb(outplaylist);
+		//  json_playlist_set_to_cdb(outplaylistinfo); 
+		}
+else if(!strcmp(argv[1],"wPlayingSong")){ 
+	
+        //int rht= parse_currentplaylist_to_index();
+		
+	   // PRINTF("rht=====%d\n",rht);
+	
+		//reline =parse_currentplaylist_to_URL(currentplaylist,rht);
+		
+		/*
+		if(reline!=0){
+		lp = getplaylist_parse_json(currentplaylistinfo);  //ÔÚ´ËÉêÇëÁË¸ö½á¹¹Ìå//yes
+		
+        write_playing_song_to_config(lp,reline);
+		
+        free(reline);
+		
+	   if(NULL != lp->pMusicList)   //ÊÍ·Å
+	   {
+	   for(i = 0; i<(lp->Num); i++)
+	   {
+		
+		if(NULL != (lp->pMusicList)[i])
+		{
+			
+			json_pMusicFree((lp->pMusicList)[i]);
+			
+		}
+		
+	   }
+	
+	   free(lp->pMusicList);
+	   lp->pMusicList = NULL;
+	   }
+	  
+		free(lp);
+		lp = NULL;
+	  }
+
+	*/  
+	lp = getplaylist_parse_json(currentplaylistinfo);  //ÔÚ´ËÉêÇëÁË¸ö½á¹¹Ìå//yes
+    write_playing_song_to_config(lp,argv[2]);
+	
+	if(NULL != lp->pMusicList)   //ÊÍ·Å
+	 {
+	   for(i = 0; i<(lp->Num); i++)
+	   {
+		
+		if(NULL != (lp->pMusicList)[i])
+		{
+			
+			json_pMusicFree((lp->pMusicList)[i]);
+			
+		}
+		
+	   }
+	
+	   free(lp->pMusicList);
+	   lp->pMusicList = NULL;
+	 }
+	  
+		free(lp);
+		lp = NULL;
+}  
+else if(!strcmp(argv[1],"modifyConf")){
+		char tempbuff[512];
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "%s",argv[2]);
+		ret = WIFIAudio_UciConfig_SearchAndSetValueString(tempbuff,argv[3]);
+		}
+else if(!strcmp(argv[1],"tfmode")){
+
+		
+		my_system("playlist.sh tf");
+		my_system("mpc repeat on");
+		
+		}
+else if(!strcmp(argv[1],"usbmode")){			
+		my_system("playlist.sh mcuusb sd");
+		my_system("mpc repeat on");
+		}
+else if(!strcmp(argv[1],"createUJ")){
+	  PRINTF("\n\n\n\n---------------------start-------------\n");
+      read_m3u_create_WARTI_pMusicList(usbplaylist);
+	  PRINTF("---------------------end-------------\n\n\n\n\n");
+  		}
+else if(!strcmp(argv[1],"createTJ")){	
+      read_m3u_create_WARTI_pMusicList(tfplaylist);
+  		}
+else if(!strcmp(argv[1],"cuptu")){	
+      my_system("playlist.sh uptu");
+  		}
+else if(!strcmp(argv[1],"playTF")){
+		//my_system("playlist.sh plt");
+		char tempbuff[32];
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "playlist.sh plt %s",argv[2]);
+		my_system(tempbuff);
+		}
+else if(!strcmp(argv[1],"playUSB")){
+		//my_system("playlist.sh plu");
+		char tempbuff[32];
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "playlist.sh plu %s",argv[2]);
+		my_system(tempbuff);
+		}
+else if(!strcmp(argv[1],"wifimode")){
+
+	    char *value = WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.playmode");
+		if(strcmp(value, "000")) {
+		  my_system("uartdfifo.sh inwifimode");
+	    }	
+		my_system("playlist.sh poweron");
+
+		}
+  /*************************************************/
+else if(!strcmp(argv[1],"reloadplay"))
+		{
+		char tempbuff[512];
+		my_system("playlist.sh poweron");
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, " mpc play \"%s\"", argv[2]);
+		my_system(tempbuff);
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		}
+  /*******************************************************/
+  
+#if 0
+  else if(!strcmp(argv[1],"alexaOne")){
+		char tempbuff[512];
+		
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "%s", "005");
+		ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.playmode", tempbuff);
+		if(!strcmp(argv[2],"null")){
+		argv[2] = NULL;
+		}
+		if(!strcmp(argv[3],"null")){
+		argv[3] = NULL;
+		}
+		if(!strcmp(argv[4],"null")){
+		argv[4] = NULL;
+		}
+		if(!strcmp(argv[5],"null")){
+		argv[5] = NULL;
+		}
+		if(!strcmp(argv[6],"null")){
+		argv[6] = NULL;
+		}
+		if(!strcmp(argv[7],"null")){
+		argv[6] = NULL;
+		}
+		
+		ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.token", argv[7]);
+		add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+		argv[4],argv[5],argv[6],argv[7]);
+		
+		if(NULL != (fp = fopen(alexaplaylist, "w+")))
+		{
+			ret = fwrite(argv[5], sizeof(char), strlen(argv[5]) + 1, fp);		
+			fclose(fp);
+			fp = NULL;
+		}
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "playlist.sh addalexa \"%s\"", argv[5]);
+		my_system(tempbuff);
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+	}
+#endif
+
+#if 1
+
+else if(!strcmp(argv[1],"alexaOne")){
+		char tempbuff[512];
+		
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "%s", "005");
+		ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.playmode", tempbuff);
+		
+		if(!strcmp(argv[2],"null")){
+		argv[2] = NULL;
+		}
+		if(!strcmp(argv[3],"null")){
+		argv[3] = NULL;
+		}
+		if(!strcmp(argv[4],"null")){
+		argv[4] = NULL;
+		}
+		if(!strcmp(argv[5],"null")){
+		argv[5] = NULL;
+		}
+		if(!strcmp(argv[6],"null")){
+		argv[6] = NULL;
+		}
+		if(!strcmp(argv[7],"null")){
+		argv[6] = NULL;
+		}
+		ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.token", argv[7]);
+
+
+ if(argv[2]==NULL)
+ {
+	add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7]);
+			
+			if(NULL != (fp = fopen(alexaplaylist, "w+")))
+			{
+				ret = fwrite(argv[5], sizeof(char), strlen(argv[5]) + 1, fp);		
+				fclose(fp);
+				fp = NULL;
+			}
+
+			my_system("playlist.sh addalexa");
+
+}		
+else if(!strcmp(argv[2],"1"))//////////////////////////////////////////////////////
+{
+			PrintSysTime("alexa-1-mode-start");
+			//txt Ö®Ç°ÒªÉ¾µô
+			ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.token", argv[7]);
+			add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7]);
+
+			if(NULL != (fp = fopen(alexaplaylist, "w+")))
+			{
+			//ret = fwrite(argv[5], sizeof(char), strlen(argv[5]) + 1, fp);	
+			fputs(argv[5], fp);
+			fputs("\n", fp);
+			fclose(fp);
+			fp = NULL;
+			}
+			my_system("playlist.sh addalexa");
+			PrintSysTime("alexa-1-mode-end");
+}
+else if(!strcmp(argv[2],"2"))///////////////////////////////////////
+{
+			PrintSysTime("alexa-2-mode-start");
+			FILE *fp =NULL;
+		    char buff[200];
+
+			
+
+			if(NULL != (fp = fopen(alexaplaylist, "a+")))
+			{
+			fputs(argv[5], fp);
+			fputs("\n", fp);
+			fclose(fp);
+			fp = NULL;
+			}
+
+		
+			my_system("mpc >/tmp/file.txt");
+            if(NULL != (fp = fopen("/tmp/file.txt", "r")))
+	         {
+			int ret=fread(buff,1,sizeof(buff),fp);
+			if(ret==0)
+			{
+				printf("fread error\n");
+			}
+		    }
+		    fclose(fp);
+	
+            
+	
+    char *rp=strstr(buff,"[playing] #");
+ 
+   
+	if(rp == NULL)
+		{
+    	 rp=strstr(buff,"[paused]  #");
+		}
+		
+		    if(rp==NULL)
+		    {
+		    
+       		add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7]);
+			
+          
+
+			my_system("playlist.sh addalexa");
+			
+		   
+           }
+		else{
+
+		
+
+			 again_add_alexa_music_to_playlist(alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7],1);
+
+          
+			
+			memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			sprintf(tempbuff, " mpc add \"%s\"", argv[5]);
+			my_system(tempbuff);
+			memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+
+   			
+			
+			// // direction  1  Îª  ·Åµ½ÁĞ±íºóÃæ    0 Îª·Åµ½Ç°Ãæ
+			my_system("cp  /usr/script/playlists/alexaPlayList.m3u  /usr/script/playlists/currentplaylist.m3u");
+			my_system("cp  /usr/script/playlists/alexaPlayListInfoJson.txt  /usr/script/playlists/currentPlaylistInfoJson.txt");
+          
+		}
+
+			PrintSysTime("alexa-2-mode-end");
+			
+}
+else if(!strcmp(argv[2],"3"))////////////////////////////////////////////////
+{
+			
+
+			WARTI_pMusicList pppmusic;
+			WARTI_pMusic pp;
+
+			//txt Ö®Ç°ÒªÉ¾µô 
+			int rut=parse_currentplaylist_to_index();
+			if(rut==0)
+			{
+			ret = WIFIAudio_UciConfig_SearchAndSetValueString("xzxwifiaudio.config.token", argv[7]);
+			add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7]);
+
+			if(NULL != (fp = fopen(alexaplaylist, "w+")))
+			{
+			//ret = fwrite(argv[5], sizeof(char), strlen(argv[5]) + 1, fp);	
+			fputs(argv[5], fp);
+			fputs("\n", fp);
+			fclose(fp);
+			fp = NULL;
+			}
+			my_system("playlist.sh addalexa");
+
+			}
+			else
+			{
+
+			memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+			sprintf(tempbuff, "mpc crop && mpc insert \"%s\" && mpc repeat on", argv[5]);
+
+			printf("-----------------tempbuff:%s\n", tempbuff);
+
+			my_system(tempbuff);
+			
+			if((access(currentplaylistinfo,F_OK))==0)
+			{
+			int a=rut-1;
+			
+			pppmusic=getplaylist_parse_json(currentplaylistinfo);  //yes
+			PRINTF("pppmusic->Num==========[%d]\n",pppmusic->Num);
+			PRINTF("(pppmusic->pMusicList)[num]->pToken===========[%s]\n",(pppmusic->pMusicList)[a]->pToken); 
+
+
+
+
+			add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7]);
+
+			if(NULL!=((pppmusic->pMusicList)[a]))
+			{
+
+			pp=((pppmusic->pMusicList)[a]);
+
+
+
+			json_to_currentplaylist(alexaplaylistinfo,pp,0);
+			}
+			if(NULL != pppmusic->pMusicList)   //ÊÍ·Å
+			{
+			for(i = 0; i<(pppmusic->Num); i++)
+			{
+
+
+			if(NULL != (pppmusic->pMusicList)[i])
+			{
+			if(i==(a))
+			continue;
+
+			json_pMusicFree((pppmusic->pMusicList)[i]);
+
+			}
+
+			}
+
+			free(pppmusic->pMusicList);
+			pppmusic->pMusicList = NULL;
+			}
+			free(pppmusic);
+			pppmusic = NULL;
+
+
+			my_system("mpc repeat off > /dev/null");
+			my_system("mpc playlist > /usr/script/playlists/alexaPlayList.m3u ");
+			my_system("cp  /usr/script/playlists/alexaPlayList.m3u  /usr/script/playlists/currentplaylist.m3u");
+			my_system("cp  /usr/script/playlists/alexaPlayListInfoJson.txt  /usr/script/playlists/currentPlaylistInfoJson.txt");
+
+
+			}
+	}
+
+	my_system("mpc repeat off"); 
+  }
+else{
+	
+	add_alexa_music_to_playlist(outplaylistinfo,alexaplaylistinfo,argv[2],argv[3], \
+			argv[4],argv[5],argv[6],argv[7]);
+			
+			if(NULL != (fp = fopen(alexaplaylist, "w+")))
+			{
+				ret = fwrite(argv[5], sizeof(char), strlen(argv[5]) + 1, fp);		
+				fclose(fp);
+				fp = NULL;
+			}
+
+			my_system("playlist.sh addalexa");
+
+    
+	}
+}
+
+#endif
+
+#if 1
+/*
+else if(!strcmp(argv[1],"collsong"))   //ÊÕ²Øµ¥Çú
+   	{
+     
+
+	  char *p ,*q ,*m;
+	  char buf[128], *line;
+	  
+	  unsigned char buff[200];
+	  char fu[200];
+	  int i=0;
+	  long sum=0;
+	  unsigned int num=0; 
+
+	// if(!strcmp(argv[2],"null"))
+	//  {
+	  
+	  num=parse_currentplaylist_to_index();
+
+	//  }
+
+    //ÓÉÓÚĞèÒª½«ÊÕ²Ø·Åµ½¾äÊ×£¬ËùÒÔĞèÒªÒ»¸öµßµ¹×Ö·û´®µÄÎÄ¼ş£¬collplaylist ÊÕ²Ø²¥·ÅÁĞ±í
+	//tank.m3u ½«³Â·ÅÊÕ²ØµÄURL 
+    //È»ºóµßµ¹³Â·Åa.m3u ÖĞ
+	//ÔÙÈ»ºóÓë´Ócoll ÖĞ»ìºÏ³Â·ÅÈë´Ócoll ÖĞ
+	// fopen(collplaylist, "a+");
+
+	if(NULL != (fp = fopen(tank_one, "a+")))
+	{
+
+	 line =parse_currentplaylist_to_URL(currentplaylist,num);
+     fputs(line,fp);
+     fclose(fp);
+     fp = NULL;
+	 free(line);
+	}
+}
+
+*/
+/*
+else if(!strcmp(argv[1],"collplaylist"))  //ÊÕ²ØÁĞ±í
+{
+   	
+	char *value = WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.playmode");
+	if(!strcmp(value, "000"))
+		{
+		 my_system("cat /usr/script/playlists/playlist.m3u >> /usr/script/playlists/tank.m3u");
+		}
+	else if(!strcmp(value, "003"))
+		{
+		my_system("cat /usr/script/playlists/usbPlaylist.m3u >> /usr/script/playlists/tank.m3u");
+		}
+	else if(!strcmp(value, "004"))
+		{
+		my_system("cat /usr/script/playlists/tfPlaylist.m3u >> /usr/script/playlists/tank.m3u");
+		}
+	else if(!strcmp(value, "006"))
+		{		
+		  return 0;		 
+		}    
+//	else if(!strcmp(value, "005"))  //ÑÇÂíÑ·²¥·Å
+//		{
+//		my_system("cat /usr/script/playlists/alexaPlayList.m3u >> /usr/script/playlists/collPlaylist.m3u");
+//		}
+//read_m3u_create_WARTI_pMusicList("/usr/script/playlists/collPlaylist");
+   	}
+*/
+   	else if(!strcmp(argv[1],"playcollplaylist")) //²¥·ÅÊÕ²ØÁĞ±í
+   		{
+   		char tempbuff[128];
+
+   		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "playlist.sh PlayCollplaylist \"%s\"" ,argv[2]);
+		my_system(tempbuff);
+	    memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+   		}
+	else if(!strcmp(argv[1],"delcollplaylist")) //Çå¿ÕÊÕ²ØÁĞ±í
+		{
+		 char tempbuff[128];
+		
+   		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));
+		sprintf(tempbuff, "playlist.sh DelCollPlayList \"%s\"",argv[2]);
+		my_system(tempbuff);
+		memset(tempbuff, 0, sizeof(tempbuff)/sizeof(char));		
+		}
+	 else if(!strcmp(argv[1],"collplaylist")) //ÓĞÁ½¸ö²ÎÊı  
+      {
+        char *coll_playlist=NULL;
+	    char *coll_playlist_info=NULL;
+		WARTI_pMusicList pppmusic;
+	    WARTI_pMusic pp;
+	  
+	  if(!strcmp(argv[2],"null")){
+		argv[2] = NULL;
+		}
+
+	   if(argv[2]==NULL)
+	   	{
+	   	  return 0;
+	   	}
+
+
+
+
+	   
+	   if(!strcmp(argv[2],"one"))
+	   	{
+
+		//Èç¹û ÊÕ²Ø ÊÇÕıÑ­Ğò ´æ·Å  
+	   	// ret=strcpy(coll_playlist,coll_playlist_one);
+		// 	if(ret!=0){
+		//		printf("coll_strcpy error\n");
+		//		exit(1);
+		//		}
+		//Èç¹û ÊÕ²Ø ÊÇ·´Ñ­Ğò ´æ·Å  
+	    if(NULL != (fp = fopen(tank_one, "a+")))
+	   {
+       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+	   if(reline==NULL)
+			   {
+			   reline=NULL;
+			   return 0;
+			   }
+       printf("reline =======[%s]\n",reline);
+       fputs(reline,fp);
+	   fputs("\n", fp);
+       fclose(fp);
+       fp = NULL;
+	   free(reline);
+	   reline=NULL;
+	   }
+	   coll_playlist_info=strdup(coll_playlist_info_one);
+		
+	   	}
+	   else if(!strcmp(argv[2],"two"))
+	   	{
+	   	//Èç¹û ÊÕ²Ø ÊÇÕıÑ­Ğò ´æ·Å
+	   	// ret=strcpy(coll_playlist,coll_playlist_two);
+		// 	if(ret!=0){
+		//		printf("coll_strcpy error\n");
+		//		exit(1);
+		//		}
+		 if(NULL != (fp = fopen(tank_two, "a+")))
+	   {
+       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+       if(reline==NULL)
+	   	{
+	   	reline=NULL;
+		return 0;
+	   	}
+       printf("reline =======[%s]\n",reline);
+       fputs(reline,fp);
+	   fputs("\n", fp);
+       fclose(fp);
+       fp = NULL;
+	   free(reline);
+	   reline=NULL;
+	   }
+		coll_playlist_info=strdup(coll_playlist_info_two);
+	   	}
+	   else if(!strcmp(argv[2],"three"))
+	   	{
+	   	//Èç¹û ÊÕ²Ø ÊÇÕıÑ­Ğò ´æ·Å
+	   	// ret=strcpy(coll_playlist,coll_playlist_three);
+		// 	if(ret!=0){
+		//		printf("coll_strcpy error\n");
+		//		exit(1);
+		//		}
+		 if(NULL != (fp = fopen(tank_three, "a+")))
+	   {
+       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+	   printf("reline =======[%s]\n",reline);
+	   if(reline==NULL)
+	   	{
+	   	reline=NULL;
+		return 0;
+	   	}
+       fputs(reline,fp);
+	   fputs("\n", fp);
+       fclose(fp);
+       fp = NULL;
+	   free(reline);
+	   }
+		
+	   coll_playlist_info=strdup(coll_playlist_info_three);
+	   	}
+	   else if(!strcmp(argv[2],"four"))
+	   	{
+	   	//Èç¹û ÊÕ²Ø ÊÇÕıÑ­Ğò ´æ·Å
+	   	// ret=strcpy(coll_playlist,coll_playlist_four);
+		// 	if(ret!=0){
+		//		printf("coll_strcpy error\n");
+		//		exit(1);
+		//		}
+		 if(NULL != (fp = fopen(tank_four, "a+")))
+	   {
+       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+       if(reline==NULL)
+	   	{
+	   	reline=NULL;
+		return 0;
+	   	}
+	   printf("reline =======[%s]\n",reline);
+       fputs(reline,fp);
+	   fputs("\n", fp);
+       fclose(fp);
+       fp = NULL;
+	   free(reline);
+	   }
+		coll_playlist_info=strdup(coll_playlist_info_four);
+
+
+			 
+	   	}
+	   else if(!strcmp(argv[2],"five"))
+	   	{
+	   	//Èç¹û ÊÕ²Ø ÊÇÕıÑ­Ğò ´æ·Å
+	   	// ret=strcpy(coll_playlist,coll_playlist_four);
+		// 	if(ret!=0){
+		//		printf("coll_strcpy error\n");
+		//		exit(1);
+		//		}
+		 if(NULL != (fp = fopen(tank_five, "a+")))
+	     {
+         reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+         if(reline==NULL)
+	       {
+	   	  reline=NULL;
+		  return 0;
+	   	   }
+	     printf("reline =======[%s]\n",reline);
+         fputs(reline,fp);
+	     fputs("\n", fp);
+         fclose(fp);
+         fp = NULL;
+	     free(reline);
+	     }
+		coll_playlist_info=strdup(coll_playlist_info_five);
+
+	   	}
+
+	  
+	        ret= parse_currentplaylist_to_index();
+	 
+	  ////////////////////////////////////////////////////////////////////////
+			if((access(currentplaylistinfo,F_OK))==0)
+			{
+			
+			int a=ret-1;
+			
+			pppmusic=getplaylist_parse_json(currentplaylistinfo);  //yes
+			
+	
+			if(NULL!=((pppmusic->pMusicList)[a]))
+			{
+			pp=((pppmusic->pMusicList)[a]);
+			json_to_currentplaylist(coll_playlist_info,pp,0);
+			}
+
+			
+
+			free(coll_playlist_info);
+			if(NULL != pppmusic->pMusicList)   //ÊÍ·Å
+			{
+			for(i = 0; i<(pppmusic->Num); i++)
+			{
+
+
+			if(NULL != (pppmusic->pMusicList)[i])
+			{
+			if(i==(a))
+			continue;
+
+			json_pMusicFree((pppmusic->pMusicList)[i]);
+
+			}
+
+			}
+
+			free(pppmusic->pMusicList);
+			pppmusic->pMusicList = NULL;
+			}
+			free(pppmusic);
+			pppmusic = NULL;
+		 }
+     
+
+	 }
+	
+#endif
+
+    return ret;
+
+}
+
+
+

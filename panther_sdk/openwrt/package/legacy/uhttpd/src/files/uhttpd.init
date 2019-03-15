@@ -1,0 +1,73 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2010 Jo-Philipp Wich
+. /etc/cdb.sh
+. /etc/if.sh
+. /etc/functions.sh
+
+config_get lan_ip lan_ip
+
+START=50
+UHTTPD_BIN="/usr/sbin/uhttpd"
+UHTTPD_RAM_BIN="/tmp/uhttpd"
+PX5G_BIN="/usr/sbin/px5g"
+UHTTPD_KEY="/var/uhttpd.key"
+UHTTPD_CERT="/var/uhttpd.crt"
+#UHTTPD_ARGS="-c /tmp/httpd.conf -h /www -p ${lan_ip}:80"
+UHTTPD_ARGS="-c /tmp/httpd.conf -h /www -p 0.0.0.0:80"
+UHTTPSD_ARGS="-C ${UHTTPD_CERT} -K ${UHTTPD_KEY} -c /tmp/httpd.conf -h /www -p 0.0.0.0:80 -s 0.0.0.0:8443"
+
+[ -x $UHTTPD_RAM_BIN ] || {
+	cp $UHTTPD_BIN $UHTTPD_RAM_BIN
+}
+UHTTPD_BIN=$UHTTPD_RAM_BIN
+
+generate_keys() {
+	local days=730
+	local bits=1024
+	local country="DE"
+	local state="Berlin"
+	local location="Berlin"
+	local commonname="OpenWrt"
+
+	[ -x "$PX5G_BIN" ] && {
+		$PX5G_BIN selfsigned -der \
+			-days ${days:-730} -newkey rsa:${bits:-1024} -keyout "$UHTTPD_KEY" -out "$UHTTPD_CERT" \
+			-subj /C=${country:-DE}/ST=${state:-Saxony}/L=${location:-Leipzig}/CN=${commonname:-OpenWrt}
+	} || {
+		echo "WARNING: the specified certificate and key" \
+			"files do not exist and the px5g generator" \
+			"is not available, skipping SSL setup."
+	}
+}
+
+start() {
+	local arg flag
+	local tls_file="/usr/lib/uhttpd_tls.so"
+
+	config_get sysuser sys_user1
+	eval `echo $sysuser | sed 's/\&/;/g'`
+	echo "/:${user}:${pass}" > /tmp/httpd.conf
+
+	[ -f ${tls_file} ] && {
+		[ -f "$UHTTPD_CERT" -a -f "$UHTTPD_KEY" ] || {
+			generate_keys
+		}
+		[ -f "$UHTTPD_CERT" -a -f "$UHTTPD_KEY" ] && {
+			arg=${UHTTPSD_ARGS}
+		}
+	} || {
+		arg=${UHTTPD_ARGS}
+	}
+	start-stop-daemon -S -x $UHTTPD_BIN \
+		-p /var/run/uhttpd.pid \
+	-m -b -- -f $arg
+}
+
+stop() {
+	[ -f /var/run/uhttpd.pid ] && {
+		start-stop-daemon -K -q -n ${UHTTPD_BIN##*/} \
+			-p /var/run/uhttpd.pid -s TERM
+
+		rm -f /var/run/uhttpd.pid
+	}
+}

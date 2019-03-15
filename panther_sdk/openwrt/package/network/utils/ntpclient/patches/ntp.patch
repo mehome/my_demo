@@ -1,0 +1,195 @@
+diff --git a/ntpclient.c b/ntpclient.c
+old mode 100644
+new mode 100755
+index 37683a6..193bfda
+--- a/ntpclient.c
++++ b/ntpclient.c
+@@ -44,6 +44,7 @@
+ #include <arpa/inet.h>
+ #include <time.h>
+ #include <unistd.h>
++#include <sys/sysinfo.h>
+ #include <errno.h>
+ #ifdef PRECISION_SIOCGSTAMP
+ #include <sys/ioctl.h>
+@@ -51,7 +52,7 @@
+ #ifdef USE_OBSOLETE_GETTIMEOFDAY
+ #include <sys/time.h>
+ #endif
+-
++#include <mon_config.h>
+ #include "ntpclient.h"
+ 
+ /* Default to the RFC-4330 specified value */
+@@ -152,6 +153,8 @@ static int get_current_freq(void)
+ #endif
+ }
+ 
++int success = 0;
++
+ static int set_freq(int new_freq)
+ {
+ 	/* OS dependent routine to set a new value of clock frequency.
+@@ -525,6 +528,13 @@ static void primary_loop(int usd, struct ntp_control *ntpc)
+ 			get_packet_timestamp(usd, &udp_arrival_ntp);
+ 			if (check_source(pack_len, &sa_xmit, sa_xmit_len, ntpc)!=0) continue;
+ 			if (rfc1305print(incoming_word, &udp_arrival_ntp, ntpc, &error)!=0) continue;
++			else{
++#ifdef CONFIG_PACKAGE_duer_linux		
++				system("touch /tmp/ntp_successful");
++#endif				
++				success = 1;
++				system("/usr/bin/uartdfifo.sh curtime &");	
++			}
+ 			/* udp_handle(usd,incoming,pack_len,&sa_xmit,sa_xmit_len); */
+ 		} else {
+ 			printf("Ooops.  pack_len=%d\n",pack_len);
+@@ -594,6 +603,65 @@ static void usage(char *argv0)
+ 	argv0);
+ }
+ 
++#ifdef SUPPORT
++#define MT_SAFETIME	 1487235600
++
++static void set_time_error()
++{
++	struct timeval tv_set;
++
++	struct timezone tz;
++	struct tm gm, local;
++	struct timeval tv = { MT_SAFETIME, 0 };
++	time_t now;
++
++	#ifdef MONTAGE_MPD_PATCH
++		cdb_set_int("$ntp_update_success", 0);
++	#endif
++	
++	/* it would be even better to subtract half the slop */
++	/* tv_set.tv_sec  = new->coarse - JAN_1970; */
++	/* divide xmttime.fine by 4294.967296 */
++	/* tv_set.tv_usec = USEC(new->fine); */
++	/* added timezone by tashin*/
++	
++	time(&now);
++	gmtime_r(&now, &gm);
++	localtime_r(&now, &local);
++	gm.tm_isdst = local.tm_isdst;
++	tz.tz_minuteswest = (mktime(&gm) - mktime(&local)) / 60;
++
++	/* Setup sane start time */
++	if (now < MT_SAFETIME) {
++		struct sysinfo info;
++
++		sysinfo(&info);
++		/* tv.tv_sec += info.uptime;
++		// tv_set.tv_sec = tv.tv_sec;
++		// sysinfo */
++	}
++	
++	if (settimeofday(&tv,&tz)<0) {
++		perror("settimeofday");
++		exit(1);
++	}
++}
++
++/* Copy each token in wordlist delimited by space into word */
++#define foreach(word, wordlist, next) \
++	for (next = &wordlist[strspn(wordlist, " ")], \
++	     strncpy(word, next, sizeof(word)), \
++	     word[strcspn(word, " ")] = '\0', \
++	     word[sizeof(word) - 1] = '\0', \
++	     next = strchr(next, ' '); \
++	     strlen(word); \
++	     next = next ? &next[strspn(next, " ")] : "", \
++	     strncpy(word, next, sizeof(word)), \
++	     word[strcspn(word, " ")] = '\0', \
++	     word[sizeof(word) - 1] = '\0', \
++	     next = strchr(next, ' '))
++#endif
++
+ int main(int argc, char *argv[]) {
+ 	int usd;  /* socket */
+ 	int c;
+@@ -601,6 +669,7 @@ int main(int argc, char *argv[]) {
+ 	   the initializations here provide default behavior */
+ 	short int udp_local_port=0;   /* default of 0 means kernel chooses */
+ 	char *hostname=NULL;          /* must be set */
++	char ntps[48], *next;
+ 	int initial_freq;             /* initial freq value to use */
+ 	struct ntp_control ntpc;
+ 	ntpc.live=0;
+@@ -609,6 +678,7 @@ int main(int argc, char *argv[]) {
+ 	ntpc.cycle_time=600;          /* seconds */
+ 	ntpc.goodness=0;
+ 	ntpc.cross_check=1;
++	int iCount = 0;
+ 
+ 	for (;;) {
+ 		c = getopt( argc, argv, "c:" DEBUG_OPTION "f:g:h:i:lp:q:" REPLAY_OPTION "stD");
+@@ -699,17 +769,54 @@ int main(int argc, char *argv[]) {
+ 		hostname, ntpc.cycle_time, ntpc.live, udp_local_port, min_delay,
+ 		ntpc.set_clock, ntpc.cross_check );
+ 	}
+-
+-	/* Startup sequence */
+-	if ((usd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))==-1)
+-		{perror ("socket");exit(1);}
+-
+-	setup_receive(usd, INADDR_ANY, udp_local_port);
+-
+-	setup_transmit(usd, hostname, NTP_PORT, &ntpc);
+-
+-	primary_loop(usd, &ntpc);
+-
+-	close(usd);
++#ifdef SUPPORT
++	printf("with alexa package\n");
++	while(1){
++		
++		foreach(ntps, hostname, next) {
++#endif	
++		/* Startup sequence */
++		if ((usd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))==-1)
++			{perror ("socket");exit(1);}
++
++		setup_receive(usd, INADDR_ANY, udp_local_port);
++
++		setup_transmit(usd, hostname, NTP_PORT, &ntpc);
++
++		primary_loop(usd, &ntpc);
++
++		close(usd);
++		
++#ifdef SUPPORT
++		if(success == 0)
++		{
++			printf("NtpCliet failed\n");
++			set_time_error();
++		}
++		else
++		{
++			fprintf(stderr,"ntp Get Time Succeed:%s\n", ntps);
++			printf("NtpCliet succeed\n");
++
++			while (1)
++			{
++				if (0 == OnSendCommandToAmazonAlexa("NtpClienSucceed"))
++				{
++					break;
++				}
++				sleep(5);
++				iCount++;
++				if (iCount >= 5)
++				{
++					break;
++				}
++			}
++			return 0;
++		}
++	}
++		sleep(10);
++	
++	}
++#endif	
+ 	return 0;
+ }

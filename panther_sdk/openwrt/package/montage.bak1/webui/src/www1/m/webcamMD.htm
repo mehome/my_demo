@@ -1,0 +1,342 @@
+<!--ifdef CONFIG_WEBCAM_IMAGE_PARAMETERS-->
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Motion Detection</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+wdk.cdbLoad(['$webcam_md', '$webcam_format']);
+
+var BG_UPDATE_PERIOD = 5000
+var BG_DELAY_PERIOD = 1000
+var md_do_select = false;
+// var md_lock_status = 1;
+
+//update background image
+function getTheBackground() {
+	var p = wdk.getById("r_total");
+	var bp = "cli.cgi?=cmd=snapshot%20";
+	bp += new Date().getTime();
+	p.style.backgroundImage = "url(" + bp + ")";
+}
+
+function requestBg() {
+	wdk.cliCmd("webcam md_ctl mdp");
+	setTimeout("getTheBackground()", BG_DELAY_PERIOD);
+}
+
+setInterval("requestBg()", BG_UPDATE_PERIOD);
+
+
+
+function mde_over(e) {
+	console.log("click");
+
+	if (e.currentTarget.className == "cellSelected") {
+		e.currentTarget.className = "cellUnSelected";
+	} else {
+		e.currentTarget.className = "cellSelected";
+	}
+}
+
+function mdcChange(eV) {
+	md_lock_status = (eV) ? 1 : 0;
+	md_lock_status = eV; //1: locked, 0: unlocked
+	alert(md_lock_status);
+	updateBackDr();
+}
+
+
+function updateDetectAr() {
+	var p = wdk.getById("r_total");
+	var ROW = 12;
+	var COLUMN = 16;
+	var r = 0;
+	var c = 0;
+	var md = wdk.cdbVal('$webcam_md');
+	var msk = rule2var(md, "msk");
+	var byte0 = 0;
+	var byte1 = 0;
+	var num = 0;
+
+	for (var r = 0; r < ROW; r++) {
+		byte0 = parseInt("0x" + msk.substr(4 * (num / COLUMN), 2));
+		byte1 = parseInt("0x" + msk.substr(4 * (num / COLUMN) + 2, 2));
+		for (var c = 0; c < COLUMN; c++) {
+			var s = false;
+			var a = wdk.getById("r" + r + "c" + c);
+			if (c >= (COLUMN / 2)) {
+				if (byte1 & (1 << (num % 8)))
+					s = true;
+			} else {
+				if (byte0 & (1 << (num % 8)))
+					s = true;
+			}
+			if (s)
+				a.setAttribute("class", "cellSelected");
+			else
+				a.setAttribute("class", "cellUnSelected");
+			num++;
+			p.appendChild(a);
+		}
+	}
+}
+
+function create_md_wall() {
+	var p = wdk.getById("r_total");
+	var ROW = 12;
+	var COLUMN = 16;
+	var r = 0;
+	var c = 0;
+	var num = 0;
+	for (var r = 0; r < ROW; r++) {
+		for (var c = 0; c < COLUMN; c++) {
+			var dv = document.createElement("div");
+			dv.setAttribute("id", "r" + r + "c" + c);
+			dv.addEventListener("click", mde_over, false);
+
+			num++;
+			p.appendChild(dv);
+		}
+	}
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var vcode = rule2var(format, "vcode");
+	var res = rule2var(format, "res");
+	if (res == "1280x720" || res == "1920x1080") {
+		wdk.getById("r_total").style.width = "480px";
+		wdk.getById("r_total").style.height = "270px";
+	} else {
+		wdk.getById("r_total").style.width = "480px";
+		wdk.getById("r_total").style.height = "360px";
+	}
+
+	f.reset();
+	wdk.init_form();
+
+	showHide('mdopt', wdk.getById("en").checked);
+	showHide('r_total', wdk.getById("en").checked);
+	showHide('mDC', wdk.getById("en").checked);
+	wdk.getById('selectSwitch').checked = wdk.getById("en").checked;
+
+	showHide('div_rlmt', wdk.getById("ren").checked);
+	showHide('div_sint', wdk.getById("sen").checked);
+	showHide('div_slmt', wdk.getById("sen").checked);
+
+
+	// showHide('r_total',(wdk.getById('selectSwitch').checked)?1:0);
+
+	updateDetectAr();
+	requestBg();
+}
+
+function send_request() {
+	var p = wdk.getById("r_total");
+	var ROW = 12;
+	var COLUMN = 16;
+	var r = 0;
+	var c = 0;
+	var byte = 0;
+	var num = 0;
+	var rc = "";
+	var str;
+
+	if (!chkNum(wdk.getById("thr"), 0, 65535, "Threshold")) {
+		highlight("thr");
+		return;
+	}
+	if (!chkNum(wdk.getById("rlmt"), 5, 30, "Record Time Limit")) {
+		highlight("rlmt");
+		return;
+	}
+	if (!chkNum(wdk.getById("slmt"), 5, 30, "Snapshot Time Limit")) {
+		highlight("slmt");
+		return;
+	}
+	if (!chkNum(wdk.getById("sint"), 1, 5, "Snapshot times per second")) {
+		highlight("sint");
+		return;
+	}
+
+	for (var r = 0; r < ROW; r++) {
+		for (var c = 0; c < COLUMN; c++) {
+			if (num && (num % 8 == 0)) {
+				var s = byte.toString(16);
+				if (s.length < 2)
+					rc += "0";
+				rc += s;
+				byte = 0;
+			}
+			var id = "r" + r + "c" + c;
+			var e = wdk.getById(id);
+			if (e.className == "cellSelected")
+				byte |= 1 << (num % 8);
+			num++;
+		}
+	}
+	var s = byte.toString(16);
+	if (s.length < 2)
+		rc += "0";
+	rc += s;
+
+	var thr = wdk.getById("thr").value;
+	var en = wdk.getById("en").checked ? 1 : 0;
+	var ren = wdk.getById("ren").checked ? 1 : 0;
+	var sen = wdk.getById("sen").checked ? 1 : 0;
+	var rlmt = wdk.getById("rlmt").value;
+	var sint = wdk.getById("sint").value;
+	var slmt = wdk.getById("slmt").value;
+	str = "en=" + en;
+	str += "&thr=" + thr;
+	str += "&msk=" + rc;
+	str += "&ren=" + ren;
+	str += "&rlmt=" + rlmt;
+	str += "&sen=" + sen;
+	str += "&sint=" + sint;
+	str += "&slmt=" + slmt;
+	wdk.cdbSet("$webcam_md", str)
+	if (wdk.cdbChg("$webcam_md")) {
+		/*WSIM_BEGIN*/
+		alert("webcam md_ctl mda " + en + "_" + thr + "_" + rc + "_" + ren + "_" + rlmt + "_" + sen + "_" + sint + "_" + slmt);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam md_ctl mda " + en + "_" + thr + "_" + rc + "_" + ren + "_" + rlmt + "_" + sen + "_" + sint + "_" + slmt);
+
+		wdk.save_form(0, 1);
+		wdk.showResultBG();
+		wdk.redirect(5);
+	} else
+		alert(wdk.msg('The settings are not changed!!'));
+}
+
+function es(val) {
+	showHide('mdopt', val);
+	showHide('mDC', val);
+	showHide('r_total', val);
+	wdk.getById('selectSwitch').checked = wdk.getById("en").checked;
+}
+ </script>
+</head>
+
+<body onload=init()>
+
+ <!-- Block window -->
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="webcamFunc.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">Motion Detection</div>
+  <div id="rightbutton">
+   <a onclick="send_request()">
+    <script>
+show_words("Done")
+    </script>
+   </a>
+  </div>
+ </div>
+
+ <form name=frm>
+  <fieldset id="$webcam_md">
+   <span class="graytitle">Settings</span>
+
+   <ul class="pageitem">
+    <li class="checkbox">
+     <span class="name"><script>get_words("Enabled")</script></span>
+     <input type="checkbox" name="en" id="en" value="1" onclick="es(this.checked)">
+    </li>
+
+    <div id="mdopt">
+     <li class="smallfield">
+      <div class="leftname">
+       <script>
+get_words("Threshold 0~65535")
+       </script>
+      </div>
+      <input name="thr" id="thr">
+     </li>
+
+     <li class="checkbox">
+      <span class="name"><script>get_words("Record to SD card")</script></span>
+      <input type="checkbox" name="ren" id="ren" value="1" onclick="showHide('div_rlmt',this.checked)">
+     </li>
+
+     <div id="div_rlmt">
+      <li class="smallfield">
+       <span class="leftname">
+              <script>get_words("Record Time Limit 5~30(s)")</script>
+            </span>
+       <input name="rlmt" id="rlmt" value="1">
+      </li>
+     </div>
+
+     <li class="checkbox">
+      <span class="name"><script>get_words("Snapshot to SD card")</script></span>
+      <input type="checkbox" name="sen" id="sen" value="1" onclick="showHide('div_sint',this.checked),showHide('div_slmt',this.checked)">
+     </li>
+
+     <div id="div_sint">
+      <li class="smallfield">
+       <span class="leftname">
+              <script>get_words("Snapshot times (1~5)")</script>
+            </span>
+       <input type="text" name="sint" id="sint" value="1">
+      </li>
+     </div>
+
+     <div id="div_slmt">
+      <li class="smallfield">
+       <span class="leftname">
+              <script>get_words("Snapshot Time Limit 5~30(s)")</script>
+            </span>
+       <input name="slmt" id="slmt" value="1">
+      </li>
+     </div>
+   </ul>
+   </div>
+   <!--mdopt-->
+   <div id="mDC">
+    <span class="graytitle">Detection Area</span>
+    <ul class="pageitem">
+     <li class="checkbox">
+      <span class="name">
+                  <script>get_words("Select")</script>
+                </span>
+      <input type="checkbox" name="MDL" id="selectSwitch" value="1" onclick="showHide('r_total',(wdk.getById('selectSwitch').checked)?1:0)">
+     </li>
+    </ul>
+   </div>
+
+   <div id="r_total" dispaly="none">
+    <script>
+create_md_wall();
+    </script>
+   </div>
+
+
+  </fieldset>
+</body>
+</form>
+
+</html>
+<!--endif-->

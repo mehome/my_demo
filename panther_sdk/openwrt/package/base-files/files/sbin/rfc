@@ -1,0 +1,11 @@
+#!/bin/sh
+
+[ -f /sbin/rfccmd ] &&
+{
+	rfccmd rfc $@
+} ||
+{
+	echo $@ > /proc/rfc
+	cat /proc/rfc
+}
+

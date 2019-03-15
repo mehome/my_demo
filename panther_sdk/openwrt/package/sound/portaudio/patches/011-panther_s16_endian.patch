@@ -1,0 +1,19 @@
+diff -Nur a/src/hostapi/alsa/pa_linux_alsa.c b/src/hostapi/alsa/pa_linux_alsa.c
+--- a/src/hostapi/alsa/pa_linux_alsa.c	2016-10-30 09:23:04.000000000 +0800
++++ b/src/hostapi/alsa/pa_linux_alsa.c	2018-03-27 10:03:38.889451822 +0800
+@@ -1681,7 +1681,15 @@
+             return SND_PCM_FORMAT_FLOAT;
+ 
+         case paInt16:
++#if defined( __PANTHER__)
++#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++            return SND_PCM_FORMAT_S16;
++#else
++            return SND_PCM_FORMAT_S16_LE;
++#endif
++#else        
+             return SND_PCM_FORMAT_S16;
++#endif            
+ 
+         case paInt24:
+ #ifdef PA_LITTLE_ENDIAN

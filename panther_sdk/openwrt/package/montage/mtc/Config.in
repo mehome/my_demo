@@ -1,0 +1,16 @@
+config MTC_MONTAGE_STANDARD_BOARD
+	bool MTC_MONTAGE_STANDARD_BOARD
+	depends on PACKAGE_mtc
+
+config MTC_POWER_DOWN_USB
+	bool MTC_POWER_DOWN_USB
+	depends on PACKAGE_mtc
+
+config MTC_POWER_DOWN_EPHY
+	bool MTC_POWER_DOWN_EPHY
+	depends on PACKAGE_mtc
+
+config MTC_POWER_DOWN_MADC
+	bool MTC_POWER_DOWN_MADC
+	depends on PACKAGE_mtc
+

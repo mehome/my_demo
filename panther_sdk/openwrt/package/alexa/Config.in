@@ -1,0 +1,16 @@
+if PACKAGE_alexa
+comment "Far field support"
+
+choice
+	prompt "Far field support"
+	default ALEXA_NOT_SUPPORT_FF
+
+	config ALEXA_NOT_SUPPORT_FF
+	bool "not_support_FF"
+	
+	config ALEXA_SUPPORT_FF
+	bool "support_FF"
+
+endchoice
+
+endif

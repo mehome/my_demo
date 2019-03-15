@@ -1,0 +1,590 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <link rel=stylesheet type=text/css href=demo2.css>
+ <script type="text/javascript">
+var playList = [];
+var songPoolList = [];
+var playListSong = [];
+var curPlaySongInd = -1;
+var AudioPlayTbl;
+var volumeValDom;
+var tblDataRows;
+var songPoolDom;
+var playListDom;
+
+var RSNameInp;
+var RSUrlInp;
+var curPlayDom;
+var editRowInd = -1;
+var pollingInterval = 1800;
+var pressLatency = 900;
+var interVal;
+
+var playIcon;
+var curState;
+
+function song() {
+	this.songName = "";
+	this.songPath = "";
+	this.indInPlayList = "";
+	this.setInfo = function(songName, songPath) {
+		this.songName = songName;
+		this.songPath = songPath;
+	}
+
+	this.getName = function() {
+		return this.songName;
+	}
+
+	this.setPathAndName = function(path) {
+		this.songPath = path;
+		var tmpStrArr = this.songPath.split('/');
+		this.songName = tmpStrArr[tmpStrArr.length - 1];
+	}
+}
+
+var tblInfo = new Object();
+
+function init() {
+	wdk.stopTimeout();
+	setAlias();
+	var check = loadDataFromDevice();
+	if (!check) return;
+	loadPlayListToTable();
+	initTblInfo();
+	stopPolling();
+	interVal = setInterval(getCurState, pollingInterval);
+}
+
+function setAlias() {
+	AudioPlayTbl = document.getElementById("innerTable");
+	curPlayDom = document.getElementById("curPlayDom");
+	songPoolDom = document.getElementById("songPoolDom");
+	playListDom = document.getElementById("playListDom");
+	volumeValDom = document.getElementById("volumeVal");
+	playIcon = document.getElementById("playIcon");
+	curState = document.getElementById("curState");
+}
+
+function initTblInfo() {
+	tblInfo.tableRows = document.getElementById("innerTable").getElementsByTagName("tr");
+	tblInfo.stn_number = function() {
+		return this.tableRows.length;
+	}
+}
+
+function loadPlayListToTable() {
+	var AudioPlayTbl = document.getElementById("innerTable");
+	while (AudioPlayTbl.firstChild) {
+		AudioPlayTbl.removeChild(AudioPlayTbl.firstChild);
+	}
+	var playSongFile = wdk.cliCmd("mpc playlistfile").split("\n");
+	playSongFile.splice(playSongFile.length - 1);
+
+	var playListArr = [];
+	for (i in playSongFile) {
+		var arr = playSongFile[i].split('/');
+		playListArr.push(arr[arr.length - 1]);
+	}
+	chkErrSong(playListArr);
+
+	if (playListArr.length == 1 && playListArr[0] == "") return;
+
+	for (var i = 0; i < playListArr.length; i++) {
+		var aNewSong = new song();
+		aNewSong.songName = playListArr[i];
+		insertItemToTable(aNewSong);
+	}
+	wdk.hideResultBG();
+}
+
+function insertItemToTable(newItem) {
+	var newRow = AudioPlayTbl.insertRow(-1);
+	newRow.setAttribute('data-value', newItem.indInPlayList);
+	var col1 = newRow.insertCell(0);
+	var col2 = newRow.insertCell(1);
+	var actPlay = "<img src= images/play.jpg width=24 height=24 alt=edit value=play onclick=playFrom(this.parentNode.parentNode.rowIndex)>&nbsp;";
+	var act = actPlay;
+	col1.width = "70%";
+	col2.width = "30%";
+	col1.innerHTML = newItem.songName;
+	col2.innerHTML = act;
+
+}
+
+function getCurState() {
+	var currentPlay = wdk.cliCmd("mpc currentfile");
+	var arr = currentPlay.split('/');
+	currentPlay = arr[arr.length - 1].trim();
+	curPlayDom.innerHTML = currentPlay;
+
+	var curPlayStatus = wdk.cliCmd("mpc play_status");
+
+	if (curPlayStatus == 1) {
+		curState.innerHTML = "Stopped";
+		// playIcon.innerHTML = "Stopped";
+		playIcon.setAttribute("value", "play");
+		playIcon.innerHTML = "Play";
+	} else if (curPlayStatus == 2) {
+		curState.innerHTML = "Playing";
+		playIcon.setAttribute("value", "pause");
+		playIcon.innerHTML = "Pause";
+	} else if (curPlayStatus == 3) {
+		curState.innerHTML = "Paused";
+		playIcon.setAttribute("value", "play");
+		playIcon.innerHTML = "Play";
+	} else
+		curState.innerHTML = "Error";
+}
+
+function stopPolling() {
+	clearInterval(interVal);
+}
+
+function highlightRow(rowInd) {
+	var highlightColor = "#FFFF00";
+	clearBgrColor();
+	var certainRow = AudioPlayTbl.childNodes[0].childNodes[rowInd];
+	for (var childInd = 0; childInd < certainRow.childNodes.length; childInd++) {
+		certainRow.childNodes[childInd].style.backgroundColor = highlightColor;
+	}
+}
+
+function clearBgrColor() {
+	var defaultColor = "#FFFFFF";
+	for (var tr = 0; tr < tblInfo.stn_number(); tr++) {
+		var certainRow = tblInfo.tableRows[tr];
+		for (var childInd = 0; childInd < certainRow.childNodes.length; childInd++) {
+			certainRow.childNodes[childInd].style.backgroundColor = defaultColor;
+		}
+	}
+}
+
+function checkDupName(name, list) {
+	var i = list.length;
+	while (i--) {
+		if (name === list[i].getName()) return true;
+	}
+	return false;
+}
+
+function rmOneData(list, ind) {
+	list.splice(ind, 1);
+	loadRSToTable();
+}
+
+function playFrom(rowInd) {
+	if (rowInd < 0) return;
+	pressLatency = 2000;
+	modal();
+	wdk.cliCmd("mpc play " + (rowInd + 1));
+	pressLatency = 1000;
+}
+
+function rsPlay(rowInd) {
+	if (rowInd < 0) return;
+
+	highlightRow(rowInd);
+	var certainRow = AudioPlayTbl.childNodes[0].childNodes[rowInd];
+	if (curPlaySongInd == rowInd) {
+		if (certainRow.childNodes[1].childNodes[0].getAttribute("value") === "play") {
+			wdk.cliCmd("mpc play " + rowInd);
+			curPlaySongInd = rowInd;
+			certainRow.childNodes[1].childNodes[0].setAttribute("value", "pause");
+			certainRow.childNodes[1].childNodes[0].src = "images/rsPause.jpg";
+		} else if (certainRow.childNodes[1].childNodes[0].getAttribute("value") === "pause") {
+			wdk.cliCmd("mpc pause");
+			certainRow.childNodes[1].childNodes[0].setAttribute("value", "play");
+			certainRow.childNodes[1].childNodes[0].src = "images/rsPlay.jpg";
+		}
+	} else if (curPlaySongInd != rowInd) {
+
+		wdk.cliCmd("mpc stop");
+
+		resetPlayIcon();
+
+		wdk.cliCmd("mpc play " + (rowInd + 1));
+		curPlaySongInd = rowInd;
+		certainRow.childNodes[1].childNodes[0].setAttribute("value", "pause");
+		certainRow.childNodes[1].childNodes[0].src = "images/rsPause.jpg";
+	}
+}
+
+function rsStop(rowInd) {
+	wdk.cliCmd("mpc stop");
+	resetPlayIcon();
+	clearBgrColor();
+}
+
+function chkIllegalInp(input) {
+	if (!input || input.length === 0 || /^\s*$/.test(input)) return true;
+	else return false;
+}
+
+function cancel() {
+	window.location.reload();
+}
+
+function cmtPlayList(delayTime, show_result_bg) {
+	show_result_bg = true;
+	delayTime = 5000;
+	if (show_result_bg)
+		wdk.showResultBG();
+
+	wdk.cliCmd("mpc stop");
+	wdk.cliCmd('mpc clear');
+	for (var i = 0; i < playListSong.length; i++) {
+		wdk.cliCmd("mpc add " + encodeURI(playListSong[i].songPath));
+	}
+	wdk.cliCmd("mpc rm audioPlayList");
+	wdk.cliCmd("mpc save audioPlayList");
+
+	setTimeout(function() {
+		var message = "Success" + '<br><br><input class=button value=' + wdk.msg('Continue') + ' type=button onclick="loadPlayListToTable()">'; //wdk.hideResultBG()
+		document.getElementById("result").innerHTML = '<center><b>' + message + '<' + '/b><' + '/center><br>';
+	}, delayTime);
+}
+
+function loadDataFromDevice() {
+	var availableSongs = [];
+	wdk.cliCmd("mpc update");
+	var songAtDevice = wdk.cliCmd("mpc listall").split("\n");
+	songAtDevice.splice(songAtDevice.length - 1, 1);
+
+	for (var i = 0; i < songAtDevice.length; i++) {
+		availableSongs.push(songAtDevice[i]);
+	}
+
+	for (var i = 0; i < availableSongs.length; i++) {
+		var aNewSong = new song();
+		aNewSong.indInPlayList = i;
+		aNewSong.setPathAndName(availableSongs[i]);
+		songPoolList.push(aNewSong);
+	}
+
+	if (availableSongs.length == 0) {
+		alert(wdk.msg("No music in devices") +
+			wdk.msg("  or  ") +
+			wdk.msg("Musics' format are completely not supported"));
+		return false;
+	}
+
+
+	for (var i = 0; i < songPoolList.length; i++) {
+		var opt = document.createElement("option");
+		opt.value = i;
+		opt.innerHTML = songPoolList[i].songName;
+		songPoolDom.appendChild(opt);
+	}
+
+	loadPlayListFile();
+	for (var i = 0; i < playListSong.length; i++) {
+		var opt = document.createElement("option");
+		opt.value = -1;
+		opt.innerHTML = playListSong[i].songName;
+		playListDom.appendChild(opt);
+	}
+	showVol();
+	return true;
+}
+
+function getFileExt(fileName) {
+	var tmpArr = fileName.split('.');
+	var fileExt = '.' + tmpArr[tmpArr.length - 1];
+	fileExt = fileExt.toLowerCase();
+	return fileExt;
+}
+
+function loadPlayListFile() {
+	playListSong = [];
+	var tmpStr = wdk.cliCmd("mpc load_playlist").split("\n");
+	tmpStr.splice(tmpStr.length - 1, 1);
+	if (tmpStr == -1) return; // no playlist created yet
+	for (var i = 0; i < tmpStr.length; i++) {
+		var aNewSong = new song();
+		aNewSong.indInPlayList = i;
+		aNewSong.setPathAndName(tmpStr[i]);
+		playListSong.push(aNewSong);
+	}
+}
+
+function volUp() {
+	wdk.cliCmd("rakey volup");
+	showVol();
+}
+
+function volDn() {
+	wdk.cliCmd("rakey voldown");
+	showVol();
+}
+
+function addSong(selcDom) {
+	var indArr = selectedInd(selcDom);
+	if (indArr.length == 0) return;
+	for (var i = 0; i < indArr.length; i++) {
+		// if (!checkDupSong(playListSong, songPoolList[indArr[i]])) {
+		playListSong.push(songPoolList[indArr[i]]);
+		// }
+	}
+
+	playListDom.innerHTML = "";
+	for (var i = 0; i < playListSong.length; i++) {
+		var opt = document.createElement("option");
+		opt.innerHTML = playListSong[i].songName;
+		playListDom.appendChild(opt);
+	}
+}
+
+function checkDupSong(curPlayList, newSong) {
+	for (var i = 0; i < curPlayList.length; i++) {
+		if (curPlayList[i].songName === newSong.songName) {
+			alert(newSong.songName + wdk.msg("  is already in the playlist and won't be added again") + ".");
+			return true;
+		}
+	}
+	return false;
+}
+
+function addPlayListSong(selcDom) {
+	var indArr = selectedInd(selcDom);
+	for (var i = 0; i < indArr.length; i++) {
+		playListSong.push(songPoolList[indArr[i]]);
+	};
+}
+
+function removeSong(selcDom) {
+	var indArr = selectedInd(selcDom);
+	if (indArr.length == 0) return;
+	for (var i = indArr.length - 1; i >= 0; i--) {
+		playListSong.splice(indArr[i], 1);
+	};
+
+	playListDom.innerHTML = "";
+	for (var i = 0; i < playListSong.length; i++) {
+		var opt = document.createElement("option");
+		opt.innerHTML = playListSong[i].songName;
+		playListDom.appendChild(opt);
+	}
+}
+
+function removePlayListSong(selcDom) {
+	var indArr = selectedInd(selcDom);
+	// indArr.reverse();
+	for (var i = indArr.length - 1; i >= 0; i--) {
+		playListSong.splice(indArr[i], 1);
+	};
+}
+
+function resetPlayIcon() {
+	for (var i = 0; i < AudioPlayTbl.childNodes[0].childNodes.length; i++) {
+		AudioPlayTbl.childNodes[0].childNodes[i].childNodes[1].childNodes[0].src = "images/rsPlay.jpg";
+	};
+}
+
+function showVol() {
+	var tmpStr = wdk.cliCmd("mpc volume").split(':');
+	volVal = tmpStr[tmpStr.length - 1];
+	volumeValDom.innerHTML = volVal;
+}
+
+function selectedInd(selc) {
+	var selcInd = [];
+	while (selc.selectedIndex != -1) {
+		selcInd.push(selc.selectedIndex);
+		selc.options[selc.selectedIndex].selected = false;
+	}
+	return selcInd;
+}
+
+
+function playOrPause() {
+	if (playIcon.getAttribute("value") == "play") {
+		modal();
+		wdk.cliCmd("mpc play");
+		playIcon.setAttribute("value", "pause");
+		playIcon.innerHTML = "Pause";
+		curState.innerHTML = "Playing";
+	} else if (playIcon.getAttribute("value") == "pause") {
+		modal();
+		wdk.cliCmd("mpc pause");
+		playIcon.setAttribute("value", "play");
+		playIcon.innerHTML = "Play";
+		curState.innerHTML = "Paused";
+	}
+}
+
+function stop() {
+	modal();
+	wdk.cliCmd("mpc stop");
+	playIcon.setAttribute("value", "play");
+	playIcon.innerHTML = "Play";
+	curState.innerHTML = "Stopped";
+}
+
+function modal() {
+	showModalWindow();
+	setTimeout(hideModalWindow, pressLatency);
+}
+
+function showModalWindow() {
+	document.getElementById("modalWindow").style.display = "block";
+	document.getElementById("modalWindow").style.visibility = "visible";
+}
+
+function hideModalWindow() {
+	document.getElementById("modalWindow").style.display = "none";
+	document.getElementById("modalWindow").style.visibility = "hidden";
+}
+
+function chkErrSong(arr) {
+	for (var i = arr.length - 1; i >= 0; i--) {
+		if (containStr("://", arr[i]))
+			arr.splice(i, 1);
+	}
+}
+
+function containStr(reg, str) {
+	if (str.search(reg) != -1)
+		return true;
+	else
+		return false;
+}
+ </script>
+</head>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script type="text/javascript">
+wdk.putmsg("Audio Play List");
+    </script>
+   </legend>
+
+   <table id="AudioPlayTbl" class=infolist>
+    <thead>
+     <tr>
+      <th width="70%">
+       <script>
+wdk.putmsg("Song Name");
+       </script>
+      </th>
+      <th width="30%">
+       <script>
+wdk.putmsg("Action");
+       </script>
+      </th>
+     </tr>
+    </thead>
+    <tbody>
+     <tr>
+      <td colspan="2">
+       <div class="scrollit">
+        <table id="innerTable" class="infolist">
+
+        </table>
+       </div>
+      </td>
+     </tr>
+    </tbody>
+   </table>
+   <!--  <input type="button" value="Update Playlist" onclick="loadPlayList()"> -->
+   <br>
+   <div id="playControl" class="setting">
+    <button type="button" id="playIcon" value="play" onclick="playOrPause()">
+     <script type="text/javascript">
+wdk.putmsg("Play");
+     </script>
+    </button>
+    <button type="button" id="stopIcon" value="stop" onclick="stop()">
+     <script type="text/javascript">
+wdk.putmsg("Stop");
+     </script>
+    </button>
+   </div>
+  </fieldset>
+  <fieldset>
+   <legend>
+    <script type="text/javascript">
+wdk.putmsg("Current State");
+    </script>
+   </legend>
+   <div>
+    <p id="curState">
+     <script type="text/javascript">
+wdk.putmsg("none");
+     </script>
+    </p>
+    <p id="curPlayDom" class="curPlay">
+     <script type="text/javascript">
+wdk.putmsg("none");
+     </script>
+    </p>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset>
+   <legend>
+    <script type="text/javascript">
+wdk.putmsg("Volume control");
+    </script>
+   </legend>
+   <div class="twoDiv">
+    <div>
+     <input id="volumeUp" type=button value="Volume Up" onclick="volUp()">
+     <input id="volumeDn" type=button value="Volume Down" onclick="volDn()">
+    </div>
+    <div>
+     <p id="volumeVal"></p>
+    </div>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset>
+   <legend>
+    <script type="text/javascript">
+wdk.putmsg("Edit playlist");
+    </script>
+   </legend>
+   <div class="twoDiv">
+    <div>
+     <select multiple id="songPoolDom" style="max-width:100%" size="10">
+     </select>
+     <br>
+     <input id="addToPlayList" type="button" value="Add" onclick="addSong(songPoolDom,playListDom)">
+    </div>
+    <div>
+     <select multiple id="playListDom" style="max-width:100%" size="10">
+     </select>
+     <br>
+     <input id="rmFromPlayList" type="button" value="Remove" onclick="removeSong(playListDom)">
+    </div>
+   </div>
+  </fieldset>
+ </form>
+ <br>
+ <div class="submitFooter" id="cmtRow">
+  <input id="applyForm" type="button" class="button" value="OK" onclick="cmtPlayList()">
+  <input id="notApplyForm" type="button" class="button" value="Cancel" onclick="cancel()">
+ </div>
+ <!-- Test div -->
+ <div id="modalWindow" style="display:none; visibility:hidden" class="black_overlay">
+  <div class="white_content">
+   <img src="images/load.gif" alt="loading icon">
+  </div>
+ </div>
+ <script>
+footer(1)
+ </script>
+
+</html>

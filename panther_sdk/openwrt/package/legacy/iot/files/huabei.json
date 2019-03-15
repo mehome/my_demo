@@ -1,0 +1,20 @@
+{
+	"appID" :"gh_0f529dbca07b",
+	"apiKeyTuring":"b199eae2191e499c86381cd965c0a1d5",
+	"aesKeyTuring":"4028460mVW2bW5fk",
+	"toneTuring":"0",
+	"apiKeyHuabei":"of6dohiwn38eifq30jqrzq0rhcsdxolo",
+	"aesKeyHuabei":"RJH983ZPWhuMMJ11",
+	"aiWiFiUrl":"http://smartdevice.ai.tuling123.com/speech/chat",
+	"apiUrl":"http://www.tuling123.com/openapi/api",
+	"iotHost":"api.drawbo.com",
+	"mqttHost":"api.drawbo.com",
+	"mqttPort":"61613",
+	"mqttUser":"admin",
+	"mqttPassword":"AsKdRaWbo20171117",
+	"discoverType":"0",
+	"productId":"1",
+	"showLog":"false",
+	"logLevel":"info",
+	"vadCount":"32"
+}

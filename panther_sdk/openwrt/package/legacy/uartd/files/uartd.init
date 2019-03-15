@@ -1,0 +1,30 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2013 Montage Inc.
+# OpenWrt.BOOT
+
+START=52
+snapcastServerFile="/etc/snapcastServer.json"
+UartFIFOFile="/tmp/UartFIFO"
+mpdconf="/etc/playonesong/mpd.conf.org"
+start() {
+#	ps | grep uartd | grep -v grep | grep -v rc.common
+#	[ $? = 0 ] && return 1
+if [ -s "$snapcastServerFile" ]; then
+  rm /etc/snapcastServer.json
+fi
+#if [ -s "$mpdconf" ]; then
+#    cp /etc/playonesong/mpd.conf.org /etc/mpd.conf
+#    rm /etc/playonesong/mpd.conf.org
+#fi
+
+if [ -s "$UartFIFOFile" ]; then
+	rm /tmp/UartFIFO
+fi
+#	[ -c /dev/gpio ] || mknod /dev/gpio c 252 0
+	/usr/bin/uartd &
+	echo `date "+%Y.%m.%d %H:%M:%S"`-------------------- >> /dev/console
+}
+
+stop() {
+	killall -9 uartd
+}

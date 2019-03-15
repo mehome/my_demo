@@ -1,0 +1,212 @@
+diff -Nur a/src/pcm/pcm_direct.c b/src/pcm/pcm_direct.c
+--- a/src/pcm/pcm_direct.c	2017-11-14 15:52:09.000000000 +0800
++++ b/src/pcm/pcm_direct.c	2018-05-04 10:48:19.611459062 +0800
+@@ -1877,6 +1877,7 @@
+ 	rec->max_periods = 0;
+ 	rec->var_periodsize = 0;
+ 	rec->direct_memory_access = 1;
++	rec->delay_offset = 0;
+ 
+ 	/* read defaults */
+ 	if (snd_config_search(root, "defaults.pcm.dmix_max_periods", &n) >= 0) {
+@@ -1997,6 +1998,17 @@
+ 			rec->direct_memory_access = err;
+ 			continue;
+ 		}
++		if (strcmp(id, "delay_offset") == 0) {
++			long key;
++			err = snd_config_get_integer(n, &key);
++			if (err < 0) {
++				SNDERR("The field delay_offset must be an integer type");
++				return err;
++			}
++			rec->delay_offset = key;
++			continue;
++		}
++
+ 		SNDERR("Unknown field %s", id);
+ 		return -EINVAL;
+ 	}
+diff -Nur a/src/pcm/pcm_direct.h b/src/pcm/pcm_direct.h
+--- a/src/pcm/pcm_direct.h	2017-11-14 15:52:09.000000000 +0800
++++ b/src/pcm/pcm_direct.h	2018-05-04 10:48:22.059459138 +0800
+@@ -159,6 +159,7 @@
+ 	unsigned int *bindings;
+ 	unsigned int recoveries;	/* mirror of executed recoveries on slave */
+ 	int direct_memory_access;	/* use arch-optimized buffer RW */
++	int delay_offset;
+ 	union {
+ 		struct {
+ 			int shmid_sum;			/* IPC global sum ring buffer memory identification */
+@@ -341,6 +342,7 @@
+ 	int max_periods;
+ 	int var_periodsize;
+ 	int direct_memory_access;
++	int delay_offset;
+ 	snd_config_t *slave;
+ 	snd_config_t *bindings;
+ };
+diff -Nur a/src/pcm/pcm_dmix.c b/src/pcm/pcm_dmix.c
+--- a/src/pcm/pcm_dmix.c	2017-11-14 15:52:09.000000000 +0800
++++ b/src/pcm/pcm_dmix.c	2018-05-04 10:48:14.719458912 +0800
+@@ -55,6 +55,15 @@
+ #define STATE_RUN_PENDING	1024
+ #endif
+ 
++#define PURIN_BUFSIZE          176/4
++#define PURIN_BUF_UNIT         32
++#define PURIN_SAMPLESIZE       2
++#define PURIN_CHANNELS         2
++#define PURIN_DESC_NUM         2
++#define MULTIPLE_FOR_ALSA      8*4
++#define PURIN_DESC_BUFSIZE     (PURIN_BUFSIZE * PURIN_BUF_UNIT)
++#define PURIN_FRAMESIZE        (PURIN_DESC_BUFSIZE / (PURIN_SAMPLESIZE * PURIN_CHANNELS))
++
+ /*
+  *
+  */
+@@ -151,6 +160,75 @@
+ #endif
+ #endif
+ 
++static void mix_areas_for_loopback(snd_pcm_direct_t *dmix,
++                      const snd_pcm_channel_area_t *src_areas,
++                      const snd_pcm_channel_area_t *dst_areas,
++                      snd_pcm_uframes_t src_ofs,
++                      snd_pcm_uframes_t dst_ofs,
++                      snd_pcm_uframes_t sum_ofs,
++                      snd_pcm_uframes_t size)
++{
++        unsigned int src_step, dst_step;
++        unsigned int chn, dchn, channels, sample_size;
++        mix_areas_t *do_mix_areas;
++
++        channels = dmix->channels;
++        switch (dmix->shmptr->s.format) {
++        case SND_PCM_FORMAT_S16_LE:
++        case SND_PCM_FORMAT_S16_BE:
++                sample_size = 2;
++                do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_16;
++                break;
++        case SND_PCM_FORMAT_S32_LE:
++        case SND_PCM_FORMAT_S32_BE:
++                sample_size = 4;
++                do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_32;
++                break;
++        case SND_PCM_FORMAT_S24_LE:
++                sample_size = 4;
++                do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_24;
++                break;
++        case SND_PCM_FORMAT_S24_3LE:
++                sample_size = 3;
++                do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_24;
++                break;
++        case SND_PCM_FORMAT_U8:
++                sample_size = 1;
++                do_mix_areas = (mix_areas_t *)dmix->u.dmix.mix_areas_u8;
++                break;
++        default:
++                return;
++        }
++        if (dmix->interleaved) {
++                /*
++                 * process all areas in one loop
++                 * it optimizes the memory accesses for this case
++                 */
++                do_mix_areas(size * channels,
++                             (unsigned char *)dst_areas[0].addr + sample_size * dst_ofs * channels,
++                             (unsigned char *)src_areas[0].addr + sample_size * src_ofs * channels,
++                             dmix->u.dmix.sum_buffer + sum_ofs * channels,
++                             sample_size,
++                             sample_size,
++                             sizeof(signed int));
++                return;
++        }
++        for (chn = 0; chn < channels; chn++) {
++                dchn = dmix->bindings ? dmix->bindings[chn] : chn;
++                if (dchn >= dmix->shmptr->s.channels)
++                        continue;
++                src_step = src_areas[chn].step / 8;
++                dst_step = dst_areas[dchn].step / 8;
++                do_mix_areas(size,
++                             ((unsigned char *)dst_areas[dchn].addr + dst_areas[dchn].first / 8) + dst_ofs * dst_step,
++                             ((unsigned char *)src_areas[chn].addr + src_areas[chn].first / 8) + src_ofs * src_step,
++                             dmix->u.dmix.sum_buffer + channels * dst_ofs + chn,
++                             dst_step,
++                             src_step,
++                             channels * sizeof(signed int));
++        }
++}
++
+ static void mix_areas(snd_pcm_direct_t *dmix,
+ 		      const snd_pcm_channel_area_t *src_areas,
+ 		      const snd_pcm_channel_area_t *dst_areas,
+@@ -307,7 +385,7 @@
+ static void snd_pcm_dmix_sync_area(snd_pcm_t *pcm)
+ {
+ 	snd_pcm_direct_t *dmix = pcm->private_data;
+-	snd_pcm_uframes_t slave_hw_ptr, slave_appl_ptr, slave_size;
++	snd_pcm_uframes_t slave_hw_ptr, slave_appl_ptr, sum_buffer_ptr, slave_size;
+ 	snd_pcm_uframes_t appl_ptr, size, transfer;
+ 	const snd_pcm_channel_area_t *src_areas, *dst_areas;
+ 	
+@@ -360,23 +438,49 @@
+ 	if (! size)
+ 		return;
+ 
++	if(!strcmp(pcm->name, "loopbackoutMixer")) {
++		if(size > (PURIN_FRAMESIZE * PURIN_DESC_NUM * MULTIPLE_FOR_ALSA)) {
++			size = (PURIN_FRAMESIZE * PURIN_DESC_NUM * MULTIPLE_FOR_ALSA);
++		}
++	}
++
+ 	/* add sample areas here */
+ 	src_areas = snd_pcm_mmap_areas(pcm);
+ 	dst_areas = snd_pcm_mmap_areas(dmix->spcm);
+ 	appl_ptr = dmix->last_appl_ptr % pcm->buffer_size;
+ 	dmix->last_appl_ptr += size;
+ 	dmix->last_appl_ptr %= pcm->boundary;
+-	slave_appl_ptr = dmix->slave_appl_ptr % dmix->slave_buffer_size;
++	if(!strcmp(pcm->name, "loopbackoutMixer")) {
++		slave_appl_ptr = (dmix->slave_appl_ptr + PURIN_FRAMESIZE * dmix->delay_offset) % dmix->slave_buffer_size;
++	}
++	else
++	{
++		slave_appl_ptr = dmix->slave_appl_ptr % dmix->slave_buffer_size;
++	}
++	sum_buffer_ptr = dmix->slave_appl_ptr % dmix->slave_buffer_size;
+ 	dmix->slave_appl_ptr += size;
+ 	dmix->slave_appl_ptr %= dmix->slave_boundary;
+ 	dmix_down_sem(dmix);
+ 	for (;;) {
+ 		transfer = size;
++		if(!strcmp(pcm->name, "loopbackoutMixer")) {
++			if(transfer > PURIN_FRAMESIZE) {
++				transfer = PURIN_FRAMESIZE;
++			}
++		}
+ 		if (appl_ptr + transfer > pcm->buffer_size)
+ 			transfer = pcm->buffer_size - appl_ptr;
+ 		if (slave_appl_ptr + transfer > dmix->slave_buffer_size)
+ 			transfer = dmix->slave_buffer_size - slave_appl_ptr;
+-		mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
++		if(!strcmp(pcm->name, "loopbackoutMixer"))
++		{
++			mix_areas_for_loopback(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, sum_buffer_ptr, transfer);
++		}
++		else
++		{
++			mix_areas(dmix, src_areas, dst_areas, appl_ptr, slave_appl_ptr, transfer);
++		}
++
+ 		size -= transfer;
+ 		if (! size)
+ 			break;
+@@ -1088,6 +1192,7 @@
+ 	dmix->var_periodsize = opts->var_periodsize;
+ 	dmix->sync_ptr = snd_pcm_dmix_sync_ptr;
+ 	dmix->direct_memory_access = opts->direct_memory_access;
++	dmix->delay_offset = opts->delay_offset;
+ 
+  retry:
+ 	if (first_instance) {

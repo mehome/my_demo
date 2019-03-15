@@ -1,0 +1,80 @@
+#
+# Copyright (C) 2014-2015 OpenWrt.org
+#
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+
+include $(TOPDIR)/rules.mk
+
+PKG_NAME:=libwebsockets
+PKG_VERSION:=2.1.0
+PKG_RELEASE:=1
+
+#PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+#PKG_SOURCE_PROTO:=git
+#PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+#PKG_SOURCE_URL:=https://github.com/warmcat/libwebsockets.git
+#PKG_SOURCE_VERSION:=v$(PKG_VERSION)
+
+#PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+
+PKG_LICENSE:=LGPL-2.1+exception
+PKG_LICENSE_FILES:=LICENSE
+
+CMAKE_INSTALL:=1
+
+include $(INCLUDE_DIR)/package.mk
+include $(INCLUDE_DIR)/cmake.mk
+
+CMAKE_OPTIONS += $(if $(CONFIG_PACKAGE_kmod-ipv6),,-DLWS_IPV6=)
+
+CMAKE_OPTIONS += -DLWS_WITHOUT_TESTAPPS=ON
+CMAKE_OPTIONS += -DLWS_OPENSSL_CLIENT_CERTS=/etc/ssl/certs
+CMAKE_OPTIONS += -DLWS_WITH_SSL=ON
+CMAKE_OPTIONS += -DLWS_OPENSSL_SUPPORT=ON
+CMAKE_OPTIONS += -DLWS_USE_CYASSL=OFF
+
+# other options worth noting
+# CMAKE_OPTIONS += -DLWS_WITHOUT_EXTENSIONS=ON
+# CMAKE_OPTIONS += -DLWS_WITHOUT_DAEMONIZE=ON
+# CMAKE_OPTIONS += -DLWS_WITHOUT_SERVER=ON
+# CMAKE_OPTIONS += -DLWS_WITHOUT_DEBUG=ON
+
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) ./src/* $(PKG_BUILD_DIR)/
+	$(call TSYNC,$(PKG_BUILD_DIR))
+endef
+
+TARGET_CFLAGS +=-I$(STAGING_DIR)/usr/include -DCMAKE_TOOLCHAIN_FILE=../cross-mips-linux.cmake
+TARGET_LDFLAGS += -Wl,-rpath-link=$(STAGING_DIR)/usr/lib -ldl -lssl -lcrypto 
+
+define Package/libwebsockets
+	SECTION:=libs
+	CATEGORY:=Libraries
+	TITLE:=libwebsockets
+	DEPENDS:=+zlib +libpthread +libopenssl +libpthread 
+	URL:=https://libwebsockets.org
+	MAINTAINER:=Karl Palsson <karlp@remake.is>
+endef
+
+
+define Build/InstallDev
+	$(INSTALL_DIR) $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/* $(1)/usr/include/
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libwebsockets.so* $(1)/usr/lib/
+	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/libwebsockets.pc $(1)/usr/lib/pkgconfig
+endef
+
+
+define Package/libwebsockets/install
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libwebsockets.so* $(1)/usr/lib/
+endef
+
+
+$(eval $(call BuildPackage,libwebsockets))
+

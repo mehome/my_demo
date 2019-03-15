@@ -1,0 +1,9 @@
+{
+	"ssid_prefix":"DuerOS_",
+	"firmware":"DuerOS_V1_",
+	"language":"en",
+	"wavplay_volume_preset_enable":"0",
+	"wavplay_volume_preset_value":"63",
+	"media_volume_preset_enable":"0",
+	"media_volume_preset_value":"63"
+}

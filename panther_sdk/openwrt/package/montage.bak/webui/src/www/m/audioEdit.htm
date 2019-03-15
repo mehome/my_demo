@@ -1,0 +1,258 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta content="text/html; charset=utf-8" />
+
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4 , user-scalable=yes" name="viewport" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" type="text/css" />
+ <script src="javascript/wdk.js"></script>
+ <script src="javascript/mediaUI.js"></script>
+ <script src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var RSList = [];
+var favStnNum = 6;
+var RSFavList = [null, null, null, null, null, null];
+var pressLatency = 1000;
+var editAction;
+
+var favStnNum = 6;
+
+var maxRSnum = 30;
+var RSNameLengthLimit = 70;
+
+var availablesongs;
+var SongList = [];
+var myFavoriteSong = [];
+
+var myFavImgPath = "images/myFav.jpg";
+var trashImgPath = "images/trash.jpg";
+var songImgPath = "images/song.jpg";
+
+function song() {
+	this.songName = "";
+	this.songPath = "";
+	this.indInPlayList = "";
+	this.setInfo = function(songName, songPath) {
+		this.songName = songName;
+		this.songPath = songPath;
+	}
+
+	this.getName = function() {
+		return this.songName;
+	}
+
+	this.setPathAndName = function(path) {
+		this.songPath = path;
+		var tmpStrArr = this.songPath.split('/');
+		this.songName = tmpStrArr[tmpStrArr.length - 1];
+	}
+}
+
+function init() {
+	wdk.stopTimeout();
+	// wdk.cliCmd("cdb set mpd_curplay None");
+	setAlias();
+	// bindTouchEvent();
+	loadMyFavSongsToView();
+	loadPlayListFile();
+	createPlayList("availablesongs", SongList, myFavImgPath, addToMyFavSong);
+}
+
+// Song part
+function createPlayList(domParentID, dataArr, imgPath, bindFunc) {
+	var domParent = document.getElementById(domParentID);
+
+	while (domParent.firstChild) {
+		domParent.removeChild(domParent.firstChild);
+	}
+
+	for (i in dataArr) {
+		var alist = media.playlist.create(Number(i) + 1, dataArr[i].songName, imgPath);
+
+		alist.addEventListener('click', bindFunc);
+		domParent.appendChild(alist);
+	}
+}
+
+function loadPlayListFile() {
+	// mpd update database:
+	wdk.cliCmd("mpc update");
+	// Clear SongLists
+	SongList = [];
+	var songAtDevice = wdk.cliCmd("mpc listall").split("\n");
+	songAtDevice.splice(songAtDevice.length - 1, 1);
+	pushDataToSongList(songAtDevice);
+	// load m3u file to the playlist
+	// var tmpStr = wdk.cliCmd("mpc load_playlist").split("\n");
+	// pushDataToSongList(tmpStr);
+
+	// Use `mpc add` to filter out non-existent songs.
+	//  	for( i in SongList){
+	//     	wdk.cliCmd("mpc add " + encodeURI(SongList[i].songPath));
+	// 	}
+	// 	SongList = [];
+
+	// 	var mpcplaylist= wdk.cliCmd("mpc playlist").split("\n");
+	// 	pushDataToSongList(mpcplaylist);
+}
+
+function pushDataToSongList(originArr) {
+	originArr.splice(originArr.length - 1, 1);
+	for (i in originArr) {
+		var aNewSong = new song();
+		aNewSong.indInPlayList = i;
+		aNewSong.setPathAndName(originArr[i]);
+		SongList.push(aNewSong);
+	}
+}
+
+function loadMyFavSongsToView() {
+	// load m3u file to the playlist
+	// Clear myFavoriteSong
+	myFavoriteSong = [];
+	// Load current m3u file
+	var tmpStr = wdk.cliCmd("mpc load_playlist").split("\n");
+	tmpStr.splice(tmpStr.length - 1, 1);
+	if (Number(tmpStr) == -1) {
+		alert(wdk.msg("My favorite playlist is not created yet"));
+		return; // no playlist created yet
+	}
+
+	for (var i = 0; i < tmpStr.length; i++) {
+		var aNewSong = new song();
+		aNewSong.indInPlayList = i;
+		aNewSong.setPathAndName(tmpStr[i]);
+		myFavoriteSong.push(aNewSong);
+	}
+
+	createPlayList("myfavoritesongs", myFavoriteSong, trashImgPath, delMyFavSong);
+}
+// Song part
+
+
+
+// Add to my favorite station
+function setAlias() {
+	editAction = document.getElementById('editAction');
+	availablesongs = document.getElementById('availablesongs');
+}
+
+function cancel() {
+	window.location.reload();
+}
+
+function cmtPlayList() {
+	if (confirm(wdk.msg("Updating new playlist would cause the current play to stop, continue?"))) {
+		wdk.showResultBG();
+		setTimeout(commit, 500);
+	} else {
+		return;
+	}
+}
+
+function commit() {
+	// Stop current play
+	wdk.cliCmd("mpc stop");
+	// Clear current playlist
+	wdk.cliCmd('mpc clear');
+	// Write playlist back to m3u (ram also has one copy)	
+	for (var i = 0; i < myFavoriteSong.length; i++) {
+		wdk.cliCmd("mpc add " + encodeURI(myFavoriteSong[i].songPath));
+	}
+	wdk.cliCmd("mpc rm audioPlayList");
+	wdk.cliCmd("mpc save audioPlayList");
+	window.location.reload();
+}
+
+function removeEle(ele) {
+	ele && ele.parentNode && ele.parentNode.removeChild(ele);
+}
+
+function getIndFromView(nodes, targetNode) {
+	return Array.prototype.indexOf.call(nodes, targetNode);
+}
+
+var addToMyFavSong = function() {
+	var alist = media.playlist.create(myFavoriteSong.length, this.childNodes[2].innerHTML, trashImgPath);
+	alist.addEventListener('click', delMyFavSong, false);
+	myfavoritesongs.appendChild(alist);
+
+	var ind = getIndFromView(availablesongs.childNodes, this);
+	myFavoriteSong.push(SongList[ind]);
+}
+
+var delMyFavSong = function() {
+	var ind = getIndFromView(myfavoritesongs.childNodes, this);
+	myFavoriteSong.splice(ind, 1);
+	removeEle(this);
+}
+
+// modal window
+function modal() {
+	showModalWindow();
+	setTimeout(hideModalWindow, pressLatency);
+}
+
+function showModalWindow() {
+	document.getElementById("modalWindow").style.display = "block";
+	document.getElementById("modalWindow").style.visibility = "visible";
+}
+
+function hideModalWindow() {
+	document.getElementById("modalWindow").style.display = "none";
+	document.getElementById("modalWindow").style.visibility = "hidden";
+}
+ </script>
+
+ <body onload="init()">
+
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="audio.htm">
+     <img alt="Go to play audio" src="images/home.png" />
+    </a>
+   </div>
+  </div>
+
+  <div>
+   <input id="editDone" class="edit" type="button" value="Done" onclick="cmtPlayList()">
+   <input id="editCancel" class="edit" type="button" value="Cancel" onclick="cancel()">
+  </div>
+
+  <span class="graytitle">My Favorite Songs</span>
+  <ul class="pageitem">
+   <div id="myfavoritesongs">
+
+   </div>
+  </ul>
+
+  <div id="content">
+   <span class="graytitle">Available Songs</span>
+   <ul class="pageitem">
+    <div id="availablesongs">
+
+    </div>
+   </ul>
+  </div>
+
+  <div id="modalWindow" style="display:none; visibility:hidden" class="black_overlay">
+   <div class="white_content">
+    <img src="../images/load.gif" alt="loading icon">
+   </div>
+  </div>
+
+  <!-- result background -->
+  <div id=resultbg style="display:none;" class=black_overlay>
+   <div id=result class=white_content>
+    <img src="images/load.gif" alt="loading icon" />
+    <div><font id="titleupwarng">Wait a moment</font>
+    </div>
+   </div>
+  </div>
+
+ </body>
+
+</html>

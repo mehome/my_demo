@@ -1,0 +1,467 @@
+<!--ifdef CONFIG_VIDEO_STREAM-->
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>RTP Streaming</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+wdk.cdbLoad(['$webcam_support', '$webcam_format', '$audio_support', '$audio_format', "$webcamAppStr"]);
+
+var format = wdk.cdbVal('$webcam_format');
+var target_ip = window.location.hostname;
+var port = rule2var(format, "port");
+
+function g726limit() {
+	var c = Number(getSelectValue("channel"));
+	var r = Number(getSelectValue("arate"));
+	var a = getSelectValue("acode");
+	if (a == "G726" && (c != 1 || r != 8000)) {
+		alert("Don't support G726 in " + c + " channel " + r + " sample rate");
+		setSelectValue("arate", "8000");
+		setSelectValue("channel", "1");
+	}
+}
+
+function vcodechange() {
+	var m = getSelectValue("vcode");
+	var t = wdk.getById("div");
+	if (m == 'H264') {
+		for (var k = 0; k < t.options.length; k++) {
+			t.options[k].selected = (t.options[k].value == 1);
+		}
+		t.disabled = true;
+	} else
+		t.disabled = false;
+}
+
+function adevchange() {
+	var m = getSelectValue("adev");
+
+	//get hw setting now
+	var w_f = wdk.cdbVal('$webcam_format');
+	var adev = rule2var(w_f, "adev");
+	var ar = rule2var(w_f, "arate");
+	var ac = rule2var(w_f, "channel");
+	var ad = rule2var(w_f, "acode");
+
+	//get hw support for 'm'
+	var a_s = wdk.cdbVal('$audio_support').split("/");
+	var ad_i = 0;
+	ad_i = (m == (rule2var(a_s[0], "adev"))) ? 0 : 1;
+	var ar_s = rule2var(a_s[ad_i], "arate").split(":");
+	var ac_s = rule2var(a_s[ad_i], "channel").split(":");
+	var ad_s = rule2var(a_s[ad_i], "acode").split(":");
+
+	// clean channel and arate options
+	for (var i = 0; i < wdk.getById("channel").options.length; i++) {
+		wdk.getById("channel").options[i] = null;
+	}
+	wdk.getById("channel").options.length = 0;
+	for (var i = 0; i < wdk.getById("arate").options.length; i++) {
+		wdk.getById("arate").options[i] = null;
+	}
+	wdk.getById("arate").options.length = 0;
+	for (var i = 0; i < wdk.getById("acode").options.length; i++) {
+		wdk.getById("acode").options[i] = null;
+	}
+	wdk.getById("acode").options.length = 0;
+
+	// add channel and arate options
+	add_select_option(wdk.getById("channel"), ac_s);
+	add_select_option(wdk.getById("arate"), ar_s);
+	add_select_option(wdk.getById("acode"), ad_s);
+
+	// show channel and arate hw setting
+	if (m == adev) {
+		setSelectValue("arate", ar);
+		setSelectValue("channel", ac);
+		setSelectValue("acode", ad);
+	} else {
+		setSelectValue("arate", ar_s[0]);
+		setSelectValue("channel", ac_s[0]);
+		setSelectValue("acode", ad_s[0]);
+	}
+}
+
+
+function snapshot() {
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait.");
+	wdk.showResultBG();
+	wdk.cliCmd("webcam snapshot");
+	setTimeout(wdk.hideResultBG, 1000);
+}
+
+function add_select_option(s, v) {
+	//avoid re-create option when push cancel button
+	if (s.length) return;
+	addOptions(s, v);
+}
+
+function openMXPlayer() {
+	var url = "intent://" + target_ip + ":" + port + "/webcam";
+	var webcamAppStr = wdk.cdbVal('$webcamAppStr').trim();
+	window.location = url + webcamAppStr;
+}
+
+function showhideaudio(v) {
+	showHide("tr_adev", v)
+	showHide("tr_acode", v)
+	showHide("tr_arate", v)
+	showHide("tr_channel", v)
+}
+
+function onlychange() {
+	var en = getSelectValue("only");
+	if (en == "none")
+		showhideaudio(1);
+	else
+		showhideaudio(0);
+}
+
+function init() {
+	var f = document.frm;
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+	var only = rule2var(format, "only");
+	var support = wdk.cdbVal('$webcam_support');
+
+	var labelEle = ['path', 'adev', 'vdev'];
+	for (i in labelEle) {
+		var ele = wdk.getById(labelEle[i]);
+		var eleVal = rule2var(format, labelEle[i]);
+		ele.innerHTML = eleVal;
+		ele.setAttribute("value", eleVal);
+	}
+
+	// patch
+	var adev = rule2var(format, "adev");
+	var a = wdk.getById("adev");
+	var r = wdk.getById("arate");
+	var c = wdk.getById("channel");
+	var d = wdk.getById("acode");
+	arglist = ['vcode', 'res', 'fps', 'div'];
+	for (i in arglist) {
+		var val = rule2var(support, arglist[i]).split(":");
+		add_select_option(wdk.getById(arglist[i]), val);
+	}
+
+	var fps = rule2var(support, "fps").split(":");
+	if (fps == "")
+		wdk.getById("fps").disabled = true;
+	else
+		wdk.getById("fps").disabled = false;
+	if (vcode == "")
+		wdk.getById("vcode").disabled = true;
+	else
+		wdk.getById("vcode").disabled = false;
+
+	if ((wdk.cdbVal('$audio_support')) == "") {
+		a.disabled = true;
+		r.disabled = true;
+		c.disabled = true;
+		d.disabled = true;
+	} else {
+		var audio_support = wdk.cdbVal('$audio_support').split("/");
+		var adev_idx = 0;
+		if ((adev == (rule2var(audio_support[0], "adev"))) && (audio_support[0] != "")) {
+			adev_idx = 0;
+		} else if (typeof(audio_support[1]) != "undefined") {
+			adev_idx = 1;
+		}
+		var adev_num = audio_support.length;
+		var adev_str = "";
+		if (adev_num == 1) {
+			adev_str = "adev=" + rule2var(audio_support[0], "adev");
+		} else if ((rule2var(audio_support[0], "adev")) == "") {
+			adev_str = "adev=" + rule2var(audio_support[1], "adev");
+		} else {
+			adev_str = "adev=" + rule2var(audio_support[0], "adev") + "/" + rule2var(audio_support[1], "adev");
+		}
+		var adev_support = rule2var(adev_str, "adev").split("/");
+		var arate = rule2var(audio_support[adev_idx], "arate").split(":");
+		var channel = rule2var(audio_support[adev_idx], "channel").split(":");
+		var acode = rule2var(audio_support[adev_idx], "acode").split(":");
+
+		a.disabled = false;
+		r.disabled = false;
+		c.disabled = false;
+		d.disabled = false;
+		add_select_option(a, adev_support);
+		add_select_option(r, arate);
+		add_select_option(c, channel);
+		add_select_option(d, acode);
+	}
+	// patch
+	var isAndroid = /Android/i.test(navigator.userAgent);
+	if (!isAndroid) {
+		wdk.getById('mxplayerAndroid').style.display = "none";
+	}
+
+	var MXPlayer = '<img src="images/mxplayerIcon.jpg" onclick=openMXPlayer()><' + '/img>';
+
+	f.reset();
+	wdk.init_form();
+
+	wdk.getById("vcode").onchange(); //debug
+
+	//prepare for Server option
+	wdk.getById("port").value = port;
+	wdk.getById("prot").innerHTML = rule2var(format, "prot");
+	wdk.getById("prot").value = rule2var(format, "prot");
+	wdk.getById("path").value = path;
+
+	if (only == "vid") {
+		showhideaudio(0);
+	}
+
+	wdk.getById("url").innerHTML = url;
+	wdk.getById('url').setAttribute("value", url);
+	wdk.getById("sb").value = wdk.msg("Snapshot");
+}
+
+
+function send_request() {
+	//check option
+	if (!chkPortRange(wdk.getById("port"), "RTP Server port")) {
+		highlight("port");
+		return;
+	}
+	if (getSelectValue("fps") % getSelectValue("div")) {
+		alert(getSelectValue("div") + wdk.msg(" isn't a divisor of ") + getSelectValue("fps"));
+		highlight("div");
+		return;
+	}
+
+	var str = wdk.cdbVal("$webcam_format");
+	var prot = wdk.getById("prot").value;
+	var port = wdk.getById("port").value;
+	var path = wdk.getById("path").value;
+	var vcode = getSelectValue("vcode");
+	var res = getSelectValue("res");
+	var fps = getSelectValue("fps");
+	var div = getSelectValue("div");
+	var adev = getSelectValue("adev");
+	var arate = getSelectValue("arate");
+	var channel = getSelectValue("channel");
+	var acode = getSelectValue("acode");
+	var only = getSelectValue("only");
+
+	str = updaterulevar(str, "prot", prot);
+	str = updaterulevar(str, "port", port);
+	str = updaterulevar(str, "path", path);
+	if (vcode == "H264")
+		str = updaterulevar(str, "vdev", "/dev/video1");
+	else
+		str = updaterulevar(str, "vdev", "/dev/video0");
+	if (vcode != "")
+		str = updaterulevar(str, "vcode", vcode);
+	if (res != "")
+		str = updaterulevar(str, "res", res);
+	if (fps != "")
+		str = updaterulevar(str, "fps", fps);
+	if (div != "")
+		str = updaterulevar(str, "div", div);
+	if (adev != "")
+		str = updaterulevar(str, "adev", adev);
+	if (arate != "")
+		str = updaterulevar(str, "arate", arate);
+	if (channel != "")
+		str = updaterulevar(str, "channel", channel);
+	if (acode != "")
+		str = updaterulevar(str, "acode", acode);
+	if (only != "")
+		str = updaterulevar(str, "only", only);
+	wdk.cdbSet("$webcam_format", str);
+	if (wdk.cdbChg("$webcam_format")) {
+		showHide("display", 0);
+	}
+	wdk.save_form(0);
+	if (wdk.cdbChg("$webcam_format")) {
+		wdk.cliCmd('webcam restart');
+	}
+}
+
+function updateStr(arr, str) {
+	for (i in paramArr) {
+		var val = wdk.getById(paramArr[i]).value;
+		str = updaterulevar(str, paramArr[i], val);
+	}
+	return str;
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <!-- Block window -->
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="webcamFunc.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">RTP Streaming</div>
+  <div id="rightbutton">
+   <a onclick="send_request()">
+    <script>
+show_words("Done")
+    </script>
+   </a>
+  </div>
+ </div>
+
+ <!--Constructing template, too-->
+ <form name=frm>
+  <fieldset>
+   <span class="graytitle"><script>get_words("Server Settings")</script></span> 
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("URL")</script></span>
+     <span class="label" id="url" name="url" value="" size="30"></span>
+    </li>
+
+    <li class="smallfield">
+     <span class="name"><script>get_words("Port (1~65535)")</script></span>
+     <input id="port" name="port" type="text">
+    </li>
+
+    <li class="smallfield">
+     <span class="name"><script>get_words("Protocol")</script></span>
+     <span class="label" id="prot" name="prot" value=""></span>
+    </li>
+
+    <div style="display:none">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Path")</script></span>
+      <span class="label" id="path" name="path" value=""></span>
+     </li>
+    </div>
+   </ul>
+  </fieldset>
+
+  <span class="graytitle"><script>get_words("Snapshot")</script></span>
+  <ul class="pageitem">
+   <li class="button">
+    <input id="sb" type="button" value="Snapshot" onclick="snapshot()">
+   </li>
+  </ul>
+  <fieldset id="$webcam_format">
+   <span class="graytitle"><script>get_words("Video&Audio Settings")</script></span> 
+
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name">
+          <script>get_words("Video Compressed Method")</script>
+        </span>
+     <select id="vcode" name="vcode" size="1" onchange="vcodechange()">
+     </select>
+    </li>
+
+    <div style="display:none">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Video Device")</script></span>
+      <span class="label" id="vdev" name="vdev" value=""></span>
+     </li>
+    </div>
+
+    <li class="smallfield">
+     <span class="name">
+          <script>get_words("Resolution")</script>
+        </span>
+     <select id="res" name="res" size="1"></select>
+    </li>
+
+    <li class="smallfield">
+     <span class="name">
+          <script>get_words("FPS")</script>
+        </span>
+     <select name="fps" id="fps" size="1"></select>
+    </li>
+
+    <li class="smallfield">
+     <span class="name">
+          <script>wdk.putmsg("FPS divisor")</script>
+        </span>
+     <select name="div" id="div" size="1"></select>
+
+    </li>
+
+    <li class="smallfield">
+     <span class="name">
+          <script>wdk.putmsg("Audio Stream Switch")</script>
+        </span>
+
+     <select id="only" name="only" size="1" onchange="onlychange()">
+      <option value="vid">Disable</option>
+      <option value="none">Enable</option>
+     </select>
+    </li>
+
+    <div id="tr_adev" class="setting">
+     <li class="smallfield">
+      <span class="name">
+            <script>wdk.putmsg("Audio Device")</script>
+      </span>
+      <select name="adev" id="adev" size="1" onchange="adevchange()"></select>
+     </li>
+    </div>
+
+    <li class="smallfield" id="tr_acode">
+     <span class="name">
+          <script>get_words("Audio Compressed Method")</script>
+        </span>
+     <select name="acode" id="acode" size="1" onchange="g726limit()"></select>
+    </li>
+
+    <li class="smallfield" id="tr_arate">
+     <span class="name">
+          <script>get_words("Sample Rate")</script>
+        </span>
+     <select id="arate" name="arate" size="1" onchange="g726limit()"></select>
+    </li>
+
+    <li class="smallfield" id="tr_channel">
+     <span class="name">
+          <script>get_words("Channel")</script>
+        </span>
+     <select id="channel" name="channel" size="1" onchange="g726limit()"></select>
+    </li>
+   </ul>
+  </fieldset>
+
+  <div id="display" style="display:none;" align=center></div>
+  <div id='mxplayerAndroid' style="display:block">
+   <span class="graytitle">
+    <script>get_words("Streaming by external app(Android)")
+    </script>
+  </span>
+
+   <ul class="pageitem">
+    <li class="smallfield">
+     <img src="images/mxplayerIcon.jpg" width="45" height="40" onclick=openMXPlayer()>
+    </li>
+   </ul>
+  </div>
+  </fieldset>
+ </form>
+</body>
+
+</html>
+<!--endif-->

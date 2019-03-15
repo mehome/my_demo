@@ -1,0 +1,19 @@
+diff -Nur a/src/pcm/pcm.c b/src/pcm/pcm.c
+--- a/src/pcm/pcm.c	2017-11-14 15:52:09.000000000 +0800
++++ b/src/pcm/pcm.c	2018-03-31 14:01:50.572578544 +0800
+@@ -7327,7 +7327,14 @@
+ 		xfer += frames;
+ 	}
+  _end:
+-	__snd_pcm_unlock(pcm);
++	__snd_pcm_unlock(pcm);      
++#if 1
++	if((err==0) && (xfer==0) && (0==(pcm->mode & SND_PCM_NONBLOCK)))
++	{
++		// 10ms sleep on blocking write mode to avoid application to hog CPU
++		usleep(10000);
++	}	
++#endif        
+ 	return xfer > 0 ? (snd_pcm_sframes_t) xfer : snd_pcm_check_error(pcm, err);
+ }
+ 

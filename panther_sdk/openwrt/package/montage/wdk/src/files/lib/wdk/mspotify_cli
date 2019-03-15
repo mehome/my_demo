@@ -1,0 +1,21 @@
+#!/bin/sh
+# Copyright (C) 2016 Montage Inc.
+
+local mspotify_cli="/usr/bin/mspotify_cli"
+local d
+local displayname
+
+displayname() {
+    cdb get spotify_display_name
+}
+
+case $2 in
+    displayname) displayname;;
+esac
+
+case $1 in
+    d) d;;
+esac
+${mspotify_cli} $1 $2
+
+exit 0

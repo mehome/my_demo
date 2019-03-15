@@ -1,0 +1,98 @@
+<!--ifdef CONFIG_OP_3G-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$wan_mobile_apn', '$wan_mobile_pin', '$wan_mobile_dial']);
+
+function init() {
+	var f = document.frm;
+	f.reset();
+	wdk.init_form();
+}
+
+function apply() {
+	var f = document.frm;
+	var rexStr = new RegExp("[^a-zA-Z0-9#_\.@*-]");
+	if (!chkStr(f.$wan_mobile_apn, "Access Point Name")) {
+		highlight("$wan_mobile_apn");
+		return;
+	}
+	if (!chkStr(f.$wan_mobile_pin, "Personal Identification Number")) {
+		highlight("$wan_mobile_pin");
+		return;
+	}
+	if (!chkStr(f.$wan_mobile_dial, "Dial Number", rexStr)) { //f.$wan_mobile_dial.focus();
+		highlight("$wan_mobile_dial");
+		return;
+	}
+
+	wdk.save_form(2000);
+	return;
+}
+
+function chk3GStr(s, w, rex) {
+	//var illegal=/[^a-zA-Z0-9#_\.@-]/; //non letter && numbers && '_' && '.' && '@'
+	var illegal = rex;
+	if (illegal.test(s.value)) {
+		alert(wdk.msg(w) + wdk.msg(" contains invalid characters!"));
+		s.focus();
+		return 0;
+	}
+	return 1;
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <script>
+wanModeList(9, 7)
+  </script>
+  <br>
+  <fieldset>
+   <legend>3G Router</legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Access Point Name")
+     </script>
+    </div>
+    <input name=$wan_mobile_apn id=$wan_mobile_apn maxlength=36>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Personal Identification Number")
+     </script>
+    </div>
+    <input name=$wan_mobile_pin id=$wan_mobile_pin maxlength=8>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Dial Number")
+     </script>
+    </div>
+    <input name=$wan_mobile_dial id=$wan_mobile_dial maxlength=30>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

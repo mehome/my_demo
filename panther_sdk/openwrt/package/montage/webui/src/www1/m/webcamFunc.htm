@@ -1,0 +1,91 @@
+<!--ifdef CONFIG_VIDEO_STREAM-->
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+function init() {
+	var param = [];
+	var mainObj = new dataObject();
+	// mainObj.get_con   fig_obj(param);
+}
+ </script>
+</head>
+
+<body onload="init()">
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="index.htm">
+    <img alt="home" src="images/home.png" />
+   </a>
+  </div>
+  <div id="title">
+   Webcam
+  </div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+   <!--ifdef CONFIG_VIDEO_STREAM-->
+   <li id="streamInd" class="menu">
+    <a href="webcamStream.htm">
+     <span class="name">RTP Streaming</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+   <li id="webcamRecordInd" class="menu">
+    <a href="webcamRecord.htm">
+     <span class="name">Record</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--ifdef CONFIG_SONIX_MOTION_DETECTION-->
+   <li id="sonixMdInd" class="menu">
+    <a href="webcamMD.htm">
+     <span class="name">Motion Detection</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+   <!--ifdef CONFIG_WEBCAM_IMAGE_PARAMETERS-->
+   <li id="imageInd" class="menu">
+    <a href="webcamImage.htm">
+     <span class="name">Image</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+   <!--ifdef CONFIG_SONIX_IMAGE-->
+   <li id="extInd" class="menu">
+    <a href="webcamExt.htm">
+     <span class="name">Extension</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+   <!--ifdef CONFIG_SONIX_OSD-->
+   <li id="osdInd" class="menu">
+    <a href="webcamOsd.htm">
+     <span class="name">On-Screen Display</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+   <!--ifdef CONFIG_PACKAGE_samba36_client-->
+   <li id="sambaUploadInd" class="menu">
+    <a href="webcamSamba.htm">
+     <span class="name">Samba Upload</span><span class="arrow"></span>
+    </a>
+   </li>
+   <!--endif-->
+  </ul>
+ </div>
+</body>
+
+</html>
+<!--endif-->

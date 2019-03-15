@@ -1,0 +1,718 @@
+<!--ifdef CONFIG_IPV6-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$wan_mode', '$wan6_mode', '$wan6_ip', '$wan6_prfxlen', '$wan6_gw', '$dns6_svr1', '$dns6_svr2',
+	'$lan6_ip', '$lan6_gw', '$lan6_msk', '$lan6_prfxlen', '$dns6_fix', '$lan6_autocfg',
+	'$lan6_mode', '$lan6_ttl', '$lan6_start', '$lan6_end', '$wan6_tb', '$wan6_rd',
+	'$dns6_def', '$poe_user', '$poe_pass', '$poe_svc', '$poe_mtu', 'status wan6_state',
+	'status lan6_pd', 'status lan6_ll'
+]);
+
+function InitLANAutoConfConnMode() {
+	var f = document.frm;
+	if (Number(wdk.cdbVal('$lan6_autocfg')) == 0) f.enableAuto.checked = false;
+	else {
+		f.enableAuto.checked = true;
+		if (Number(wdk.cdbVal('$lan6_autocfg')) == 1)
+			f.lan_auto_type.value = "STATELESS";
+		else
+			f.lan_auto_type.value = "STATEFUL";
+	}
+}
+
+function InitWANInfo() {
+	wdk.getById("en_dhcp_pd").checked = (Number(wdk.cdbVal('$lan6_mode')) == 2) ? true : false;
+	/* init value */
+	InitWANStaticValue();
+	InitWAN_AUTO_DHCP_RA_Value();
+	InitWANPPPoEValue();
+}
+
+function InitWANStaticValue() {
+	var f = document.frm;
+
+	f.w_st_pdns.value = wdk.cdbVal('$dns6_svr1');
+	f.w_st_sdns.value = wdk.cdbVal('$dns6_svr2');
+}
+
+function InitWAN_AUTO_DHCP_RA_Value() {
+	var f = document.frm;
+
+	if (Number(wdk.cdbVal('$dns6_fix')) == 1) //manual
+		f.w_dhcp_dns_rad[1].checked = true;
+	else //auto
+		f.w_dhcp_dns_rad[0].checked = true;
+
+	f.w_dhcp_pdns.value = wdk.cdbVal('$dns6_svr1');
+	f.w_dhcp_sdns.value = wdk.cdbVal('$dns6_svr2');
+}
+
+function InitWANPPPoEValue() {
+	var f = document.frm;
+	f.pass.value = f.pass2.value = wdk.cdbVal('$poe_pass');
+}
+
+function InitWANLLInfo() {
+	wdk.getById("wan_ll").innerHTML = "";
+	wdk.getById("wan_ll_pl").innerHTML = "/64";
+}
+
+function InitLANInfo() {
+	var f = document.frm;
+
+	switch (f.wan_ipv6_mode.value) {
+		case '0': //"AUTO":
+			break;
+		case '1': //"STATIC":
+			if (Number(wdk.cdbVal('$wan6_mode')) == 1) {
+				wdk.getById("l_range_start_pl").innerHTML = "/64";
+				wdk.getById("l_range_end_pl").innerHTML = "/64";
+			} else {
+				wdk.getById("l_range_start_pl").innerHTML = "";
+				wdk.getById("l_range_end_pl").innerHTML = "";
+			}
+			break;
+		case '3': //"DHCP":
+			break;
+		case '2': //"RA":
+			break;
+		case '4': //"PPPOE":
+			break;
+			/* TODO */
+			/*case "6IN4":
+			break;
+		case "6TO4":
+			break;*/
+	}
+	/* fill some fixed info */
+	wdk.getById("l_pl").innerHTML = "/64";
+}
+
+function InitLANLLInfo() {
+	wdk.getById("lan_ll").innerHTML = wdk.cdbVal('status lan6_ll');
+	wdk.getById("lan_ll_pl").innerHTML = "/64";
+}
+
+function InitDHCPS6() {
+	var str, index;
+	var f = document.frm;
+	var wan_state = wdk.cdbVal('status wan6_state');
+
+	if (Number(wdk.cdbVal('$lan6_ttl')))
+		wdk.getById("ra_lifetime").value = wdk.getById("ip_lifetime").value = Number(wdk.cdbVal('$lan6_ttl')) / 60;
+
+	wdk.getById("dhcps_start_ip_value").value = Number(wdk.cdbVal('$lan6_start')).toString(16);
+	wdk.getById("dhcps_stop_ip_value").value = Number(wdk.cdbVal('$lan6_end')).toString(16);
+
+	if (wan_state == 2) {
+		wdk.getById("dhcps_start_ip_prefix").value = wdk.cdbVal('status lan6_pd');
+		wdk.getById("dhcps_stop_ip_prefix").value = wdk.cdbVal('status lan6_pd');
+	} else {
+		wdk.getById("dhcps_start_ip_prefix").value = "xxxx";
+		wdk.getById("dhcps_stop_ip_prefix").value = "xxxx";
+	}
+
+	switch (f.lan_auto_type.value) {
+		case "STATELESS":
+			wdk.getById("ipv6_lan_dhcp").style.display = "none";
+			wdk.getById("ipv6_lan_stless").style.display = "";
+			break;
+
+		case "STATEFUL":
+			wdk.getById("ipv6_lan_dhcp").style.display = "";
+			wdk.getById("ipv6_lan_stless").style.display = "none";
+			//wdk.getById("dhcps_start_ip_prefix").disabled = true;
+			//wdk.getById("dhcps_stop_ip_prefix").disabled = true;
+			break;
+	}
+}
+
+function initValue() {
+	InitLANAutoConfConnMode();
+	InitWANInfo();
+	//InitWANLLInfo();
+	InitLANInfo();
+	InitLANLLInfo();
+	InitDHCPS6();
+	OnChangewan_ipv6_mode();
+	OnChangelan_auto_type();
+}
+
+function init() {
+	wdk.init_form();
+	initValue();
+	OnClickAuto();
+}
+
+function OnChangewan_ipv6_mode() {
+	var f = document.frm;
+
+	wdk.getById("ipv6_wan").style.display = "none";
+	wdk.getById("ipv6_dns").style.display = "none";
+	wdk.getById("ipv6_pppoe").style.display = "none";
+	wdk.getById("ipv6_lan_addr").style.display = "none";
+	wdk.getById("ipv6_lan_auto").style.display = "none";
+	wdk.getById("ipv6_lan_stless").style.display = "none";
+	wdk.getById("ipv6_lan_dhcp").style.display = "none";
+
+	wdk.getById("sp_dli_s").innerHTML = "::";
+	wdk.getById("sp_dli_e").innerHTML = "::";
+	wdk.getById("l_pl").innerHTML = "/64";
+	wdk.getById("lan_ll_pl").innerHTML = "/64";
+	wdk.getById("ra_lifetime").disabled = true;
+	wdk.getById("ip_lifetime").disabled = true;
+
+	OnClickpd();
+	OnClickDHCPDNS();
+	OnClickAuto();
+	switch (f.wan_ipv6_mode.value) {
+		case '1': //"STATIC"://1
+			wdk.getById("ipv6_wan").style.display = "";
+			wdk.getById("ipv6_lan_addr").style.display = "";
+			wdk.getById("ipv6_lan_auto").style.display = "";
+			wdk.getById("ipv6_lan_addr_pd").style.display = "none";
+			wdk.getById("sp_dli_s").innerHTML = ":";
+			wdk.getById("sp_dli_e").innerHTML = ":";
+			f.l_ipaddr.disabled = false;
+			wdk.getById("ra_lifetime").disabled = false;
+			wdk.getById("ip_lifetime").disabled = false;
+			break;
+
+		case '0': //"AUTO"://0
+		case '3': //"DHCP"://3
+		case '2': //"RA"://2
+			wdk.getById("ipv6_dns").style.display = "";
+			wdk.getById("ipv6_lan_addr").style.display = "";
+			wdk.getById("ipv6_lan_auto").style.display = "";
+			wdk.getById("ipv6_lan_addr_pd").style.display = "";
+			f.w_dhcp_pdns.disabled = f.w_dhcp_sdns.disabled = f.w_dhcp_dns_rad[0].checked ? true : false;
+			//wdk.getById("ra_lifetime").value = "";
+			//wdk.getById("ip_lifetime").value = "";
+			break;
+
+		case '4': //"PPPOE"://4
+			wdk.getById("ipv6_pppoe").style.display = "";
+			wdk.getById("ipv6_dns").style.display = "";
+			wdk.getById("ipv6_lan_addr").style.display = "";
+			wdk.getById("ipv6_lan_auto").style.display = "";
+			wdk.getById("ipv6_lan_addr_pd").style.display = "";
+			f.w_dhcp_pdns.disabled = f.w_dhcp_sdns.disabled = f.w_dhcp_dns_rad[0].checked ? true : false;
+			//wdk.getById("ra_lifetime").value = "";
+			//wdk.getById("ip_lifetime").value = "";
+			break;
+	}
+}
+
+function OnChangelan_auto_type() {
+	var f = document.frm;
+
+	wdk.getById("ipv6_lan_dhcp").style.display = "none";
+	wdk.getById("ipv6_lan_stless").style.display = "none";
+
+	switch (f.lan_auto_type.value) {
+		case "STATELESS":
+			wdk.getById("ipv6_lan_dhcp").style.display = "none";
+			wdk.getById("ipv6_lan_stless").style.display = "";
+			// wait to implement cdb for Router Live Time later, if it's necessary
+			// hardcode to display 150
+			wdk.getById("ra_lifetime").value = 150;
+			break;
+
+		case "STATEFUL":
+			wdk.getById("ipv6_lan_dhcp").style.display = "";
+			wdk.getById("dhcps_start_ip_prefix").disabled = true;
+			wdk.getById("dhcps_stop_ip_prefix").disabled = true;
+			//ShowDHCPS6();
+			break;
+	}
+}
+
+function OnClickpd() {
+	var f = document.frm;
+
+	f.l_ipaddr.disabled = f.en_dhcp_pd.checked ? true : false;
+}
+
+function OnClickAuto() {
+	var f = document.frm;
+
+	if (f.enableAuto.checked) {
+		f.lan_auto_type.disabled = false;
+		if (f.lan_auto_type.value == "STATELESS") {
+			wdk.getById("ipv6_lan_stless").style.display = "";
+		} else {
+			wdk.getById("ipv6_lan_dhcp").style.display = "";
+		}
+	} else {
+		f.lan_auto_type.disabled = true;
+		if (f.lan_auto_type.value == "STATELESS") {
+			wdk.getById("ipv6_lan_stless").style.display = "none";
+		} else {
+			wdk.getById("ipv6_lan_dhcp").style.display = "none";
+		}
+	}
+}
+
+function ShowDHCPS6() {
+	var index, str;
+
+	str = wdk.cdbVal('$lan6_ip');
+	if (str) {
+		index = str.lastIndexOf("::");
+		wdk.getById("dhcps_start_ip_prefix").value = str.substring(0, index);
+		wdk.getById("dhcps_stop_ip_prefix").value = str.substring(0, index);
+	} else {
+		wdk.getById("dhcps_start_ip_prefix").value = "xxxx";
+		wdk.getById("dhcps_stop_ip_prefix").value = "xxxx";
+	}
+	wdk.getById("dhcps_start_ip_prefix").disabled = true;
+	wdk.getById("dhcps_stop_ip_prefix").disabled = true;
+}
+
+function OnClickDHCPDNS() {
+	var f = document.frm;
+	f.w_dhcp_pdns.disabled = f.w_dhcp_sdns.disabled = f.w_dhcp_dns_rad[0].checked ? true : false;
+}
+
+function SetAutoConfig(f) {
+	if (f.enableAuto.checked == false)
+		wdk.cdbSet('$lan6_autocfg', 0);
+	else {
+		if (f.lan_auto_type.value == "STATELESS") {
+			wdk.cdbSet('$lan6_autocfg', 1);
+			if (!wdk.getById("ra_lifetime").disabled) {
+				if (!chkNum(f.ra_lifetime, 0, 150, "Router Live Time")) {
+					f.ra_lifetime.focus();
+					return -1;
+				}
+				// wait to implement cdb for Router Live Time later, if it's necessary
+			}
+		} else //"STATEFUL"
+		{
+			var v1 = parseInt(f.dhcps_start_ip_value.value, 16);
+			var v2 = parseInt(f.dhcps_stop_ip_value.value, 16);
+			if (!chkHexNum(f.dhcps_start_ip_value, 1, 65535, "IPv6 Address Range (Start)")) {
+				f.dhcps_start_ip_value.focus();
+				return -1;
+			}
+			if (!chkHexNum(f.dhcps_stop_ip_value, 1, 65535, "IPv6 Address Range (End)")) {
+				f.dhcps_stop_ip_value.focus();
+				return -1;
+			}
+			if (v1 > v2) {
+				alert("Start IP should be less than End IP");
+				f.dhcps_start_ip_value.focus();
+				return -1;
+			}
+			wdk.cdbSet('$lan6_start', v1);
+			wdk.cdbSet('$lan6_end', v2);
+			wdk.cdbSet('$lan6_autocfg', 2);
+			if (!wdk.getById("ip_lifetime").disabled) {
+				if (!chkNum(f.ip_lifetime, 0, 60, "IPv6 Live Time")) {
+					f.ip_lifetime.focus();
+					return -1;
+				}
+				wdk.cdbSet('$lan6_ttl', Number(wdk.getById("ip_lifetime").value) * 60);
+			}
+		}
+	}
+	return 0;
+}
+
+function apply() {
+	var f = document.frm;
+
+	if (SetAutoConfig(f) != 0) return;
+	if (wdk.getById("en_dhcp_pd").checked)
+		wdk.cdbSet('$lan6_mode', 2);
+	else
+		wdk.cdbSet('$lan6_mode', 1);
+
+	switch (f.wan_ipv6_mode.value) {
+		case '1': //"STATIC"://1
+			if (!test_ipv6(f.wan6_ip.value)) {
+				alert((wdk.msg("Ipv6 Address is invalid!")));
+				f.wan6_ip.focus();
+				return;
+			}
+			if (!chkNum(f.wan6_prfxlen, 0, 128, "Subnet Prefix Length")) {
+				f.wan6_prfxlen.focus();
+				return;
+			}
+			if (!test_ipv6(f.wan6_gw.value)) {
+				alert((wdk.msg("Default Gateway Address is invalid!")));
+				f.wan6_gw.focus();
+				return;
+			}
+			if (!test_ipv6(f.w_st_pdns.value)) {
+				alert((wdk.msg("Primary Domain Name Server (DNS) is invalid!")));
+				f.w_st_pdns.focus();
+				return;
+			}
+			if (f.w_st_sdns.value)
+				if (!test_ipv6(f.w_st_sdns.value)) {
+					alert((wdk.msg("Secondary DNS Server is invalid!")));
+					f.w_st_sdns.focus();
+					return;
+				}
+			if (!test_ipv6(f.l_ipaddr.value)) {
+				alert((wdk.msg("Local Area Network (LAN) Ipv6 Address is invalid!")));
+				f.l_ipaddr.focus();
+				return;
+			}
+			wdk.cdbSet('$dns6_svr1', f.w_st_pdns.value);
+			wdk.cdbSet('$dns6_svr2', f.w_st_sdns.value);
+			wdk.cdbSet('$dns6_fix', 1);
+			wdk.cdbSet('$lan6_mode', 1);
+			break;
+
+		case '4': //"PPPOE"://4
+			if (!chkNum(f.MTU, 1000, 1492, "MTU")) {
+				hihglight("$poe_mtu");
+				return;
+			}
+			if (isBlank(f.PUN)) {
+				alert(wdk.msg("Invalid Name"));
+				highlight("$poe_user");
+				return;
+			}
+			if (!chkStr(f.PUN, "User Name")) {
+				highlight("$poe_user");
+				return;
+			}
+			if (!chkStrNoNull(f.pass, "Password")) {
+				highlight("ipv6Psw");
+				return;
+			}
+			if (!chkPass(f.pass, f.pass2, f._changed, "Password is not consistent!")) {
+				highlight("ipv6Psw2");
+				return;
+			}
+			if (Number(f._changed.value)) wdk.cdbSet('$poe_pass', f.pass.value);
+			wdk.cdbSet('$wan_mode', 3);
+			//break;
+
+		case '0': //"AUTO"://0
+		case '3': //"DHCP"://3
+		case '2': //"RA"://2
+			if (f.w_dhcp_dns_rad[1].checked) {
+				if (!test_ipv6(f.w_dhcp_pdns.value)) {
+					alert((wdk.msg("Primary Domain Name Server (DNS) is invalid!")));
+					f.w_dhcp_pdns.focus();
+					return;
+				}
+				if (f.w_dhcp_sdns.value)
+					if (!test_ipv6(f.w_dhcp_sdns.value)) {
+						alert((wdk.msg("Secondary DNS Server is invalid!")));
+						f.w_dhcp_sdns.focus();
+						return;
+					}
+				wdk.cdbSet('$dns6_svr1', f.w_dhcp_pdns.value);
+				wdk.cdbSet('$dns6_svr2', f.w_dhcp_sdns.value);
+				wdk.cdbSet('$dns6_fix', 1);
+			} else
+				wdk.cdbSet('$dns6_fix', 0);
+			break;
+
+			/* TODO
+		case "6IN4":
+			break;
+		case "6RD":
+			break;
+		case "6TO4":
+			break;
+		case "LL":
+			break;*/
+	}
+	wdk.save_form(10000);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("IPv6 Settings");
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=col31>
+     <script>
+wdk.putmsg("Ipv6 Connection Mode");
+     </script>
+    </div>
+    <select id=$wan6_mode onchange="OnChangewan_ipv6_mode();" name=wan_ipv6_mode>
+     <option value=1>
+      <SCRIPT>
+wdk.putmsg("Static IPv6");
+      </SCRIPT>
+     </option>
+     <option value=0>
+      <SCRIPT>
+wdk.putmsg("Auto Configuration(Stateless/DHCPv6)");
+      </SCRIPT>
+     </option>
+     <!--<option value=3><SCRIPT>wdk.putmsg("DHCPv6(Stateful)");</SCRIPT></option>
+				<option value=2><SCRIPT>wdk.putmsg("Stateless Auto Configuration");</SCRIPT></option>-->
+     <option value=4>
+      <SCRIPT>
+wdk.putmsg("PPPoE");
+      </SCRIPT>
+     </option>
+     <!--<option value="6IN4"><SCRIPT>wdk.putmsg("IPv6 over IPv4 tunnel");</SCRIPT></option>
+				<option value="6TO4"><SCRIPT>wdk.putmsg("IPv6 to IPv4");</SCRIPT></option>
+				<option value="6RD"><SCRIPT>wdk.putmsg("6rd");</SCRIPT></option>
+				<option value="LL"><SCRIPT>wdk.putmsg("Link Local");</SCRIPT></option>-->
+    </select>
+   </div>
+   <div id=ipv6_wan style="display:none;">
+    <h2><script>wdk.putmsg("Wide Area Network (WAN) IPv6 address settings");</script></h2>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Ipv6 Address");
+      </script>
+     </div>
+     <input id=$wan6_ip name=wan6_ip type="text" maxLength=45 size=42>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Subnet Prefix Length");
+      </script>
+     </div>
+     <input id=$wan6_prfxlen name=wan6_prfxlen type="text" maxLength=3 size=4>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Default Gateway");
+      </script>
+     </div>
+     <input id=$wan6_gw name=wan6_gw type="text" maxLength=45 size=42>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Primary Domain Name Server (DNS)");
+      </script>:</div>
+     <input id=w_st_pdns name=w_st_pdns type="text" maxLength=45 size=42>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Secondary Domain Name Server (DNS)");
+      </script>:</div>
+     <input id=w_st_sdns name=w_st_sdns type="text" maxLength=45 size=42>
+    </div>
+   </div>
+
+   <div id=ipv6_dns style="display:none;">
+    <h2><SCRIPT>wdk.putmsg("IPv6 DNS Settings");</SCRIPT></h2>
+    <div class=setting>
+     <div class=col31>
+      <input type="radio" name="w_dhcp_dns_rad" value=0 onclick="OnClickDHCPDNS();">
+     </div>
+     <SCRIPT>
+wdk.putmsg("Get IPv6 DNS Server IP Address Automatically");
+     </SCRIPT>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <input type="radio" name="w_dhcp_dns_rad" value=1 onclick="OnClickDHCPDNS();">
+     </div>
+     <SCRIPT>
+wdk.putmsg("Use the following IPv6 DNS Server IP Address");
+     </SCRIPT>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Primary Domain Name Server (DNS)");
+      </script>:</div>
+     <input id=w_dhcp_pdns name=w_dhcp_pdns type="text" maxLength=45 size=42>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Secondary Domain Name Server (DNS)");
+      </script>:</div>
+     <input id=w_dhcp_sdns name=w_dhcp_sdns type="text" maxLength=45 size=42>
+    </div>
+   </div>
+
+   <div id=ipv6_pppoe style="display:none;">
+    <h2><SCRIPT>wdk.putmsg("PPPoE connection mode");</SCRIPT></h2>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("User Name");
+      </script>
+     </div>
+     <input id=$poe_user name=PUN maxLength=63 size=20>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Password");
+      </script>
+     </div>
+     <input id="ipv6Psw" type=password name=pass size=20 maxlength="63" onFocus=chkPassInput(pass,pass2,_changed);>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Re-Type Password");
+      </script>
+     </div>
+     <input id="ipv6Psw2" type=password name=pass2 size=20 maxlength="63" onFocus=chkPassInput(pass,this,_changed);>
+     <input type=hidden name=_changed value=0>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Service Name");
+      </script>
+     </div>
+     <input id=$poe_svc name=PSN size=30 maxlength=39>
+     <SCRIPT>
+wdk.putmsg("(Optional)");
+     </SCRIPT>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("MTU");
+      </script>
+     </div>
+     <input id=$poe_mtu name=MTU size=10 maxlength=4>
+     <SCRIPT>
+wdk.putmsg("(bytes)");
+     </SCRIPT>
+    </div>
+   </div>
+
+   <div id=ipv6_lan_addr style="display:none;">
+    <h2><SCRIPT>wdk.putmsg("Local Area Network (LAN) IPv6 Address Settings");</SCRIPT></h2>
+    <div class=setting>
+     <div id=ipv6_lan_addr_pd style="display:none;">
+      <div class=col31>
+       <script>
+wdk.putmsg("Enable DHCP-PD");
+       </script>
+      </div>
+      <input id=en_dhcp_pd name=en_dhcp_pd type="checkbox" onclick="OnClickpd();">
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("LAN Ipv6 Address");
+      </script>
+     </div>
+     <input id=$lan6_ip type="text" size="42" maxlength="45" name=l_ipaddr>&nbsp;<span id="l_pl"></span>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("LAN Ipv6 Connection - Local Address");
+      </script>
+     </div>
+     <span id="lan_ll">&nbsp;</span>&nbsp;<span id="lan_ll_pl"></span>
+    </div>
+   </div>
+
+   <div id=ipv6_lan_auto style="display:none;">
+    <h2><SCRIPT>wdk.putmsg("Local Area Network (LAN) Address Auto-Configuration Settings");</SCRIPT></h2>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Enable Auto-Configutation");
+      </script>
+     </div>
+     <input id=enableAuto name=enableAuto value="" type="checkbox" onClick="OnClickAuto();">
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Auto-Configutation method");
+      </script>
+     </div>
+     <select id=lan_auto_type name=lan_auto_type onchange="OnChangelan_auto_type();">
+      <option value="STATELESS">
+       <SCRIPT>
+wdk.putmsg("Stateless");
+       </SCRIPT>
+      </option>
+      <option value="STATEFUL">
+       <SCRIPT>
+wdk.putmsg("Stateful (DHCPv6)");
+       </SCRIPT>
+      </option>
+     </select>
+    </div>
+    <div id=ipv6_lan_stless style="display:none">
+     <div class=setting>
+      <div class=col31>
+       <script>
+wdk.putmsg("Router Live Time");
+       </script>:</div>
+      <input id=ra_lifetime name=ra_lifetime type="text" size="5" maxlength="3">
+      <SCRIPT>
+wdk.putmsg("(minutes)");
+      </SCRIPT>
+     </div>
+    </div>
+    <div id=ipv6_lan_dhcp style="display:none">
+     <div class=setting>
+      <div class=col31>
+       <script>
+wdk.putmsg("IPv6 Address Range (Start)");
+       </script>:</div>
+      <input id=dhcps_start_ip_prefix name=dhcps_start_ip_prefix type="text" size="30" maxlength="39">&nbsp;<span id="sp_dli_s"></span>
+      <input id=dhcps_start_ip_value name=dhcps_start_ip_value type="text" size="5" maxlength="4">&nbsp;<span id="l_range_start_pl"></span>
+     </div>
+     <div class=setting>
+      <div class=col31>
+       <script>
+wdk.putmsg("IPv6 Address Range (End)");
+       </script>:</div>
+      <input id=dhcps_stop_ip_prefix name=dhcps_stop_ip_prefix type="text" size="30" maxlength="39">&nbsp;<span id="sp_dli_e"></span>
+      <input id=dhcps_stop_ip_value name=dhcps_stop_ip_value type="text" size="5" maxlength="4">&nbsp;<span id="l_range_end_pl"></span>
+     </div>
+     <div class=setting>
+      <div class=col31>
+       <script>
+wdk.putmsg("IPv6 Live Time");
+       </script>:</div>
+      <input id=ip_lifetime name=ip_lifetime type="text" size="5" maxlength="3">
+      <SCRIPT>
+wdk.putmsg("(minutes)");
+      </SCRIPT>
+     </div>
+    </div>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

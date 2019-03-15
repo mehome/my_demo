@@ -1,0 +1,160 @@
+Index: src/rtsp.c
+===================================================================
+--- src.orig/rtsp.c	2018-05-08 16:47:14.846756854 +0800
++++ src/rtsp.c	2018-05-14 11:23:18.575069931 +0800
+@@ -43,6 +43,13 @@
+ #include <pthread.h>
+ #include <poll.h>
+ #include <sys/stat.h>
++#include <libubox/blobmsg_json.h>
++#include <libubus.h>
++#ifdef JSONC
++#include <json.h>
++#else
++#include <json/json.h>
++#endif
+
+ #include "config.h"
+
+@@ -65,6 +72,12 @@
+ #define INETx_ADDRSTRLEN INET_ADDRSTRLEN
+ #endif
+
++static struct ubus_context *ubus_ctx;
++static struct ubus_event_handler listener;
++static struct blob_buf json_buf;
++#define UEVENT_NAME "stop_music"
++#define UEVENT_SENDER "{\"sender\":\"airplay\"}"
++
+ enum rtsp_read_request_response {
+   rtsp_read_request_response_ok,
+   rtsp_read_request_response_shutdown_requested,
+@@ -705,12 +718,24 @@
+   resp->respcode = 200;
+ }
+
++static void ubus_stop_other_player()
++{
++  blob_buf_init(&json_buf, 0);
++  if(!blobmsg_add_json_from_string(&json_buf, UEVENT_SENDER)) {
++    debug(1, "Failed to parser JSON string to stop other players.\n");
++    return;
++  }
++  ubus_send_event(ubus_ctx, UEVENT_NAME, json_buf.head);
++}
++
+ static void handle_setup(rtsp_conn_info *conn, rtsp_message *req,
+                          rtsp_message *resp) {
+   // debug(1,"Handle Setup");
+   int cport, tport;
+   int lsport, lcport, ltport;
+   uint32_t active_remote = 0;
++  uint32_t id;
++  int ret;
+
+   char *ar = msg_get_header(req, "Active-Remote");
+   if (ar) {
+@@ -829,7 +854,7 @@
+     if (q++)
+       strcat(hdr, q); // should unsplice the timing port entry
+   }
+-
++  ubus_stop_other_player();
+   player_play(&conn->stream, &conn->player_thread); // the thread better be 0
+
+   char *resphdr = alloca(200);
+@@ -1809,12 +1834,64 @@
+   return inet_ntop(fsa->sa_family, addr, string, sizeof(string));
+ }
+
++static void stop_music_event_hanlder(struct ubus_context *ctx, struct ubus_event_handler *ev,
++                          const char *type, struct blob_attr *msg)
++{
++  char *str;
++  struct json_object *obj_msg, *obj_id;
++
++  str = blobmsg_format_json(msg, true);
++  debug(1, "get string from blobmsg : %s\n", str);
++  obj_msg = json_tokener_parse(str);
++  if (obj_msg && (obj_id = json_object_object_get(obj_msg, "sender"))) {
++    if (strcmp("airplay", json_object_get_string(obj_id))) {
++      if(playing_conn) {
++        playing_conn->stop = 1;
++        memory_barrier();
++        pthread_kill(playing_conn->thread, SIGUSR1);
++      }
++    }
++  } else {
++    debug(1, "Failed to parse msg or no key named \"sender\" in event %s\n", type);
++  }
++  free(str);
++}
++
++static int ubus_init(const char *event)
++{
++  int ret = 0;
++
++  ubus_ctx = ubus_connect(NULL);
++  if (!ubus_ctx) {
++    debug(1, "Failed to connect to ubus\n");
++    return -1;
++  }
++
++  memset(&listener, 0, sizeof(listener));
++  listener.cb = stop_music_event_hanlder;
++
++  ret = ubus_register_event_handler(ubus_ctx, &listener, event);
++
++  if (ret) {
++    debug(1, "Error while registering for event '%s': %s\n", event, ubus_strerror(ret));
++    ubus_free(ubus_ctx);
++    ubus_ctx = NULL;
++    return -1;
++  }
++
++  return 0;
++}
++
+ void rtsp_listen_loop(void) {
+   struct addrinfo hints, *info, *p;
+   char portstr[6];
+   int *sockfd = NULL;
+   int nsock = 0;
+   int i, ret;
++  ret = ubus_init(UEVENT_NAME);
++  if (ret) {
++    die("Shairport-sync failed to init ubus");
++  }
+
+   memset(&hints, 0, sizeof(hints));
+   hints.ai_family = AF_UNSPEC;
+@@ -1895,6 +1972,9 @@
+       maxfd = sockfd[i];
+   }
+
++  if (ubus_ctx->sock.fd > maxfd)
++    maxfd = ubus_ctx->sock.fd;
++
+   mdns_register();
+
+   // printf("Listening for connections.");
+@@ -1909,6 +1989,8 @@
+     for (i = 0; i < nsock; i++)
+       FD_SET(sockfd[i], &fds);
+
++    FD_SET(ubus_ctx->sock.fd, &fds);
++
+     ret = select(maxfd + 1, &fds, 0, 0, &tv);
+     if (ret < 0) {
+       if (errno == EINTR)
+@@ -1918,6 +2000,10 @@
+
+     cleanup_threads();
+
++    if (FD_ISSET(ubus_ctx->sock.fd, &fds)) {
++      ubus_handle_event(ubus_ctx);
++    }
++
+     acceptfd = -1;
+     for (i = 0; i < nsock; i++) {
+       if (FD_ISSET(sockfd[i], &fds)) {

@@ -1,0 +1,256 @@
+#!/bin/sh
+. /etc/cdb.sh
+
+set_security() {
+	echo ${1}
+	echo ${2}
+	for i in `seq 1 5`
+	do
+		ifconfig sta0 up
+		rule=`iw --ssid "${1}" dev sta0 scan`
+		[ -n "${rule}" ] && break
+	done
+	eval $rule
+	config_setraw wl_bss_ssid2 "${1}"
+
+	[ -z "${sec}" ] && sec=0
+
+	sec=$(($sec&0x7))
+	pass_len=`echo "${2}" | wc -c`
+	if [ ${sec} = 0 ]; then
+		if [ -z "${2}" ]; then
+			config_set wl_bss_sec_type2 0
+			config_set wl_bss_cipher2 0
+			config_set wl_bss_wep_1key2 0
+			config_set wl_bss_wep_2key2 0
+			config_set wl_bss_wep_3key2 0
+			config_set wl_bss_wep_4key2 0
+			config_set wl_bss_wpa_psk2 0
+		fi
+	fi
+
+	if [ ${sec} -gt 1 ]; then
+		if [ $pcipher = 8 ]; then
+			config_set wl_bss_cipher2 4
+		elif [ $pcipher = 16 ]; then
+			config_set wl_bss_cipher2 8
+		elif [ $pcipher = 24 ]; then
+			config_set wl_bss_cipher2 12
+		fi
+		echo passlen $pass_len
+		if [ $pass_len -ge 9 -a $pass_len -le 64 ]; then
+			config_setraw wl_bss_wpa_psk2 "${2}"
+			echo set password
+		fi
+	elif [ ${sec} = 1 ]; then
+		if [ $pass_len == 6 -o $pass_len == 14 -o  $pass_len == 11 -o $pass_len == 27 ]; then
+			config_setraw wl_bss_wep_1key2 "$2"
+			config_setraw wl_bss_wep_2key2 "$2"
+			config_setraw wl_bss_wep_3key2 "$2"
+			config_setraw wl_bss_wep_4key2 "$2"
+		fi
+	fi
+
+	if [ ${sec} = 1 ]; then
+		config_set wl_bss_sec_type2 4
+	elif [ ${sec} = 2 ]; then
+		config_set wl_bss_sec_type2 8
+	elif [ ${sec} = 4 ]; then
+		config_set wl_bss_sec_type2 16
+	elif [ ${sec} = 6 ]; then
+		config_set wl_bss_sec_type2 24
+	fi
+	return 0
+}
+
+apply() {
+	mode=5
+	set_security  $* #ssid=$1;pass=$2
+	echo "set_security return $?"
+	config_set op_work_mode "${mode}"
+	config_set wanif_state "0"
+	/lib/wdk/commit
+	
+#	if [ "${mode}" = "5" ]; then
+#		sleep 8
+#		/etc/init.d/lan restart
+#	fi
+	local loop=30 #1 minute
+	uci set xzxwifiaudio.config.wificonnectstatus=2 && uci commit
+	/usr/bin/uartdfifo.sh connecting
+	while true
+	do #query
+		wanif_state=`omnicfg_cdb_get wanif_state '0'`
+		if [ $wanif_state = 2 ]; then
+		  uci set xzxwifiaudio.config.audionamestatus=2
+		  uci set xzxwifiaudio.config.audiodetectstatus=2
+		  uci commit
+			aplay /tmp/res/connected.wav
+			uci set xzxwifiaudio.config.wificonnectstatus=3 && uci commit
+			/usr/bin/uartdfifo.sh succeed
+			return 0
+		fi
+		if [ $loop = 0 ]; then
+		  cdb set op_work_mode 1
+			/lib/wdk/commit
+			aplay /tmp/res/connection_unsuccessful.wav
+			uci set xzxwifiaudio.config.wificonnectstatus=4 && uci commit
+			/usr/bin/uartdfifo.sh failed
+			return 1
+		fi
+		sleep 1
+		loop=`expr $loop "-" 1`
+	done
+
+	return 1
+}
+
+omnicfg_cdb_get()
+{
+	cdb_data=""
+	[ $# -lt 2 ] && echo usage: omnicfg_cdb_get output_variable default_value && exit 1
+
+	config_get cdb_data "$1" 
+	cdb_data=$( config_chk "$cdb_data" )
+	[ -z "$cdb_data" ] && cdb_data="$2"
+
+	echo $cdb_data
+}
+
+restore() {
+	PID=`ps -w | grep upmpdcli | grep br1 | awk '{print $1}'`
+	[ "$PID" != "" ] && kill $PID
+	#mpc stop
+	#/etc/init.d/shairport stop
+	#/etc/init.d/spotify stop
+	
+	#wifi
+	#pass=$( omnicfg_cdb_get wl_bss_wpa_psk2 "DLNA" )
+	#ssid=$( omnicfg_cdb_get wl_bss_ssid2 "12345678" )
+	pass="`cdb get wl_bss_wpa_psk2`"
+	ssid="`cdb get wl_bss_ssid2`"
+	echo $ssid
+	echo $pass
+	
+	apply  $ssid $pass
+
+	echo "wifi  restore success"
+}
+disconnect(){
+	echo "disconnect"
+	mpc pause > /dev/null
+	mspotify_cli s > /dev/null
+	/etc/init.d/shairport restart > /dev/null
+	config_set op_work_mode 1 > /dev/null
+	cdb set $wl_bss_ssid_hidden1=0
+	/lib/wdk/commit > /dev/null
+	
+}
+
+check() {
+	echo "check"
+	ssid2=`omnicfg_cdb_get wl_bss_ssid2 '0'`
+	if [ $ssid2 = "" ] || [ $ssid2 = " " ]; then
+		aplay /tmp/res/speaker_not_connected.wav -M -N
+		uci set xzxwifiaudio.config.wificonnectstatus=4 && uci commit
+		/usr/bin/uartdfifo.sh failed
+		return 1
+	fi
+	local loop=20 #20 seconds
+	while true
+	do #query
+		wanif_state=`omnicfg_cdb_get wanif_state '0'`
+		if [ $wanif_state = 2 ]; then
+			aplay /tmp/res/welcome_back.wav
+			uci set xzxwifiaudio.config.wificonnectstatus=3 && uci commit
+			/usr/bin/uartdfifo.sh succeed
+			return 0
+		fi
+		if [ $loop = 0 ]; then
+			aplay /tmp/res/speaker_not_connected.wav -M -N
+			uci set xzxwifiaudio.config.wificonnectstatus=4 && uci commit
+			/usr/bin/uartdfifo.sh failed
+			return 1
+		fi
+		sleep 1
+		loop=`expr $loop "-" 1`
+	done
+}
+
+config () {
+	uci set xzxwifiaudio.config.wificonnectstatus=1 && uci commit
+	/usr/bin/uartdfifo.sh config
+	echo "config"
+	config_set wl_bss_ssid2 ""
+	config_set wl_bss_wpa_psk2 ""
+	/lib/wdk/omnicfg_ctrl trigger
+	local loop=80 #1 minute
+	local state=0
+	while true
+	do #query
+		omi_result=`omnicfg_cdb_get omi_result '0'`
+		if [ $omi_result = 0 ] && [ $state != 1 ]; then
+			state=1
+		fi
+		if [ $omi_result = 1 ] && [ $state != 2 ]; then
+			state=2
+			uci set xzxwifiaudio.config.wificonnectstatus=2 && uci commit
+			/usr/bin/uartdfifo.sh connecting
+		fi
+		if [ $omi_result = 2 ] && [ $state = 1  -o $state = 2 ]; then
+			wanif_state=`omnicfg_cdb_get wanif_state '0'`
+			if [ $wanif_state = 2 ]; then
+			  uci set xzxwifiaudio.config.audionamestatus=2
+		    uci set xzxwifiaudio.config.audiodetectstatus=2
+	      uci commit
+				aplay /tmp/res/connected.wav
+				state=3
+				uci set xzxwifiaudio.config.wificonnectstatus=3 && uci commit
+				/usr/bin/uartdfifo.sh succeed
+				return 0
+			fi
+		fi
+		if [ $loop = 0 ] || [ $omi_result -gt 2 ]; then
+			uci set xzxwifiaudio.config.wificonnectstatus=4 && uci commit
+			/usr/bin/uartdfifo.sh failed
+			aplay /tmp/res/connection_unsuccessful.wav
+			return 1
+		fi
+		sleep 1
+		loop=`expr $loop "-" 1`
+	done
+}
+#action->mode->ssid->pass
+action=$1
+#mode=$2
+#shift 2
+shift 1
+case $action in
+	"connect")
+		mpc pause > /dev/null
+		killall shairport > /dev/null 
+	  mspotify_cli s > /dev/null
+		aplay /tmp/res/connecting.wav > /dev/null
+		apply "$*"
+	;; #need ssid,password
+	"restore")
+		mpc pause > /dev/null
+		killall shairport > /dev/null
+		mspotify_cli s > /dev/null
+		restore
+	;; #重连，自动连接上一次的wifi
+	"disconnect") 	disconnect ;;
+	"check") 	check ;;
+	"config")
+		mpc pause > /dev/null
+		killall shairport > /dev/null
+		mspotify_cli s > /dev/null
+		aplay /tmp/res/connecting_to_network.wav
+		config
+	;;
+	*)
+		echo "$0 usage:"
+		echo "  $0 connect   save/apply < ssid password>"
+		echo "  $0 restore   read elian config from flash and apply"
+	;;
+esac

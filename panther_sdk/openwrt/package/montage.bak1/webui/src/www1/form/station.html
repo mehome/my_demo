@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>Panther</title>
+
+	<link rel="stylesheet" href="assets/basic.css">
+	<link rel="stylesheet" href="assets/form-basic.css">
+    <script src=common.js></script>
+    <script src=station_init.js></script>
+    <script src=wdk.js></script>
+</head>
+
+<body onload=init()>
+
+    <ul>
+        <li><a href="index.html">STATUS</a></li>
+        <li><a href="ap.html">AP</a></li>
+        <li><a href="station.html" class="active">STATION</a></li>
+    </ul>
+
+
+    <div class="main-content">
+        <div class="form-basic">
+            <div class="form-title-row">
+                <h1>STATION</h1>
+            </div>
+        
+            <div class="form-row">
+                <label>
+                    <span>Enable</span>
+                    <input type="checkbox" id="enable_station" onchange="onChangeEnable()">
+                </label>
+            </div>
+        </div>
+        
+        <div id="setting" name="frm" class="form-basic" method="post" style="display:none;">
+
+            <div class="form-row">
+                <label>
+                    <span>SSID</span>
+                    <input type="text" name="ssid" id="wl_bss_ssid1">
+                </label>
+            </div>
+
+            <div class="form-row">
+                <label>
+                    <span>Security Mode</span>
+                    <select id="security" name="security" onchange="onChangeSecurity()">
+                        <option value=0>disable</option>
+                        <option value=4>WEP</option>
+                        <option value=8>WPA</option>
+                        <option value=16>WPA2-PSK</option>
+                        <option value=24>WPA/WPA2-PSK</option>
+                    </select>
+                </label>
+            </div>
+            <!-- for WEP -->
+            <div class="form-row" id="wepmode">
+                <label>
+                <span>Authentication Mode</span>
+                <div class="form-radio-buttons">
+                    <div>
+                        <label>
+                            <input type="radio" name="wep_cipher_type" id="wep_cipher_type1" checked>
+                            <span>Open system</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label>
+                            <input type="radio" name="wep_cipher_type" id="wep_cipher_type2">
+                            <span>Shared system</span>
+                        </label>
+                    </div>
+                </div>
+                </label>
+                <label>
+                <span>Authentication Length</span>
+                <div class="form-radio-buttons">
+                    <div>
+                        <label>
+                            <input type="radio" name="wep_cipher_len" id="wep_cipher_len1" checked>
+                            <span>64bit</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label>
+                            <input type="radio" name="wep_cipher_len" id="wep_cipher_len2">
+                            <span>128bit</span>
+                        </label>
+                    </div>
+                </div>
+                </label>
+            </div>
+            
+            <div class="form-row" id="keytype">
+                <label>
+                <span>TYPE</span>
+                <div class="form-radio-buttons">
+                    <div>
+                        <label>
+                            <input type="radio" name="wap_pairwise" id="wap_pairwise4" checked>
+                            <span>TKIP</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label>
+                            <input type="radio" name="wap_pairwise" id="wap_pairwise8">
+                            <span>CCMP</span>
+                        </label>
+                    </div>
+                </div>
+                </label>
+            </div>
+            
+            <!-- for WPA -->
+            <div class="form-row" id="passphase">
+                <label>
+                <span>Passphase</span>
+                <input type="text" name="passphase" id="wl_bss_key">
+                </label>
+            </div>
+        
+            <div class="form-row" style="display:none">
+            <label>
+                <span>HT-Green Field</span>
+                <input type="checkbox" name="ht_green" id='wl_ht_mode' checked>
+            </label>
+            </div>
+        
+            <div class="form-row">
+            <label>
+                <span>AMPDU TX</span>
+                <input type="checkbox" name="wl_ampdu_tx_enable" id='wl_ampdu_tx_enable' checked>
+            </label>
+            </div>
+        
+            <div class="form-row">
+            <label>
+                <span>AMPDU RX</span>
+                <input type="checkbox" name="wl_ampdu_rx_enable" id='wl_ampdu_rx_enable' checked>
+            </label>
+            </div>
+        
+            <div class="form-row" style="display:none">
+            <label>
+                <span>Short Guard Interval</span>
+                <input type="checkbox" name="wl_sgi" id='wl_sgi' checked>
+            </label>
+            </div>
+            
+            <div class="form-row" id="applyit">
+                <button name="apply_button" onclick="apply()">Apply</button>
+            </div>
+            
+            <div class="form-row" id="wait_apply" style="display:none;">
+                <span>Waiting Apply...</span>
+                <img id="check_online" style="display:none;" />
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

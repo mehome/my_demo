@@ -1,0 +1,17 @@
+
+This example accompanies the "Quick Start" guide that is part of the Spotify
+Embedded SDK Documentation.
+
+To build the example with GCC on Linux or on OS X, run "make".
+
+To build the example on other platforms or using other toolchains, please adapt
+the Makefile to your needs or convert it to your own build system.
+
+The example requires a file named "spotify_appkey.key" containing a
+Spotify Application Key in binary form. You can find more information about
+Application Keys on the Spotify Developer web site.
+
+The application-specific code is contained in the file "sp_util.c".
+This file contains stubs for most functions, including the functions needed for
+actual audio playback. Search for "TODO" to find code that you might want to
+replace.

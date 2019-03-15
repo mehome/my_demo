@@ -1,0 +1,150 @@
+diff -Nur a/ACL/test/CMakeLists.txt b/ACL/test/CMakeLists.txt
+--- a/ACL/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/ACL/test/CMakeLists.txt	2017-09-24 00:32:19.000000000 +0800
+@@ -3,3 +3,9 @@
+ set(LIBRARIES ACL ACLTransportCommonTestLib ${CMAKE_THREAD_LIBS_INIT})
+ set(INCLUDE_PATH ${AVSCommon_INCLUDE_DIRS} "${ACL_SOURCE_DIR}/include")
+ discover_unit_tests( "${INCLUDE_PATH}" "${LIBRARIES}")
++
++target_link_libraries(AVSConnectionManagerTest atomic)
++target_link_libraries(MessageRouterTest atomic)
++target_link_libraries(MimeParserTest atomic)
++target_link_libraries(HTTP2StreamTest atomic)
++target_link_libraries(HTTP2StreamPoolTest atomic)
+\ No newline at end of file
+diff -Nur a/ADSL/test/CMakeLists.txt b/ADSL/test/CMakeLists.txt
+--- a/ADSL/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/ADSL/test/CMakeLists.txt	2017-09-24 01:11:59.000000000 +0800
+@@ -6,3 +6,8 @@
+ 
+ set(ADSL_TEST_LIBS ADSL ADSLTestCommon)
+ discover_unit_tests("${INCLUDE_PATH}" "${ADSL_TEST_LIBS}")
++
++target_link_libraries(DirectiveRouterTest atomic)
++target_link_libraries(DirectiveSequencerTest atomic)
++target_link_libraries(MessageInterpreterTest atomic)
++target_link_libraries(DirectiveProcessorTest atomic)
+\ No newline at end of file
+diff -Nur a/AFML/test/CMakeLists.txt b/AFML/test/CMakeLists.txt
+--- a/AFML/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/AFML/test/CMakeLists.txt	2017-09-24 02:16:16.048043121 +0800
+@@ -1 +1,3 @@
+ discover_unit_tests("${AFML_SOURCE_DIR}/include" AFML)
++
++target_link_libraries(FocusManagerTest atomic)
+diff -Nur a/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt b/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt
+--- a/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/AuthDelegate/examples/ExampleAuthDelegateClient/src/CMakeLists.txt	2017-09-24 01:08:10.000000000 +0800
+@@ -6,4 +6,4 @@
+     ${AVSCommon_SOURCE_DIR}/AVS/include
+     ${AVSCommon_SOURCE_DIR}/Utils/include)
+ target_link_libraries(ExampleAuthDelegateClient
+-    AuthDelegate AVSCommon)
++    AuthDelegate AVSCommon atomic)
+diff -Nur a/AuthDelegate/test/CMakeLists.txt b/AuthDelegate/test/CMakeLists.txt
+--- a/AuthDelegate/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/AuthDelegate/test/CMakeLists.txt	2017-09-24 02:17:47.528047876 +0800
+@@ -1 +1,3 @@
+ discover_unit_tests("${AuthDelegate_SOURCE_DIR}/include" AuthDelegate)
++
++target_link_libraries(AuthDelegateTest atomic)
+diff -Nur a/AVSCommon/AVS/test/CMakeLists.txt b/AVSCommon/AVS/test/CMakeLists.txt
+--- a/AVSCommon/AVS/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/AVSCommon/AVS/test/CMakeLists.txt	2017-09-24 02:17:30.428046987 +0800
+@@ -4,3 +4,14 @@
+     "${AVSCommon_SOURCE_DIR}/AVS/test"
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ discover_unit_tests("${INCLUDE_PATH}" "AVSCommon;AttachmentCommonTestLib")
++
++target_link_libraries(AlexaClientSDKInitTest atomic)
++target_link_libraries(DialogUXStateAggregatorTest atomic)
++target_link_libraries(ExceptionEncounteredSenderTest atomic)
++target_link_libraries(HandlerAndPolicyTest atomic)
++target_link_libraries(CapabilityAgentTest atomic)
++target_link_libraries(NamespaceAndNameTest atomic)
++target_link_libraries(AttachmentWriterTest atomic)
++target_link_libraries(AttachmentManagerV2Test atomic)
++target_link_libraries(AttachmentReaderTest atomic)
++target_link_libraries(AttachmentTest atomic)
+diff -Nur a/AVSCommon/Utils/test/CMakeLists.txt b/AVSCommon/Utils/test/CMakeLists.txt
+--- a/AVSCommon/Utils/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/AVSCommon/Utils/test/CMakeLists.txt	2017-09-24 02:15:50.132041774 +0800
+@@ -1 +1,14 @@
+ discover_unit_tests("${AVSCommon_INCLUDE_DIRS}" AVSCommon)
++
++target_link_libraries(ConfigurationNodeTest atomic)
++target_link_libraries(SharedDataStreamTest atomic)
++target_link_libraries(JSONUtilTest atomic)          
++target_link_libraries(TaskQueueTest atomic)
++target_link_libraries(LogEntryStreamTest atomic)    
++target_link_libraries(TaskThreadTest atomic)
++target_link_libraries(ConfigurationNodeTest atomic) 
++target_link_libraries(LoggerTest atomic)            
++target_link_libraries(TimerTest atomic)
++target_link_libraries(ExecutorTest atomic)          
++target_link_libraries(RequiresShutdownTest atomic)  
++target_link_libraries(UUIDGenerationTest atomic)
+diff -Nur a/CapabilityAgents/AIP/test/CMakeLists.txt b/CapabilityAgents/AIP/test/CMakeLists.txt
+--- a/CapabilityAgents/AIP/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/CapabilityAgents/AIP/test/CMakeLists.txt	2017-09-24 01:19:31.000000000 +0800
+@@ -6,3 +6,4 @@
+     "${AVSCommon_SOURCE_DIR}/AVS/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" AIP)
++target_link_libraries(AudioInputProcessorTest atomic)
+diff -Nur a/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt b/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt
+--- a/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/CapabilityAgents/SpeechSynthesizer/test/CMakeLists.txt	2017-09-24 02:15:36.200041050 +0800
+@@ -3,3 +3,5 @@
+ set(INCLUDE_PATH "${SpeechSynthesizer_INCLUDE_DIRS}" "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" SpeechSynthesizer)
++
++target_link_libraries(SpeechSynthesizerTest atomic)
+\ No newline at end of file
+diff -Nur a/CapabilityAgents/System/test/CMakeLists.txt b/CapabilityAgents/System/test/CMakeLists.txt
+--- a/CapabilityAgents/System/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/CapabilityAgents/System/test/CMakeLists.txt	2017-09-24 02:15:22.928040360 +0800
+@@ -7,3 +7,7 @@
+     "${AVSCommon_SOURCE_DIR}/SDKInterfaces/test")
+ 
+ discover_unit_tests("${INCLUDE_PATH}" "AVSSystem;ADSL")
++
++target_link_libraries(StateSynchronizerTest atomic)
++target_link_libraries(EndpointHandlerTest atomic)
++target_link_libraries(UserInactivityMonitorTest atomic)
+diff -Nur a/ContextManager/test/CMakeLists.txt b/ContextManager/test/CMakeLists.txt
+--- a/ContextManager/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/ContextManager/test/CMakeLists.txt	2017-09-24 01:15:31.000000000 +0800
+@@ -1 +1,2 @@
+ discover_unit_tests("${ContextManager}/include" ContextManager)
++target_link_libraries(ContextManagerTest atomic)
+diff -Nur a/Integration/test/CMakeLists.txt b/Integration/test/CMakeLists.txt
+--- a/Integration/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/Integration/test/CMakeLists.txt	2017-09-24 02:14:33.920037813 +0800
+@@ -95,4 +95,13 @@
+     else()
+         message("Skipping build of NetworkIntegrationTests.cpp.")
+     endif()
+-endif()
+\ No newline at end of file
++endif()
++
++target_link_libraries(AlexaAuthorizationDelegateTest atomic)
++target_link_libraries(AlertsIntegrationTest atomic)
++target_link_libraries(AlexaCommunicationsLibraryTest atomic)
++target_link_libraries(AlexaDirectiveSequencerLibraryTest atomic)
++target_link_libraries(AudioInputProcessorIntegrationTest atomic)
++target_link_libraries(AudioPlayerIntegrationTest atomic)
++target_link_libraries(ServerDisconnectIntegrationTest atomic)
++target_link_libraries(SpeechSynthesizerIntegrationTest atomic)
+diff -Nur a/KWD/test/CMakeLists.txt b/KWD/test/CMakeLists.txt
+--- a/KWD/test/CMakeLists.txt	2017-09-20 06:08:49.000000000 +0800
++++ b/KWD/test/CMakeLists.txt	2017-09-24 02:15:02.492039298 +0800
+@@ -1 +1,3 @@
+-discover_unit_tests("${KWD_SOURCE_DIR}/include" KWD)
+\ No newline at end of file
++discover_unit_tests("${KWD_SOURCE_DIR}/include" KWD)
++
++target_link_libraries(AbstractKeywordDetectorTest atomic)
+\ No newline at end of file

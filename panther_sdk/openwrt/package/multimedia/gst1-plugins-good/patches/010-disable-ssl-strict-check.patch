@@ -1,0 +1,12 @@
+diff -Nur b/ext/soup/gstsouphttpsrc.c c/ext/soup/gstsouphttpsrc.c
+--- b/ext/soup/gstsouphttpsrc.c	2017-05-15 23:51:30.000000000 +0800
++++ c/ext/soup/gstsouphttpsrc.c	2017-10-04 22:49:36.274393654 +0800
+@@ -124,7 +124,7 @@
+ #define DEFAULT_SOUP_LOG_LEVEL       SOUP_LOGGER_LOG_HEADERS
+ #define DEFAULT_COMPRESS             FALSE
+ #define DEFAULT_KEEP_ALIVE           FALSE
+-#define DEFAULT_SSL_STRICT           TRUE
++#define DEFAULT_SSL_STRICT           FALSE
+ #define DEFAULT_SSL_CA_FILE          NULL
+ #define DEFAULT_SSL_USE_SYSTEM_CA_FILE TRUE
+ #define DEFAULT_TLS_DATABASE         NULL

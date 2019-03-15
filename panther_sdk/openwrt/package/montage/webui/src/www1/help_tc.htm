@@ -1,0 +1,355 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body>
+ <div class=help1>
+  <dl>
+   <dd>請參考說明手冊</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='dns.htm'>DNS</a></dt>
+   <dd>域名系统是用來把域名和IP位址互相轉換的數據庫. ISP至少會提供一組DNS主機的位置.如果你想要使用其他的DNS主機請在這幾個欄位之中的其中一個輸入IP位置. 你最多可以輸入3組DNS主機的位置, 路由器將利用這些資訊更快地存取域名系统主機.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_DHCPC-->
+ <div class=help1>
+  <dl>
+   <dt><a id='dhcpc.htm'>DHCP(動態主機設置協議)</a></dt>
+   <dd>從ISP自動獲取一個IP位址.</dd>
+   <dt>MAC位址複製功能</dt>
+   <dd>將WAN端的MAC位址改為LAN端客戶的MAC位址.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='fixip.htm'>靜態IP</a></dt>
+   <dd>設定網際網路上路由器的IP位址與子網路遮罩.</dd>
+   <dt>預設閘道器</dt>
+   <dd>ISP應該告知您閘道器的IP位址.</dd>
+   <dt>MTU(最大傳輸單元)</dt>
+   <dd>指定網路傳輸所使用的封包大小上限.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_PPPOE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='pppoe.htm'></a></dt>
+   <dt>持續連線選項</dt>
+   <dd>持續連線,甚至當連線閒置.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='hostconf.htm'>時區</a></dt>
+   <dd>請根據你的位置選擇時區</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='porttrig.htm'>端口觸發</a></dt>
+   <dd>不用指定轉發到某個IP位址的一種端口轉發功能. 根據端口觸發規則, 當發現觸發端口上有出境封包, 接著將允許公用服務端口上入境的封包被轉發到觸發的LAN端客戶. 這被叫做端口觸發因為是由出境封包觸發入境封包的端口轉發功能.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='dhcps.htm'>LAN設置</a></dt>
+   <dd>設定LAN端<b>IP位址</b>與<b>子網路遮罩</b>
+   </dd>
+   <dt>DHCP(動態主機設置協議)</dt>
+   <dd>使用DHCP來得到IP網路上的必要訊息.這將減少網路管理者的負擔,並允許裝置加入網路不需要手動設置.</dd>
+   <dt>DHCP伺服器探測</dt>
+   <dd>偵測LAN端是否有其他DHCP伺服器.如果偵測到其他DHCP伺服器,將關閉路由器的DHCP伺服器.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='clientlist.htm'>DHCP使用者列表</a></dt>
+   <dd>可以看到LAN端使用者的IP位址,主機名稱,MAC位址.另外,可針對特定主機給予IP位址.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='VLAN_Port_Settings'>虛擬區域網路</a></dt>
+   <dd>虛擬局域網路允許你隔離廣播域的範圍。在相同虛擬區網路的成員有相同的識別</dd>
+   <dt>PVID</dt>
+   <dd>每個端口VID範圍是1 ~ 4094,路由器模式下,WAN端口VID不能等於LAN端口的VID</dd>
+   <dt>優先權</dt>
+   <dd>802.1p 使用者其權限0為最低, 7為最高</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='VLAN_Group_Settings'>Group Settings</a></dt>
+   <dd>Up to eight VLAN group rules can config and enable to classfied VLAN identifier and port membership. There are three options on each port, select X for any port that is not included in the VLAN group. Select the Tag option to enable tagging for the port. Select the Untag option to include the port in the VLAN group without tagging.</dd>
+   <dt>Management VID</dt>
+   <dd>在路由器模式時,Wan端口的VID不能和任一LAN端口的VID相同</dd>
+   <dt>PVID settings</dt>
+   <dd>Each port has it's port VID and use to classfied VLAN membership if untag packet.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_NAT-->
+ <div class=help1>
+  <dl>
+   <dt><a id='vserver.htm'>虛擬伺服器</a></dt>
+   <dd>允許建立網路上公開的服務,像是網站,FTP伺服器,e-mail伺服器. 利用端口轉發的功能將封包從路由器上的公用服務端口轉發到LAN端的私用服務端口.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='portmap.htm'>端口映射</a></dt>
+   <dd>允許建立網路上公開的服務,像是網站,FTP伺服器,e-mail伺服器,或是一些特殊的網際網路應用. 特殊的網際網路應用指的是視訊會議或是線上遊戲. 當網際網路上有這些服務要求發生的時候,將轉送這些要求到指定的PC上.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='routetable.htm'>路由表</a></dt>
+   <dd>顯示當前所有路由規則</dd>
+   <dt>路由規則</dt>
+   <dd>路由規則決定路由器收到的封包要轉送往哪一個IP位址</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='staticroute.htm'>靜態路由</a></dt>
+   <dd>靜態路由是由用戶或網路管理者手動設置的路由規則(例如: 目的網路IP: 192.168.100.1，子網路遮罩: 255.255.255.0，閘道器IP: 192.168.0.2)</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UPNP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='upnp.htm'>UPnP (通用即插即用)</a></dt>
+   <dd>啟動UPnP後,會自動搜尋LAN端支援通用即插即用的裝置.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_DDNS-->
+ <div class=help1>
+  <dl>
+   <dt><a id='ddns.htm'>DDNS(動態DNS)</a></dt>
+   <dd>將定時刷新路由器IP位址給DDNS伺服器</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='config.htm'>回復設定</a></dt>
+   <dd>系統設定被回復為出廠設定.注意!!!出廠設定:[使用者帳號: admin]，[密碼: admin]，[IP位址: 192.168.0.1]，[網路遮罩: 255.255.255.0]</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='alg.htm'>VPN(虛擬私人網路)</a></dt>
+   <dd>根據您的<b>VPN使用需要</b>打開對應的穿透功能</dd>
+   <dt>FTP(文件傳輸協議)</dt>
+   <dd>讓您LAN端的FTP伺服器可以支援被動模式; 讓LAN端的FTP客戶可以支援主動模式</dd>
+   <dt>網路會議</dt>
+   <dd>為了讓網路會議可以被發起, 監控端口1720.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='urlf.htm'>URL過濾</a></dt>
+   <dd>設定使用者不能存取的網站</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='macf.htm'>MAC過濾</a></dt>
+   <dd>設定禁止連上網際網路的使用者</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='clientf.htm'>使用者過濾</a></dt>
+   <dd>封鎖使用者特定連線的建立，請設定使用者的IP位址 端口編號(80:HTTP) 傳輸協定(TCP/IP)</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='hacker.htm'>防火牆選項</a></dt>
+   <dd>啟用網路攻擊防護功能</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='status.htm'>狀態</a></dt>
+   <dd>此頁面顯示路由器當前的狀態和設定</dd>
+   <dt>韌體版本</dt>
+   <dd>可上網<a href="http://www.vendor.com" target="_blank">www.vendor.com</a>查看是否有更新的韌體</dd>
+   <dt>DNS</dt>
+   <dd>路由器使用的DNS伺服器IP位址，通常會設定多個DNS伺服器，以第一個設定為先</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_LOG-->
+ <div class=help1>
+  <dl>
+   <dt><a id='log.htm'>紀錄</a></dt>
+   <dd>裝置上的活動和事件將被紀錄在此</dd>
+   <dd>你可以下載此紀錄檔</dd>
+   <dd>當裝置重新啟動，此紀錄檔將自動被清除</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='upgrade.htm'>韌體更新</a></dt>
+   <dd>請先確認韌體檔案已經儲存在主機的硬碟內，接著按下Browse選擇韌體</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='tool.htm'>工具</a></dt>
+   <dd>如果系統沒有回應，可按下<b>重啟</b>鍵進行強制重啟</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='lang.htm'>語言</a></dt>
+   <dd>指定網頁顯示的語言</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='logconf.htm'>Email紀錄</a></dt>
+   <dd>Email路由器紀錄資訊到收件者電子郵件地址</dd>
+   <dt>SMTP伺服器</dt>
+   <dd>寄件者的郵件伺服器</dd>
+   <dt>電子郵件信箱</dt>
+   <dd>請先設定好寄件與收件者的電子郵件地址，再按<b>傳收</b>進行收件測試</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='logout.htm'>登出</a></dt>
+   <dd>登出帳號，需重新輸入帳號密碼!!</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_PPTP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='pptp.htm'>PPTP (點對點隧道協議)</a></dt>
+   <dd>PPTP是一種用來實現虛擬私人網路的隧道協議.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_L2TP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='l2tp.htm'>L2TP(第二層隧道協議)</a></dt>
+   <dd>L2TP是一種用來實現虛擬私人網路的隧道協議.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='Rate_Control'>流量限制</a></dt>
+   <dd>頻寬的換算關係為：
+    <br>1KBps=8Kbps;1Mbps=1000Kbps
+    <br>
+    <dd>總(上傳/下載)頻寬:
+     <br>請根據實際您所申請的頻寬情況進行選擇和填寫，如不清楚，請諮詢您的電信商
+     <br>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_WIZARD_WEB-->
+ <div class=help1>
+  <dl>
+   <dt><a id='wizard.htm'>主機名稱</a></dt>
+   <dd>您替路由器取的名稱</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_VIDEO_STREAM-->
+ <div class=help1>
+  <dl>
+   <dt><a id='stream.htm'>瀏覽器的媒體播放器插件</a></dt>
+   <dd>請選用<a href="http://www.videolan.org" target="_blank">VLC</a>播放</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='webcam_record.htm'>在一周裡的排程計畫</a></dt>
+   <dd>一周分為七天
+    <br>每一天再以半小時來切開</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_SONIX_MOTION_DETECTION-->
+ <div class=help1>
+  <dl>
+   <dt><a id='sonix_md.htm'>Motion Detection</a></dt>
+   <dd>Motion detection 是一種檢測物體位置變化的處理</dd>
+   <dt>如何選擇或取消一個檢測範圍?</dt>
+   <dd>1. 選擇解鎖
+    <br>2. 使用滑鼠左鍵切換選擇或取消模式
+    <br>3. 移動游標選擇或取消區塊
+   </dd>
+  </dl>
+ </div>
+ <!--endif-->
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='x'>x</a></dt>
+   <dd>x's definition</dd>
+  </dl>
+ </div>
+ <!--endif-->
+</body>
+
+</html>

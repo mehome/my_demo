@@ -1,0 +1,26 @@
+diff -Nur a/libutil++/op_bfd.cpp b/libutil++/op_bfd.cpp
+--- a/libutil++/op_bfd.cpp	2013-07-29 23:55:05.000000000 +0800
++++ b/libutil++/op_bfd.cpp	2018-05-14 10:12:28.215065436 +0800
+@@ -415,7 +415,9 @@
+ {
+ 	op_bfd_symbol const & sym = syms[sym_idx];
+ 
++#if 0
+ 	bool const verbose = cverb << (vbfd & vlevel1);
++#endif
+ 
+ 	if (anon_obj)
+ 		start = sym.vma();
+@@ -423,8 +425,12 @@
+ 		start = sym.filepos();
+ 	end = start + sym.size();
+ 
++#if 1
++	return;
++#else
+ 	if (!verbose)
+ 		return;
++#endif		
+ 
+ 	io_state state(cverb << (vbfd & vlevel1));
+ 

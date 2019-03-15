@@ -1,0 +1,8 @@
+#
+# Panther board
+#
+platform-$(CONFIG_PANTHER)	+= panther/
+cflags-$(CONFIG_PANTHER)	+= -I$(srctree)/arch/mips/include/asm/mach-panther
+load-$(CONFIG_PANTHER)	        += 0xffffffff80000500
+all-$(CONFIG_PANTHER)	        := $(COMPRESSION_FNAME).bin
+

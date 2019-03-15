@@ -1,0 +1,527 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$webcam_support', '$webcam_format', '$webcam_rsch_enable', '$webcam_rsch_rules', 'webcam status']);
+var record_status = Number(wdk.cdbVal('webcam status'));
+
+function on_click_manual_sync() //Sync with your computer
+{
+	var computer_time = 0;
+	var curdate = new Date();
+
+	if (!confirm(wdk.msg("RTP Server will restart after system time synchronization")))
+		return;
+
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+	wdk.showResultBG();
+	showHide("display", 0);
+
+	computer_time = parseInt(curdate.getTime() / 1000);
+	wdk.cliCmd('time sync ' + computer_time);
+	wdk.cliCmd('webcam restart');
+	setTimeout(function() {
+		top.location.reload(true);
+	}, 2000);
+}
+
+function table_click(evt) {
+	var row, col;
+	var td = evt.srcElement || evt.target; //evt.srcElement? evt.srcElement: evt.target;
+
+	if (td.tagName != "TD")
+		return;
+
+	row = td.parentElement.rowIndex;
+	col = td.cellIndex;
+	//alert("row:" + row + " col:" + col);
+
+	if (row == 0 || col == 0)
+		return;
+
+	td.className = td.className == "selected" ? "unselected" : "selected";
+}
+
+function get_entries() {
+	var x = document.getElementsByTagName("td");
+	var a = new Array();
+	for (var i = 0; i < x.length; i++) {
+		if (x[i].parentElement.rowIndex != 0 && x[i].cellIndex != 0)
+			a.push(x[i]);
+	}
+	//alert(a.length);
+	return a;
+}
+
+var BITMAPLENGTH = 84;
+var bmap = [
+	'0000', '0001', '0010', '0011',
+	'0100', '0101', '0110', '0111',
+	'1000', '1001', '1010', '1011',
+	'1100', '1101', '1110', '1111'
+];
+
+function set_sch(str) {
+	var a = get_entries();
+	var r = "";
+	//console.log("s=", str);
+	for (var i = 0; i < BITMAPLENGTH; i++) {
+		//console.log("s[", i, "]=", str.slice(i, i+1));
+		r += bmap[parseInt(str.slice(i, i + 1), 16)];
+	}
+	//console.log("r=", r);
+	for (var i = 0; i < a.length; i++) {
+		//console.log("r.charAt(i)", r.charAt(i));
+		if (r.charAt(i) == "1")
+			a[i].className = "selected";
+		else
+			a[i].className = "unselected";
+	}
+}
+
+function get_sch() {
+	var a = get_entries();
+	var s = "";
+	var r = "";
+	for (var i = 0; i < a.length; i++) {
+		if (a[i].className == "selected")
+			r += "1";
+		else
+			r += "0";
+		if (r.length == 4) {
+			var t = parseInt(r, 2).toString(16);
+			//console.log("t=", t);
+			s += t;
+			r = "";
+		}
+	}
+	return s.toLowerCase();
+}
+
+function sall(s) {
+	if (!confirm(wdk.msg(s ? "Selected All" : "Deselected All")))
+		return;
+	var a = get_entries();
+	var t = s ? "selected" : "unselected";
+	for (var i = 0; i < a.length; i++)
+		a[i].className = t;
+	return;
+}
+
+function update_prompt() {
+	var rc = Number(wdk.cliCmd("webcam status"));
+	if (record_status == rc) {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+		setTimeout(update_prompt, 1000);
+	} else {
+		if ((record_status == 0) && (rc == 5))
+			wdk.getById("titleupwarng").innerHTML = wdk.msg("Recording");
+		else if ((record_status == 5) && (rc == 0))
+			wdk.getById("titleupwarng").innerHTML = wdk.msg("Record completed");
+		else
+			wdk.getById("titleupwarng").innerHTML = wdk.msg("Failed");
+		setTimeout(function() {
+			top.location.reload(true);
+		}, 1000);
+	}
+}
+
+function update_status_display() {
+	var p = "";
+	var d = true;
+	var v = "";
+
+	switch (record_status) {
+		case 0:
+			p = wdk.msg("no recording");
+			d = false;
+			v = wdk.msg("Record");
+			break;
+		case 3:
+			p = wdk.msg("motion detection recording");
+			d = false;
+			v = wdk.msg("Stop");
+			break;
+		case 5:
+			p = wdk.msg("software switch recording");
+			d = false;
+			v = wdk.msg("Stop");
+			break;
+		case 9:
+			p = wdk.msg("schedule recording");
+			d = true;
+			v = wdk.msg("N/A");
+			break;
+		case 17:
+			p = wdk.msg("hardware switch recording");
+			d = true;
+			v = wdk.msg("N/A");
+			break;
+		default:
+			p = wdk.msg("exception");
+			break;
+	}
+	wdk.getById("rst").value = p;
+	wdk.getById("rb").disabled = d;
+	wdk.getById("rb").value = v;
+}
+
+function media_exist() {
+	wdk.showResultBG();
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("check if storage exists");
+	var s = wdk.cliCmd("stor ls " + encodeURIComponent("/"));
+	if (s.indexOf("mmcblk") != -1)
+		return true;
+	else {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Please insert a SD card before starting video recording");
+		setTimeout(function() {
+			top.location.reload(true);
+		}, 2000);
+		return false;
+	}
+}
+
+function record_toggle() {
+	if (!record_status && !media_exist())
+		return;
+	else {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+		wdk.showResultBG();
+		showHide("display", 0);
+	}
+
+	update_prompt();
+	if (record_status)
+		wdk.cliCmd("webcam rec_off");
+	else
+		wdk.cliCmd("webcam rec_on");
+}
+
+function add_select_option(s, v) {
+	//avoid re-create option when push cancel button
+	if (s.length) return;
+	addOptions(s, v);
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var vdev = rule2var(format, "vdev");
+	var fmt = rule2var(format, "ifmt");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+	var player_html = '<object classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921" codebase="http://downloads.videolan.org/pub/videolan/vlc/latest/win32/axvlc.cab" width="480" height="360" id="vlc"><param name="Src" value="' + url + '"><' + '/param><param name="AutoLoop" value="no"><' + '/param><param name="AutoPlay" value="yes"><' + '/param><embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" id="vlcfirefox" autoplay="yes" loop="no" width="480" height="360" target="' + url + '"><' + '/embed><' + '/object>';
+
+	wdk.getById("display").innerHTML = player_html;
+	showHide("display", 1);
+
+	//create some options
+	var support = wdk.cdbVal('$webcam_support');
+	var ifmt = rule2var(support, "ifmt").split(":");
+	var ft = rule2var(support, "ft").split(":");
+	add_select_option(wdk.getById("ifmt"), ifmt);
+	add_select_option(wdk.getById("ft"), ft);
+	//prepare for record option
+	wdk.cdbNew('$web_record_ops', format);
+
+	//create half-hour table
+	if (!wdk.getById("d1")) {
+		cpyEntry("d0", 6);
+		wdk.setTD(wdk.getById("d1").children[0], "MON");
+		wdk.setTD(wdk.getById("d2").children[0], "TUE");
+		wdk.setTD(wdk.getById("d3").children[0], "WED");
+		wdk.setTD(wdk.getById("d4").children[0], "THU");
+		wdk.setTD(wdk.getById("d5").children[0], "FRI");
+		wdk.setTD(wdk.getById("d6").children[0], "SAT");
+	}
+	set_sch(wdk.cdbVal("$webcam_rsch_rules"));
+
+	f.reset();
+	wdk.init_form();
+
+	update_status_display();
+
+	wdk.getById("systime").value = wdk.cliCmd('time ntpstr')
+
+	showHide('r_total', wdk.getById("$webcam_rsch_enable").checked);
+	showHide('stime', wdk.getById("$webcam_rsch_enable").checked);
+
+	wdk.getById("sel").value = wdk.msg("Select All");
+	wdk.getById("des").value = wdk.msg("Deselect All");
+	wdk.getById("sb").value = wdk.msg("Sync with host");
+	wdk.getById("fsuffix").innerHTML = "_" + ((fmt == "date") ? "YMDhms" : fmt) + ".";
+}
+
+function apply() {
+	//check the maximum time of file
+	if (!chkNum(wdk.getById("st"), 60, 3600, "Time")) {
+		highlight("st");
+		return;
+	}
+	//check the filename prefix
+	if (!chkStrNoNull(wdk.getById("out"), "Filename Prefix", /[^a-zA-Z0-9#\.@-]/)) {
+		highlight("out");
+		return;
+	}
+	var sch_str = get_sch();
+	//alert(sch_str);
+	// check the unneeded schedule case
+	if (sch_str == "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") {
+		alert(wdk.msg("If you want to record at all time. You just click the record button."));
+		return;
+	}
+	// check the no schedule case
+	if (wdk.getById("$webcam_rsch_enable").checked && sch_str == "000000000000000000000000000000000000000000000000000000000000000000000000000000000000") {
+		alert(wdk.msg("Please select a range."));
+		return;
+	}
+
+	wdk.cdbSet("$webcam_rsch_rules", sch_str);
+	wdk.cdbSet("$webcam_rsch_enable", Number(wdk.getById("$webcam_rsch_enable").checked));
+	if (wdk.cdbChg("$webcam_rsch_enable") && wdk.cdbVal("$webcam_rsch_enable") == 0) {
+		/*WSIM_BEGIN*/
+		alert("webcam sch_dis");
+		/*WSIM_END*/
+		wdk.cliCmd("webcam sch_dis");
+	}
+	if ((wdk.cdbVal("$webcam_rsch_enable") == 1) && (wdk.cdbChg("$webcam_rsch_rules") || wdk.cdbChg("$webcam_rsch_enable"))) {
+		/*WSIM_BEGIN*/
+		alert("webcam sch " + sch_str);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam sch " + sch_str);
+	}
+
+	var str = wdk.cdbVal("$webcam_format")
+	var ost = rule2var(str, "st");
+	var st = wdk.getById("st").value;
+	var ifmt = getSelectValue("ifmt");
+	var ft = getSelectValue("ft");
+	var oout = rule2var(str, "out");
+	var out = wdk.getById("out").value;
+
+	str = updaterulevar(str, "st", st);
+	str = updaterulevar(str, "ifmt", ifmt);
+	str = updaterulevar(str, "ft", ft);
+	str = updaterulevar(str, "out", out);
+	wdk.cdbSet("$webcam_format", str)
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("");
+
+	if (ost != st) {
+		/*WSIM_BEGIN*/
+		alert("webcam mrp " + st);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam mrp " + st);
+	}
+	if (oout != out) {
+		/*WSIM_BEGIN*/
+		alert("webcam rec_pfx " + out);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam rec_pfx " + out);
+	}
+
+	if (!(wdk.cdbChg("$webcam_format") || wdk.cdbChg("$webcam_rsch_enable") || wdk.cdbChg("$webcam_rsch_rules"))) {
+		alert(wdk.msg('The settings are not changed!!'));
+	} else {
+		wdk.save_form(0, 1);
+		wdk.showResultBG();
+		wdk.redirect(5);
+	}
+}
+ </SCRIPT>
+ <style type=text/css>
+td.selected {
+ background-color: #FFB900;
+}
+td.unselected {
+ background-color: #FFFFFF;
+}
+tr.titleRow {
+ background-color: #5f8cff;
+}
+td.titleRowCol {
+ background-color: #FFFFFF;
+}
+td.titleCol {
+ background-color: #4CAF50;
+}
+table {
+ border-collapse: collapse;
+}
+td {
+ border: 1px solid black;
+}
+ </style>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset id=$web_record_ops>
+   <legend>
+    <script>
+wdk.putmsg("Record Settings");
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Status");
+     </script>
+    </div>
+    <input id=rst readonly>
+    <input id=rb class=button type=button onclick=record_toggle()>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Maximum Time of File");
+     </script>
+     &nbsp;(60~3600)
+    </div>
+    <input name=st id=st maxlength=6>&nbsp;seconds
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("File");
+     </script>
+    </div>
+    /mmcblkx/record/
+    <input name=out id=out maxlength=20>
+    <select name=ifmt id=ifmt size=1 style="display:none;"></select><span id=fsuffix>.</span>
+    <select name=ft id=ft size=1></select>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Schedule");
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Enabled");
+     </script>
+    </div>
+    <input type=checkbox id=$webcam_rsch_enable value=1 onclick="showHide('r_total',this.checked);showHide('stime',this.checked)">
+   </div>
+   <div class=setting id=stime>
+    <div class=label>
+     <script>
+wdk.putmsg("System Time");
+     </script>
+    </div>
+    <input name=systime id=systime readonly>
+    <input id=sb class=button type=button onclick=on_click_manual_sync()>
+   </div>
+   <div id=r_total>
+    <input id=sel class=button type=button onclick=sall(1)>
+    <input id=des class=button type=button onclick=sall(0)>
+    <table onclick="table_click(event)">
+     <tbody>
+      <tr class="titleRow">
+       <td class="titleRowCol">D/H</td>
+       <td colspan="2">00</td>
+       <td colspan="2">01</td>
+       <td colspan="2">02</td>
+       <td colspan="2">03</td>
+       <td colspan="2">04</td>
+       <td colspan="2">05</td>
+       <td colspan="2">06</td>
+       <td colspan="2">07</td>
+       <td colspan="2">08</td>
+       <td colspan="2">09</td>
+       <td colspan="2">10</td>
+       <td colspan="2">11</td>
+       <td colspan="2">12</td>
+       <td colspan="2">13</td>
+       <td colspan="2">14</td>
+       <td colspan="2">15</td>
+       <td colspan="2">16</td>
+       <td colspan="2">17</td>
+       <td colspan="2">18</td>
+       <td colspan="2">19</td>
+       <td colspan="2">20</td>
+       <td colspan="2">21</td>
+       <td colspan="2">22</td>
+       <td colspan="2">23</td>
+      </tr>
+      <tr id=d0>
+       <td class="titleCol">SUN</td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+       <td></td>
+      </tr>
+     </tbody>
+    </table>
+   </div>
+  </fieldset>
+  <br>
+  <div id=display style="display:none;" align=center>
+  </div>
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

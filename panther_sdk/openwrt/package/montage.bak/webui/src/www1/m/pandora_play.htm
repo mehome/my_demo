@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var LOGIN = "0";
+var play_station = 0;
+
+function volume(value) {
+	wdk.cliCmd("mpc volume " + value);
+}
+
+function playsong(station) {
+	wdk.cliCmd("pandora play " + station);
+	get_by_id("currentState").innerHTML = "Play";
+}
+
+function stopsong() {
+	wdk.cliCmd("pandora stop");
+	get_by_id("currentState").innerHTML = "Stop";
+}
+
+function nextsong() {
+	wdk.cliCmd("pandora next");
+	get_by_id("currentState").innerHTML = "Play";
+}
+
+function show_info() {
+	var vol = wdk.cliCmd("mpc volume").split(':');
+
+	play_station = parseInt(wdk.cliCmd("pandora get_station_idx"));
+
+	get_by_id("volumeNum").innerHTML = vol[vol.length - 1];
+	get_by_id("volumeControl").value = parseInt(vol[vol.length - 1].replace(" ", "").replace("%", ""));
+	get_by_id("currentPlay").innerHTML = station_list[play_station] + " -- " + wdk.cliCmd("pandora get_play_song").trim();
+
+	setTimeout("show_info()", 3000);
+}
+
+function show_stations() {
+	var content = "";
+	var stations = wdk.cliCmd("pandora get_stations").replace("\n", "");
+
+	if (stations != "") {
+		station_list = stations.split(";");
+
+		content += "<ul class=pageitem>";
+		for (var i = 0; i < station_list.length; i++) {
+			content += "<li class=menu><a href=# onclick=playsong(" + i + ")><img src=images/radioIcon.jpg /><span class=name>" + station_list[i] + "<" + "/span><span class=arrow><" + "/span><" + "/a><" + "/li>";
+		}
+		content += "<" + "/ul>";
+
+		get_by_id("stat_list").innerHTML = content;
+	}
+}
+
+function logout() {
+	stopsong();
+	wdk.cliCmd("pandora shutdown");
+	wdk.getById("stat_list").innerHTML = "";
+	LOGIN = "0";
+	goUrl("pandora_login.htm");
+}
+
+function init() {
+	wdk.stopTimeout();
+
+	LOGIN = wdk.cliCmd("pandora get_login_status").replace("\n", "");
+
+	if (LOGIN == "0") {
+		goUrl("pandora_login.htm");
+	} else {
+		var vol = wdk.cliCmd("mpc volume").split(':');
+		get_by_id("volumeControl").value = parseInt(vol[vol.length - 1].replace(" ", "").replace("%", ""));
+		get_by_id("currentState").innerHTML = "Play";
+
+		play_station = parseInt(wdk.cliCmd("pandora get_station_idx"));
+
+		show_stations();
+		show_info();
+	}
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">Pandora Player</div>
+   <div id="rightbutton">
+    <a href="#" onclick="logout()">
+     <script>
+show_words("Logout")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+
+   <div id="playControl" class="btnWrapper">
+    <div id="btnHolder">
+     <span id="playStop" onclick="stopsong()"></span>
+     <span id="playNext" onclick="nextsong()"></span>
+    </div>
+    <div id="buttonBackgroundFiller"></div>
+   </div>
+
+   <span class="graytitle">Current Play and State</span>
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span id="currentPlay" class="leftname"></span>
+     <span id="currentState" class="rightname" value=""></span>
+    </li>
+   </ul>
+
+   <span class="graytitle">Volume Control</span>
+   <ul class="pageitem">
+    <li id="volBar" class="smallfield">
+     <input id="volumeControl" type="range" min="0" max="100" value="0" step="1" oninput="volume(value)">
+     <span id="volumeNum"></span>
+    </li>
+   </ul>
+
+   <span class="graytitle">Stations</span>
+   <div id="stat_list"></div>
+
+  </div>
+ </form>
+</body>
+
+</html>

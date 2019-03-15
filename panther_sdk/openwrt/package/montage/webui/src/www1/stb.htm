@@ -1,0 +1,295 @@
+<!--ifdef CONFIG_MPEGTS_ASYNCFIFO-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$sys_program1-20']);
+
+var max = 20;
+var listnum;
+var curIdx = -1;
+
+function init() {
+	var f = document.frm;
+	listnum = wdk.cdbLen('$sys_program', max);
+	refreshList('$sys_program', max, listnum);
+	wdk.getById('usage').innerHTML = listnum + '/' + max;
+	f.reset();
+	wdk.init_form();
+}
+
+function change_init() {
+	wdk.presubmit_form();
+	init();
+}
+
+function change(add) {
+	var tab = wdk.findChildNode(wdk.getById('edit'));
+	var name = wdk.getByName(tab, 'name');
+	var vpid = wdk.getByName(tab, 'vpid');
+	var apid = wdk.getByName(tab, 'apid');
+	var feq = wdk.getByName(tab, 'feq');
+	var sym = wdk.getByName(tab, 'sym');
+	var pol = wdk.getByName(tab, 'pol');
+
+	var r = 'name=' + name.value;
+	r += '&vpid=' + vpid.value;
+	r += '&apid=' + apid.value;
+	r += '&feq=' + feq.value;
+	r += '&sym=' + sym.value;
+	r += '&pol=' + pol.value;
+	var k = curIdx;
+	if (add) {
+		k = listnum + 1;
+		if (k > max) {
+			alert(wdk.msg("Too many entries, maximum is ") + max);
+			return
+		}
+	}
+
+	wdk.cdbSet('$sys_program' + k, r);
+	change_init();
+}
+
+function edit(idx) {
+	var r = wdk.cdbVal('$sys_program' + idx);
+	r = (r == '') ? 'name=&vpid=&apid&feq=&sym=&pol=' : r;
+	wdk.fill_form_entry(wdk.getById('edit'), r);
+	markEntry(wdk.getById('$sys_program' + idx));
+	curIdx = idx;
+}
+
+function Remove(idx) {
+	wdk.cdbDel('$sys_program' + idx, max);
+	if (curIdx > 2)
+		curIdx--;
+	change_init();
+}
+
+function apply() {
+	var f = document.frm;
+	wdk.save_form(2000);
+}
+
+function select_program(p) {
+	var tab = wdk.findChildNode(p);
+	var vpid = wdk.getByHeaders(tab, 'vpid');
+	var apid = wdk.getByHeaders(tab, 'apid');
+	var feq = wdk.getByHeaders(tab, 'feq');
+	var sym = wdk.getByHeaders(tab, 'sym');
+	var pol = wdk.getByHeaders(tab, 'pol');
+
+	var r = 'tv';
+	r += ' ' + wdk.getTD(feq);
+	r += ' ' + wdk.getTD(sym);
+	r += ' ' + wdk.getTD(pol);
+	r += ' ' + wdk.getTD(vpid);
+	r += ' ' + wdk.getTD(apid);
+	wdk.cliCmd(r);
+}
+
+function select_target() {
+	var f = document.frm;
+	var r = 'tv';
+
+	wdk.showResultBG();
+	r += ' ' + f.IP.value;
+	wdk.cliCmd(r, show_result);
+}
+
+function show_result(rc) {
+	wdk.set_resut_ret(rc);
+	wdk.saveFormResult();
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Forwarding Target")
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=col31>
+     <script>
+wdk.putmsg("IP:Port");
+     </script>
+    </div>
+    <div>
+     <input placeholder="192.168.0.2:1234" name=IP size=34>
+     <input type=button class=button value=change onclick=select_target()>
+    </div>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Channel Settings")
+    </script>
+   </legend>
+   <div id=edit>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("TV Station");
+      </script>
+     </div>
+     <div>
+      <input placeholder="name or description" name=name size=34 maxlength=17>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("V PID")
+      </script>
+     </div>
+     <div>
+      <input placeholder="4 digital number" name=vpid size=34 maxlength=4>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("A PID")
+      </script>
+     </div>
+     <div>
+      <input placeholder="4 digital number" name=apid size=34 maxlength=4>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Feq")
+      </script>
+     </div>
+     <div>
+      <input placeholder="MHz" name=feq size=34>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Sym")
+      </script>
+     </div>
+     <div>
+      <input placeholder="KHz" name=sym size=34>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col31>
+      <script>
+wdk.putmsg("Pol")
+      </script>
+     </div>
+     <div>
+      <input placeholder="l/r" name=pol size=34 maxlength=1>
+     </div>
+    </div>
+    <div class=setting>
+     <center>
+      <script>
+puts('<input type=button class=button name=Add value="' + wdk.msg('Add') + '" onclick=change(1)>' +
+	'<input type=button class=button name=Mod value="' + wdk.msg('Modify') + '" onclick=change(0)>');
+      </script>
+     </center>
+    </div>
+   </div>
+   <div class=setting>
+    <div class=col31>
+     <script>
+wdk.putmsg("Rules Listing")
+     </script>
+    </div>
+    <div class=col3r><span id=usage></span>
+     <script>
+wdk.putmsg(" (using/max)")
+     </script>
+    </div>
+   </div>
+   <div class=floatKiller></div>
+   <hr>
+   <table class=infolist>
+    <tr>
+     <th width="5%" id="th_sel">
+      <script>
+wdk.putmsg("Sel")
+      </script>
+     </th>
+     <th width="15%" id="th_name">
+      <script>
+wdk.putmsg("TV Station")
+      </script>
+     </th>
+     <th width="10%" id="th_vpid">
+      <script>
+wdk.putmsg("V PID")
+      </script>
+     </th>
+     <th width="10%" id="th_apid">
+      <script>
+wdk.putmsg("A PID")
+      </script>
+     </th>
+     <th width="10%" id="th_feq">
+      <script>
+wdk.putmsg("Feq")
+      </script>
+     </th>
+     <th width="10%" id="th_sym">
+      <script>
+wdk.putmsg("Sym")
+      </script>
+     </th>
+     <th width="3%" id="th_pol">
+      <script>
+wdk.putmsg("Pol")
+      </script>
+     </th>
+     <th width=7%>
+      <script>
+wdk.putmsg("Action")
+      </script>
+     </th>
+    </tr>
+    <tr align=center id=$sys_program1>
+     <td headers=th_sel>
+      <input type=radio name=sel onclick=select_program(this.parentNode.parentNode)>
+     </td>
+     <td headers=th_name></td>
+     <td headers=th_vpid></td>
+     <td headers=th_apid></td>
+     <td headers=th_feq></td>
+     <td headers=th_sym></td>
+     <td headers=th_pol></td>
+     <td>
+      <img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode.rowIndex)>
+      <img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode.rowIndex)>
+     </td>
+    </tr>
+   </table>
+  </fieldset>
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

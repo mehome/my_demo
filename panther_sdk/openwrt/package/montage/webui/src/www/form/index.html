@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src=common.js></script>
+    <script src=wdk.js></script>
+    <script src=product.js></script>
+    <script src=status_init.js></script>
+    <link rel="stylesheet" href="assets/basic.css">
+    <link rel="stylesheet" href="assets/form-basic.css">
+
+    <title>Panther</title>
+    
+</head>
+<body onload=init()>
+    <ul>
+        <li><a href="index.html" class="active">STATUS</a></li>
+        <li><a href="ap.html">AP</a></li>
+        <li><a href="station.html">STATION</a></li>
+    </ul>
+
+
+    <div class="main-content">
+        <div class="form-basic">
+            <div class="form-title-row">
+                <h1>STATUS</h1>
+            </div>
+            <fieldset id="AP" style="display:none">
+                <legend> AP Mode </legend>
+                <div class="fieldset-row">
+                    <label>BSSID</label>
+                    <span id="ap_ssid"></span>
+                </div>
+                <div class="fieldset-row">
+                    <label>Network mode</label>
+                    <span id="ap_networkmode"></span>
+                </div>
+                <div class="fieldset-row">
+                    <label>Channel</label>
+                    <span id="ap_channel"></span>
+                </div>
+                <div class="fieldset-row">
+                    <label>Channel width</label>
+                    <span id="ap_channelwidth"></span>
+                </div>
+            </fieldset>
+            <fieldset id="STA" style="display:none">
+                <legend> Station Mode </legend>
+                <div class="fieldset-row">
+                    <label>STATUS</label>
+                    <span id="wpa_status">Waiting for query...</span>
+                </div>
+                <div class="fieldset-row">
+                    <label>SSID</label>
+                    <span id="ssid">Waiting for query...</span>
+                </div>
+                <div class="fieldset-row">
+                    <label>BSSID</label>
+                    <span id="bssid">Waiting for query...</span>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+
+</body>
+
+</html>

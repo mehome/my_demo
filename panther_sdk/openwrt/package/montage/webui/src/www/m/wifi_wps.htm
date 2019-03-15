@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+//SECURITY MODE
+var SECURITY_DISABLE = 0;
+var SECURITY_WEP_OPEN = 1;
+var SECURITY_WEP_SHARED = 2;
+var SECURITY_WEP = 4;
+var SECURITY_WEP_PLUS = 5;
+var SECURITY_WPA = 8;
+var SECURITY_WPA2 = 16;
+var SECURITY_WPA_WPA2 = 24;
+var SECURITY_WPS = 32;
+var SECURITY_WAPI = 128;
+
+//KEY_MGT
+var KEY_PSK_MGT = 0;
+var KEY_1X_MGT = 1;
+var KEY_SHA256_PSK_MGT = 2;
+var KEY_SHA256_1X_MGT = 3;
+var KEY_FT_PSK_MGT = 4;
+var KEY_FT_1X_MGT = 5;
+
+var param = [
+	'$wl_enable',
+	'$wl_bss_num',
+	'$wl_wps_def_pin',
+	'$wl_macf_mode',
+	'$wl_macf1-20',
+	'$wl_bss_sec_type1-' + SSID_MAX_NUM,
+	'$wl_bss_ssid_hidden1-' + SSID_MAX_NUM,
+	'$wl_bss_key_mgt1-' + SSID_MAX_NUM,
+	'$wl_bss_enable1-' + SSID_MAX_NUM,
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var wlanCfg = {
+	'wlan0_security_mode': mainObj.config_val("$wl_bss_sec_type1"),
+	'wlan0_8021x': mainObj.config_val("$wl_bss_key_mgt1"),
+	'wlan0_ssid_broadcast': mainObj.config_val('$wl_bss_ssid_hidden1'),
+	'mac_filter_mode': mainObj.config_val('$wl_macf_mode'),
+	'mac_filter_count': wdk.cdbLen('$wl_macf', 20),
+};
+
+function send_request() {
+	var enable_wps = get_by_id("wps_enable").value;
+
+	if (enable_wps == "1") {
+		var s_mode = wlanCfg.wlan0_security_mode;
+		var w_8021x = wlanCfg.wlan0_8021x;
+		var w_visible = wlanCfg.wlan0_ssid_broadcast;
+		var mf_mode = wlanCfg.mac_filter_mode;
+		var mf_count = wlanCfg.mac_filter_count;
+
+		if (w_visible == "1") {
+			alert(wdk.msg("Please enable broadcast SSID firstly!"));
+			set_checked(0, get_by_id("wps_enable"));
+			return;
+		}
+
+		if ((mf_mode == "2") && (mf_count >= 0)) {
+			alert(wdk.msg("Please add allowed MAC address or disable MAC Flitering firstly!"));
+			set_checked(0, get_by_id("wps_enable"));
+			return;
+		}
+
+		if (w_8021x == KEY_1X_MGT) {
+			alert(wdk.msg("Security Mode is 802.1X, WPS can't be enabled!"));
+			set_checked(0, get_by_id("wps_enable"));
+			return;
+		}
+
+		if (s_mode & SECURITY_WEP) {
+			alert(wdk.msg("Security Mode is WEP, WPS can't be enabled!"));
+			set_checked(0, get_by_id("wps_enable"));
+			return;
+		}
+
+		if ((s_mode & (SECURITY_WPA + SECURITY_WPA2)) == SECURITY_WPA) {
+			alert(wdk.msg("Security Mode is WPA-PSK only, WPS can't be enabled!"));
+			set_checked(0, get_by_id("wps_enable"));
+			return;
+		}
+
+		if (s_mode & SECURITY_WAPI) {
+			alert(wdk.msg("Security Mode is WAPI-PSK, WPS can't be enabled!"));
+			set_checked(0, get_by_id("wps_enable"));
+			return;
+		}
+
+		s_mode = mainObj.config_val('$wl_bss_sec_type1') | SECURITY_WPS;
+		mainObj.config_set(s_mode, '$wl_bss_sec_type1');
+	} else {
+		s_mode = mainObj.config_val('$wl_bss_sec_type1') & ~SECURITY_WPS;
+		mainObj.config_set(s_mode, '$wl_bss_sec_type1');
+	}
+
+	var ret = wdk.request_submit(1);
+	if (ret) {
+		wdk.goThisPage();
+	}
+}
+
+function init() {
+	var enable_wps = mainObj.config_val('$wl_bss_sec_type1') & SECURITY_WPS;
+
+	if (enable_wps) {
+		set_checked(1, get_by_id("wps_enable"));
+		get_by_id("wps_pbc").disabled = false;
+		get_by_id("wps_enable").value = "0";
+	} else {
+		set_checked(0, get_by_id("wps_enable"));
+		get_by_id("wps_pbc").disabled = true;
+		get_by_id("wps_enable").value = "1";
+	}
+}
+
+var count = 120;
+
+function do_count_down() {
+
+	get_by_id("wps_pbc").value = count;
+
+	if (count == 0) {
+		return false;
+	}
+
+	if (count > 0) {
+		count--;
+		setTimeout('do_count_down()', 1000);
+	}
+}
+
+function query_wps_state() {
+
+	var wps_info = wdk.cliCmd('wps 0 status').replace(/\w+\s*\w*=/g, '').split(',');
+
+	if ((count == 0) || (wps_info[8] == "Pass")) {
+		if (wps_info[8] == "Pass") {
+			alert(wdk.msg("WPS Provisioning is complete!"));
+		} else {
+			alert(wdk.msg("WPS Provisioning is failed!"));
+		}
+
+		wdk.goThisPage();
+	}
+
+	setTimeout('query_wps_state()', 1000);
+}
+
+function wps_start() {
+	get_by_id("wps_pbc").disabled = 1;
+	wdk.cliCmd('wps 0 button');
+	do_count_down();
+	query_wps_state();
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="wifi.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">WPS</div>
+  </div>
+
+  <div id="content">
+   <ul class="pageitem">
+    <li class="checkbox">
+     <span class="name"><script>get_words("WPS Enable")</script></span>
+     <input name="wps_enable" id="wps_enable" type="checkbox" value="1" onclick="send_request()">
+    </li>
+   </ul>
+
+   <ul class="pageitem">
+    <li class="button">
+     <input name="wps_pbc" id="wps_pbc" type="button" value="WPS PBC" onclick="wps_start()">
+    </li>
+   </ul>
+  </div>
+ </form>
+</body>
+
+</html>

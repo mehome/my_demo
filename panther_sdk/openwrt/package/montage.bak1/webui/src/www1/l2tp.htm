@@ -1,0 +1,336 @@
+<!--ifdef CONFIG_L2TP-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$l2tp_user', '$l2tp_pass', '$l2tp_idle', '$l2tp_mtu', '$l2tp_gw', '$l2tp_ip',
+	'$l2tp_svr', '$l2tp_svr_ip', '$l2tp_msk', '$l2tp_id', '$l2tp_mppe', '$l2tp_auto', '$l2tp_if_mode',
+	'$wan_clone_mac_enable', '$wan_clone_mac', '$dns_fix', '$dns_svr1', '$dns_svr2', '$lan_ip', '$op_work_mode'
+]);
+
+var lanip = wdk.cdbVal('$lan_ip');
+var opWorkMode = wdk.cdbVal('$op_work_mode');
+var currentHost = window.location.host;
+
+function init() {
+	var f = document.frm;
+	wdk.init_form();
+	showWanMode(f, wdk.cdbVal('$l2tp_if_mode'));
+	if (lanip != currentHost)
+		f.Btn.disabled = true;
+	else
+		f.Btn.disabled = false;
+}
+
+function showWanMode(f, ty) {
+	showHide('wan_dhcp', (ty == 1));
+	showHide('wan_static', (ty == 0));
+}
+
+function apply() {
+	var f = document.frm;
+	if (f.wmode.value == 0) {
+		if (f.ip)
+			if (!chkIP(f.ip, "IP Address")) {
+				highlight("$l2tp_ip");
+				return;
+			}
+		if (f.msk)
+			if (!chkMsk(f.msk, wdk.msg("Subnet Mask"))) {
+				highlight("$l2tp_msk");
+				return;
+			}
+		if (f.gw)
+			if (!chkIpOrNull(f.gw, "Gateway")) {
+				highlight("$l2tp_gw");
+				return;
+			}
+		if (f.ip)
+			if (getIP(f.ip) == getIP(f.gw)) {
+				alert(wdk.msg("IP Address and Gateway Address are same !"));
+				return;
+			}
+		if (f.ip.value == lanip) {
+			alert(wdk.msg("WAN IP address can't be the same with LAN IP address !"));
+			highlight("$l2tp_ip");
+			return;
+		}
+	}
+	if (!chkNum(f.mtu, 546, 1460, "MTU")) {
+		highlight("$l2tp_mtu");
+		return;
+	}
+	if (f.idle.value == '') {
+		alert(wdk.msg("Idle Time Out") + wdk.msg(" must input a value !"));
+		highlight("$l2tp_idle");
+		return;
+	}
+	if (f.idle.value != 0)
+		if (!chkNum(f.idle, 60, 3600, "Idle Time Out")) {
+			highlight("$l2tp_idle");
+			return;
+		}
+	if (!chkStr(f.puser, "L2TP Account")) {
+		highlight("$l2tp_user");
+		return;
+	}
+	//if (!chkStr(f.pass,"L2TP Password")) { highlight("pass"); return ; }
+	if (!chkStrLen(f.puser, WAN_USERNAME_MIN_LEN, WAN_USERNAME_MAX_LEN, "L2TP Account")) {
+		highlight("$l2tp_user");
+		return;
+	}
+	if (!chkStrLen(f.pass, WAN_PASSWD_MIN_LEN, WAN_PASSWD_MAX_LEN, "L2TP Password")) {
+		highlight("l2tpPsw");
+		return;
+	}
+	//	if (f.psvr) if (!chkStr(f.psvr,"Domain Name")) return;
+	if (!chkPass(f.pass, f.pass2, f._changed, "New input password is not consistent!")) {
+		highlight("l2tpPsw2");
+		return;
+	}
+	if (Number(f._changed.value)) wdk.cdbSet('$l2tp_pass', f.pass.value);
+	//if (f.cloneEn.checked)
+	{
+		if (!chkMAC(f.mac, "MAC address")) {
+			highlight("$wan_clone_mac");
+			return;
+		} else {
+			wdk.cdbSet("$wan_clone_mac", f.mac.value)
+			wdk.cdbSet("$wan_clone_mac_enable", (f.cloneEn.checked) ? 1 : 0)
+		}
+	}
+	if (f.DSEN.checked) {
+		if (!chkIP(f.DS1, "Primary DNS")) {
+			highlight("$dns_svr1");
+			return;
+		}
+	}
+	if (!chkIpOrNull(f.DS2, "Secondary DNS")) {
+		highlight("$dns_svr2");
+		return;
+	}
+	if (!chkIpOrDomain(f.psvr, "L2TP Server")) {
+		highlight("$l2tp_svr");
+		return;
+	}
+
+	if (f.mtu.value != wdk.cdbVal('$l2tp_mtu')) {
+		if (window.confirm(wdk.msg("MTU value is changed! Device will reboot!"))) {
+			wdk.showResultBG();
+			reboot();
+			wdk.save_form(0, 1);
+		}
+	} else if (wdk.cdbChg("$wan_clone_mac") || wdk.cdbChg("$wan_clone_mac_enable")) { // clone mac patch
+		wdk.showResultBG();
+		reboot();
+		wdk.save_form(0, 1);
+	} else
+		wdk.save_form(2000);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <script>
+wanModeList(5, opWorkMode)
+  </script>
+  <br>
+  <fieldset>
+   <legend>WAN L2TP</legend>
+   <h2><script>wdk.putmsg("WAN Interface Settings")</script></h2>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("WAN Interface IP")
+     </script>
+    </div>
+    <select size=1 name=wmode id=$l2tp_if_mode onChange=showWanMode(this.form,this.value)>
+     <option value=1>
+      <script>
+wdk.putmsg("Dynamic IP")
+      </script>
+     </option>
+     <option value=0>
+      <script>
+wdk.putmsg("Static IP")
+      </script>
+     </option>
+    </select>
+   </div>
+   <div id=wan_dhcp style="display:none">
+   </div>
+
+   <div id=wan_static style="display:none">
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("IP Address")
+      </script>
+     </div>
+     <input name=ip id=$l2tp_ip size=17 maxlength=15>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Subnet Mask")
+      </script>
+     </div>
+     <input name=msk id=$l2tp_msk size=17 maxlength=15>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Gateway")
+      </script>
+     </div>
+     <input name=gw id=$l2tp_gw size=17 maxlength=15>
+    </div>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Static DNS Server")
+     </script>
+    </div>
+    <input type=checkbox name=DSEN id=$dns_fix value=1>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Primary DNS");
+     </script>
+    </div>
+    <input name=DS1 id=$dns_svr1 size=17 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Secondary DNS")
+     </script>
+    </div>
+    <input name=DS2 id=$dns_svr2 size=17 maxlength=15>
+    <script>
+wdk.putmsg("(Optional)")
+    </script>
+   </div>
+   <div class=setting>
+    <script>
+if (lanip != currentHost) {
+	puts('<div class=label><font color="#C0C0C0">' + wdk.msg("MAC Cloning") + '<' + '/font><' + '/div>');
+	puts('<input type=checkbox name=cloneEn id=$wan_clone_mac_enable disabled>');
+	puts('<font color="#C0C0C0">' + wdk.msg("Enabled") + '<' + '/font>');
+} else {
+	puts('<div class=label>' + wdk.msg("MAC Cloning") + '<' + '/div>');
+	puts('<input type=checkbox name=cloneEn id=$wan_clone_mac_enable>');
+	wdk.putmsg("Enabled");
+}
+    </script>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("MAC Address");
+     </script>(XX:XX:XX:XX:XX:XX)</div>
+    <input name=mac id=$wan_clone_mac size=17 maxlength=17>
+    <script>
+if (lanip != currentHost) {
+	puts('<input type=button name=Btn class=BtnGrey value="' + wdk.msg("Clone MAC") + '" onclick=cloneMac(cloneEn,mac)>');
+} else
+	puts('<input type=button name=Btn class=button value="' + wdk.msg("Clone MAC") + '" onclick=cloneMac(cloneEn,mac)>');
+    </script>
+   </div>
+   <br>
+   <h2><script>wdk.putmsg("L2TP Settings")</script></h2>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("L2TP Account")
+     </script>
+    </div>
+    <input name=puser id=$l2tp_user size=25>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("L2TP Password")
+     </script>
+    </div>
+    <input id=l2tpPsw type=password name=pass size=25 value=****** onFocus=chkPassInput(this,pass2,_changed);>
+    <input type=hidden name=_changed value=0>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Please retype your password")
+     </script>
+    </div>
+    <input id=l2tpPsw2 type=password name=pass2 size=25 value=****** onFocus=chkPassInput(pass,this,_changed);>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("L2TP Server");
+wdk.putmsg(" (IP or Domain name)");
+     </script>
+    </div>
+    <input name=psvr id=$l2tp_svr size=25 maxlength=60 value>
+   </div>
+   <div class=setting>
+    <div class=label>MTU (546-1460)</div>
+    <input name=mtu id=$l2tp_mtu size=4 maxlength=4>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Maximum Idle Time")
+     </script>(60-3600)</div>
+    <input name=idle id=$l2tp_idle size=4 maxlength=4>
+    <script>
+wdk.putmsg("seconds (0: No timeout)");
+    </script>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Connection Mode")
+     </script>
+    </div>
+    <select NAME=cmode id=$l2tp_auto SIZE=1>
+     <option VALUE=0>
+      <script>
+wdk.putmsg("keep-alive")
+      </script>
+     </option>
+     <option VALUE=1>
+      <script>
+wdk.putmsg("auto-connect")
+      </script>
+     </option>
+     <option VALUE=2>
+      <script>
+wdk.putmsg("manual-on")
+      </script>
+     </option>
+    </select>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var op_work_mode = wdk.cdbVal('$op_work_mode');
+
+function init() {
+	if (op_work_mode == 2 || op_work_mode == 3) {
+		showHide("st_internet", 1);
+	} else if (op_work_mode == 1 || op_work_mode == 9) {
+		showHide("st_internet", 0);
+	}
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="index.htm">
+    <img alt="home" src="images/home.png" />
+   </a>
+  </div>
+  <div id="title">Status</div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+   <li class="menu">
+    <a href="st_info.htm"><span class="name">Information</span><span class="arrow"></span></a>
+   </li>
+   <li class="menu">
+    <a href="st_gateway.htm"><span class="name">Gateway</span><span class="arrow"></span></a>
+   </li>
+   <li class="menu">
+    <a href="st_wifi.htm"><span class="name">Wireless</span><span class="arrow"></span></a>
+   </li>
+   <li id="st_internet" class="menu">
+    <a href="st_internet.htm"><span class="name">Internet</span><span class="arrow"></span></a>
+   </li>
+
+  </ul>
+ </div>
+
+</body>
+
+</html>

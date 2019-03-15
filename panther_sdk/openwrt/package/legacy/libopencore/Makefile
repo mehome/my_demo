@@ -1,0 +1,66 @@
+#
+# Copyright (C) 2008 OpenWrt.org
+#
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+
+include $(TOPDIR)/rules.mk
+
+PKG_NAME:=libopencore
+PKG_VERSION:=0.0.3
+PKG_RELEASE:=3
+
+#PKG_FIXUP:=no-autoreconf
+PKG_FIXUP_LEGACY:=libtool
+PKG_INSTALL:=1
+
+include $(INCLUDE_DIR)/package.mk
+
+TARGET_CFLAGS += $(FPIC)
+
+define Package/libopencore
+  SECTION:=libs
+  CATEGORY:=Libraries
+  TITLE+=library
+endef
+
+OPENCORE_CONFIGURE:= \
+	./configure \
+	--enable-amrnb-encoder --disable-examples
+
+define Build/Configure
+	( cd $(PKG_BUILD_DIR); $(OPENCORE_CONFIGURE) )
+endef
+
+define Package/libopencore/description
+  This package contains the AMR to en/decode AMR library.
+endef
+
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) ./src/* $(PKG_BUILD_DIR)/
+	$(call TSYNC,$(PKG_BUILD_DIR))
+endef
+
+define Build/InstallDev
+	$(INSTALL_DIR) $(1)/usr/include/opencore-amrnb
+	$(INSTALL_DIR) $(1)/usr/include/opencore-amrwb
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/include/opencore-amrnb/*.h $(1)/usr/include/opencore-amrnb
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/include/opencore-amrwb/*.h $(1)/usr/include/opencore-amrwb
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/lib/libopencore-amrnb.so* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/lib/libopencore-amrwb.so* $(1)/usr/lib/
+endef
+
+define Package/libopencore/install
+	$(INSTALL_DIR) $(1)/usr/include/opencore-amrnb
+	$(INSTALL_DIR) $(1)/usr/include/opencore-amrwb
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/include/opencore-amrnb/*.h $(1)/usr/include/opencore-amrnb
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/include/opencore-amrwb/*.h $(1)/usr/include/opencore-amrwb
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/lib/libopencore-amrnb.so* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/local/lib/libopencore-amrwb.so* $(1)/usr/lib/
+endef
+
+$(eval $(call BuildPackage,libopencore))

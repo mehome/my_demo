@@ -1,0 +1,20 @@
+{
+	"appID" :"gh_4754d9044818",
+	"apiKeyTuring":"1fcae11b73b24d609f9c2acf7dd53257",
+	"aesKeyTuring":"n640J6H76hA4Vb17",
+	"toneTuring":"0",
+	"apiKeyHuabei":"of6dohiwn38eifq30jqrzq0rhcsdxolo",
+	"aesKeyHuabei":"RJH983ZPWhuMMJ11",
+	"aiWiFiUrl":"http://smartdevice.ai.tuling123.com/speech/chat",
+	"apiUrl":"http://www.tuling123.com/openapi/api",
+	"iotHost":"iot-ai.tuling123.com",
+	"mqttHost":"mqtt.ai.tuling123.com",
+	"mqttPort":"10883",
+	"mqttUser":"xinzhongxin",
+	"mqttPassword":"WokJx8RI",
+	"discoverType":"1",
+	"productId":"47529",
+	"showLog":"false",
+	"logLevel":"info",
+	"vadCount":"1000000"
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$wan_mode',
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+function init() {
+	var html_file;
+	var sel_wan = mainObj.config_val("$wan_mode");
+
+	switch (sel_wan) {
+		case "1":
+			html_file = "wan_static.htm";
+			break;
+		case "2":
+			html_file = "wan_dhcp.htm";
+			break;
+		case "3":
+			html_file = "wan_pppoe.htm";
+			break;
+		case "9":
+			html_file = "wan_3g.htm";
+			break;
+		default:
+			html_file = "wan_dhcp.htm";
+			break;
+	}
+
+	location.href = html_file;
+}
+ </script>
+</head>
+
+<body onload=init()>
+</body>
+
+</html>

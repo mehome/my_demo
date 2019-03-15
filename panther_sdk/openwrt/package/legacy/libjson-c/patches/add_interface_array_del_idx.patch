@@ -1,0 +1,76 @@
+diff --git a/arraylist.c b/arraylist.c
+old mode 100644
+new mode 100755
+index 81b6fa2..04331ac
+--- a/arraylist.c
++++ b/arraylist.c
+@@ -82,6 +82,20 @@ array_list_put_idx(struct array_list *arr, int idx, void *data)
+ }
+ 
+ int
++ array_list_del_idx(struct array_list *arr, int idx)
++{
++	int i=0;
++	if(arr->length<=0)return -1;
++	if(idx<0||idx>=arr->length)return -1;
++	for(i=idx;i<arr->length ;i++){
++		 arr->array[i]= arr->array[i+1];
++	}
++	if(arr->array[arr->length-1]) arr->free_fn(arr->array[arr->length-1]);
++ 	arr->length--;
++  	return 0;
++}
++
++int
+ array_list_add(struct array_list *arr, void *data)
+ {
+   return array_list_put_idx(arr, arr->length, data);
+diff --git a/arraylist.h b/arraylist.h
+old mode 100644
+new mode 100755
+index 4f3113c..18d3512
+--- a/arraylist.h
++++ b/arraylist.h
+@@ -41,6 +41,9 @@ extern int
+ array_list_put_idx(struct array_list *al, int i, void *data);
+ 
+ extern int
++array_list_del_idx(struct array_list *al, int i);
++
++extern int
+ array_list_add(struct array_list *al, void *data);
+ 
+ extern int
+diff --git a/json_object.c b/json_object.c
+old mode 100644
+new mode 100755
+index f2b5ce0..284dda2
+--- a/json_object.c
++++ b/json_object.c
+@@ -773,6 +773,10 @@ int json_object_array_put_idx(struct json_object *jso, int idx,
+ {
+   return array_list_put_idx(jso->o.c_array, idx, val);
+ }
++int  json_object_array_del_idx(struct json_object *jso, int idx)
++{
++  return array_list_del_idx(jso->o.c_array, idx);
++}
+ 
+ struct json_object* json_object_array_get_idx(struct json_object *jso,
+ 					      int idx)
+diff --git a/json_object.h b/json_object.h
+old mode 100644
+new mode 100755
+index 6270309..422a713
+--- a/json_object.h
++++ b/json_object.h
+@@ -410,6 +410,9 @@ extern int json_object_array_put_idx(struct json_object *obj, int idx,
+  * @param idx the index to get the element at
+  * @returns the json_object at the specified index (or NULL)
+  */
++extern int json_object_array_del_idx(struct json_object *obj, int idx);
++
++
+ extern struct json_object* json_object_array_get_idx(struct json_object *obj,
+ 						     int idx);
+ 

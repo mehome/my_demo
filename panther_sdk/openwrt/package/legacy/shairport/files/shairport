@@ -1,0 +1,106 @@
+#!/bin/sh /etc/rc.common
+START=80
+
+config_get ra_func ra_func
+
+DAEMON="/usr/sbin/shairport"
+DAEMON_PID_FILE=/var/air.pid
+AIR_DONE="/var/run/air"
+PATTERN="_%6x"
+DEVOPT="-t hardware -c PCM"
+
+setup_codec () {
+	rule=`echo $1 | 
+	awk '{
+	for(i=1;i<=NF;i++){
+		if($i=="card"){card=$(i+1)}
+		else if($i=="device"){device=$(i+1)}
+	} output="card="card";device="device; gsub(/:/,"",output); print output}'`
+	eval $rule
+	DEVOPT="-d plughw:${card},${device}" 
+}
+
+check_codec () {                                                                
+	local info=`aplay -l`
+	rule=`echo ${info} | grep 'ES9023\|USB Audio'`
+	#check audio codec, otherwise to use default
+	if echo ${info} | grep 'card 0.*tas5711' > /dev/null; then
+		DEVOPT="-t hardware -c Master" 
+	elif [ -n "${rule}" ]; then
+		setup_codec "${rule}"
+	fi
+}
+
+
+config_shairport() {
+	local args=""
+
+	local name=""
+	local password=""
+	local port=""
+	local buffer=""
+
+	config_get name ra_name
+	nametmp=${name%"${PATTERN}"}
+	[ ${nametmp} != ${name} ] && {
+		mac=`cat /tmp/.bootvars | grep mac0 | cut -b 15- | sed s/://g`
+		name=${nametmp}_${mac}
+		config_set ra_name ${name}
+		cdb commit > /dev/null
+	}
+	[ -z ${name} ] && name="AirPort"
+	args="${args} -a ${name}"
+
+	[ ! -z "${password}" ] && args="${args} -p ${password}"
+	[ ! -z "${port}" ] && args="${args} -o ${port}"
+
+	config_get buffer ra_air_buf
+	[ -z ${buffer} ] && buffer="256"
+	args="${args} -b ${buffer}"
+	
+	#debug
+	#-v num 1-RTSP 2-RTP 3-PLAY 4-MDNS 5-DACP
+	#args="${args} -vvvv --log=/dev/console"	
+	
+	check_codec
+	args="${args} -d -P ${DAEMON_PID_FILE} -- ${DEVOPT}"
+
+	arg1="-B mpc clear"
+
+	start-stop-daemon -S -N -10 -x ${DAEMON} -b \
+		-- "${arg1}" ${args} 2>/dev/null
+}
+
+start() {
+#	/etc/init.d/dbus start
+#	/etc/init.d/avahi start
+	
+	[ ${ra_func} == 2 -o ${ra_func} == 4 ] || exit 0
+	config_shairport
+
+#	config_get ra_name ra_name
+#	arg=""tp=UDP", "sm=false", "ek=1", "et=0,1", "cn=0,1", "ch=2", "ss=16",i \
+#		"sr=44100", "vn=3", "txtvers=1", "pw=false""
+#	sleep 1
+#	[ ! -f ${AIR_DONE} ] && {
+#		touch ${AIR_DONE};
+#		avahi-publish-service -s "${ra_name}" _raop._tcp 5002 ${arg} &
+#	}
+
+	config_set air_nocheck 0
+}
+
+stop() {
+	config_set air_nocheck 1
+	
+	[ -f ${DAEMON_PID_FILE} ] && {
+		start-stop-daemon -K -q -n ${DAEMON##*/} \
+			-p ${DAEMON_PID_FILE} -s TERM
+
+		rm -f ${DAEMON_PID_FILE}
+	}
+#	/etc/init.d/avahi stop
+#	/etc/init.d/dbus stop
+
+#	rm -f ${AIR_DONE}
+}

@@ -1,0 +1,476 @@
+<!--ifdef CONFIG_VIDEO_STREAM-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT src=resampler.js></SCRIPT>
+ <SCRIPT src=recorder.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$webcam_support', '$audio_support', '$webcam_format', '$audio_format']);
+
+function g726limit() {
+	var c = Number(getSelectValue("channel"));
+	var r = Number(getSelectValue("arate"));
+	var a = getSelectValue("acode");
+	if (a == "G726" && (c != 1 || r != 8000)) {
+		alert("Don't support G726 in " + c + " channel " + r + " sample rate");
+		setSelectValue("arate", "8000");
+		setSelectValue("channel", "1");
+	}
+}
+
+function vcodechange() {
+	var m = getSelectValue("vcode");
+	var t = wdk.getById("div");
+	if (m == 'H264') {
+		for (var k = 0; k < t.options.length; k++) {
+			t.options[k].selected = (t.options[k].value == 1);
+		}
+		t.disabled = true;
+	} else
+		t.disabled = false;
+}
+
+function adevchange() {
+	var m = getSelectValue("adev");
+
+	//get hw setting now
+	var w_f = wdk.cdbVal('$webcam_format');
+	var adev = rule2var(w_f, "adev");
+	var ar = rule2var(w_f, "arate");
+	var ac = rule2var(w_f, "channel");
+	var ad = rule2var(w_f, "acode");
+
+	//get hw support for 'm'
+	var a_s = wdk.cdbVal('$audio_support').split("/");
+	var ad_i = 0;
+	ad_i = (m == (rule2var(a_s[0], "adev"))) ? 0 : 1;
+	var ar_s = rule2var(a_s[ad_i], "arate").split(":");
+	var ac_s = rule2var(a_s[ad_i], "channel").split(":");
+	var ad_s = rule2var(a_s[ad_i], "acode").split(":");
+
+	// clean channel and arate options
+	for (var i = 0; i < wdk.getById("channel").options.length; i++) {
+		wdk.getById("channel").options[i] = null;
+	}
+	wdk.getById("channel").options.length = 0;
+	for (var i = 0; i < wdk.getById("arate").options.length; i++) {
+		wdk.getById("arate").options[i] = null;
+	}
+	wdk.getById("arate").options.length = 0;
+	for (var i = 0; i < wdk.getById("acode").options.length; i++) {
+		wdk.getById("acode").options[i] = null;
+	}
+	wdk.getById("acode").options.length = 0;
+
+	// add channel and arate options
+	add_select_option(wdk.getById("channel"), ac_s);
+	add_select_option(wdk.getById("arate"), ar_s);
+	add_select_option(wdk.getById("acode"), ad_s);
+
+	// show channel and arate hw setting
+	if (m == adev) {
+		setSelectValue("arate", ar);
+		setSelectValue("channel", ac);
+		setSelectValue("acode", ad);
+	} else {
+		setSelectValue("arate", ar_s[0]);
+		setSelectValue("channel", ac_s[0]);
+		setSelectValue("acode", ad_s[0]);
+	}
+}
+
+function snapshot() {
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+	wdk.showResultBG();
+	wdk.cliCmd("webcam snapshot");
+	setTimeout(wdk.hideResultBG, 1000);
+}
+
+function add_select_option(s, v) {
+	//avoid re-create option when push cancel button
+	if (s.length) return;
+	addOptions(s, v);
+}
+
+function showhideaudio(v) {
+	showHide("tr_adev", v)
+	showHide("tr_acode", v)
+	showHide("tr_arate", v)
+	showHide("tr_channel", v)
+}
+
+function onlychange() {
+	var en = getSelectValue("only");
+	if (en == "none")
+		showhideaudio(1);
+	else
+		showhideaudio(0);
+}
+
+function xsplit(s) {
+	if (s.length == 0)
+		return "";
+	else
+		return s.split(":");
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+	var only = rule2var(format, "only");
+	var adev = rule2var(format, "adev");
+
+	//create some options by webcam_support
+	var support = wdk.cdbVal('$webcam_support');
+	var vcode = xsplit(rule2var(support, "vcode"));
+	var res = xsplit(rule2var(support, "res"));
+	var fps = xsplit(rule2var(support, "fps"));
+	var div = xsplit(rule2var(support, "div"));
+	var a = wdk.getById("adev");
+	var r = wdk.getById("arate");
+	var c = wdk.getById("channel");
+	var d = wdk.getById("acode");
+	add_select_option(wdk.getById("vcode"), vcode);
+	add_select_option(wdk.getById("res"), res);
+	add_select_option(wdk.getById("fps"), fps);
+	add_select_option(wdk.getById("div"), div);
+
+	if (fps == "")
+		wdk.getById("fps").disabled = true;
+	else
+		wdk.getById("fps").disabled = false;
+	if (vcode == "")
+		wdk.getById("vcode").disabled = true;
+	else
+		wdk.getById("vcode").disabled = false;
+
+	if ((wdk.cdbVal('$audio_support')) == "") {
+		a.disabled = true;
+		r.disabled = true;
+		c.disabled = true;
+		d.disabled = true;
+	} else {
+		var audio_support = wdk.cdbVal('$audio_support').split("/");
+		var adev_idx = 0;
+		if ((adev == (rule2var(audio_support[0], "adev"))) && (audio_support[0] != "")) {
+			adev_idx = 0;
+		} else if (typeof(audio_support[1]) != "undefined") {
+			adev_idx = 1;
+		}
+		var adev_num = audio_support.length;
+		var adev_str = "";
+		if (adev_num == 1) {
+			adev_str = "adev=" + rule2var(audio_support[0], "adev");
+		} else if ((rule2var(audio_support[0], "adev")) == "") {
+			adev_str = "adev=" + rule2var(audio_support[1], "adev");
+		} else {
+			adev_str = "adev=" + rule2var(audio_support[0], "adev") + "/" + rule2var(audio_support[1], "adev");
+		}
+		var adev_support = rule2var(adev_str, "adev").split("/");
+		var arate = rule2var(audio_support[adev_idx], "arate").split(":");
+		var channel = rule2var(audio_support[adev_idx], "channel").split(":");
+		var acode = rule2var(audio_support[adev_idx], "acode").split(":");
+
+		a.disabled = false;
+		r.disabled = false;
+		c.disabled = false;
+		d.disabled = false;
+		add_select_option(a, adev_support);
+		add_select_option(r, arate);
+		add_select_option(c, channel);
+		add_select_option(d, acode);
+	}
+
+	var player_html = '<object classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921" codebase="http://downloads.videolan.org/pub/videolan/vlc/latest/win32/axvlc.cab" width="480" height="360" id="vlc"><param name="Src" value="' + url + '"><' + '/param><param name="AutoLoop" value="no"><' + '/param><param name="AutoPlay" value="yes"><' + '/param><embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" id="vlcfirefox" autoplay="yes" loop="no" width="480" height="360" target="' + url + '"><' + '/embed><' + '/object>';
+
+	wdk.getById("display").innerHTML = player_html;
+	showHide("display", 1);
+
+	f.reset();
+	wdk.init_form();
+
+	wdk.getById("vcode").onchange();
+
+	//prepare for Server option
+	wdk.getById("port").value = port;
+	wdk.getById("prot").value = rule2var(format, "prot");
+	wdk.getById("path").value = path;
+
+	if (only == "vid") {
+		showhideaudio(0);
+	}
+
+	var supportWebAudio = false;
+	if (typeof window === 'undefined' || !window.navigator) {} else if (navigator.mozGetUserMedia) {
+		supportWebAudio = true;
+	} else if (navigator.webkitGetUserMedia && !!window.chrome) {
+		supportWebAudio = true;
+	} else if (navigator.mediaDevices && navigator.userAgent.match(/Edge\/(\d+).(\d+)$/)) {
+		supportWebAudio = true;
+	}
+
+	//Hank add <BEGIN>. For 2-way audio support 
+	var playback_format = wdk.cdbVal('$audio_format');
+	//var capture_arate = rule2var(format, "arate");
+	var playback_arate = rule2var(playback_format, "arate");
+	//var playback_adev = rule2var(playback_format, "adev");
+
+	if ((playback_format == "") || (supportWebAudio == false)) {
+		showHide("twaBlk", 0);
+		showHide("twaStr", 0);
+		showHide("twaOnb", 0);
+		showHide("twaOffb", 0);
+	} else {
+		showHide("twaOffb", 0);
+		resampleRate = playback_arate;
+	}
+	//Hank add <END>. For 2-way audio support 
+
+	wdk.getById("url").value = url;
+	wdk.getById("sb").value = wdk.msg("Snapshot");
+	wdk.getById("twaOnb").value = wdk.msg("  ON  ");
+	wdk.getById("twaOffb").value = wdk.msg("  OFF ");
+}
+
+function apply() {
+	//check option
+	if (!chkPortRange(wdk.getById("port"), "RTP Server port")) {
+		highlight("port");
+		return;
+	}
+	if (getSelectValue("fps") % getSelectValue("div")) {
+		alert(getSelectValue("div") + wdk.msg(" isn't a divisor of ") + getSelectValue("fps"));
+		highlight("div");
+		return;
+	}
+
+	var str = wdk.cdbVal("$webcam_format");
+	var audio_str = wdk.cdbVal("$audio_format");
+	var prot = wdk.getById("prot").value;
+	var port = wdk.getById("port").value;
+	var path = wdk.getById("path").value;
+	var vcode = getSelectValue("vcode");
+	var res = getSelectValue("res");
+	var fps = getSelectValue("fps");
+	var div = getSelectValue("div");
+	var adev = getSelectValue("adev");
+	var arate = getSelectValue("arate");
+	var channel = getSelectValue("channel");
+	var acode = getSelectValue("acode");
+	var only = getSelectValue("only");
+
+	str = updaterulevar(str, "prot", prot);
+	str = updaterulevar(str, "port", port);
+	str = updaterulevar(str, "path", path);
+	if (vcode == "H264")
+		str = updaterulevar(str, "vdev", "/dev/video1");
+	else
+		str = updaterulevar(str, "vdev", "/dev/video0");
+	if (vcode != "")
+		str = updaterulevar(str, "vcode", vcode);
+	if (res != "")
+		str = updaterulevar(str, "res", res);
+	if (fps != "")
+		str = updaterulevar(str, "fps", fps);
+	if (div != "")
+		str = updaterulevar(str, "div", div);
+	if (adev != "")
+		str = updaterulevar(str, "adev", adev);
+	if (arate != "") {
+		str = updaterulevar(str, "arate", arate);
+		if (audio_str != "")
+			audio_str = updaterulevar(audio_str, "arate", arate);
+	}
+	if (channel != "")
+		str = updaterulevar(str, "channel", channel);
+	if (acode != "")
+		str = updaterulevar(str, "acode", acode);
+	if (only != "")
+		str = updaterulevar(str, "only", only);
+	wdk.cdbSet("$webcam_format", str);
+	if (audio_str != "")
+		wdk.cdbSet("$audio_format", audio_str);
+	if (wdk.cdbChg("$webcam_format")) {
+		showHide("display", 0);
+	}
+	wdk.save_form(0);
+	if (wdk.cdbChg("$webcam_format")) {
+		wdk.cliCmd('webcam restart');
+	}
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Server Settings");
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("URL")
+     </script>
+    </div>
+    <input name=url id=url readonly size=30>
+    <input id=sb class=button type=button onclick=snapshot()>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Port")
+     </script>
+     &nbsp;(1~65535)
+    </div>
+    <input name=port id=port>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Protocol")
+     </script>
+    </div>
+    <input name=prot id=prot readonly>
+   </div>
+   <div class=setting style="display:none;">
+    <div class=label>Path</div>
+    <input name=path id=path readonly>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset id=$webcam_format>
+   <legend>
+    <script>
+wdk.putmsg("Video&Audio Settings")
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Video Compressed Method")
+     </script>
+    </div>
+    <select name=vcode id=vcode size=1 onchange="vcodechange()"></select>
+   </div>
+   <div class=setting style="display:none;">
+    <div class=label>
+     <script>
+wdk.putmsg("Video Device")
+     </script>
+    </div>
+    <input name=vdev id=vdev readonly>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Resolution")
+     </script>
+    </div>
+    <select name=res id=res size=1></select>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("FPS")
+     </script>
+    </div>
+    <select name=fps id=fps size=1></select>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("FPS divisor")
+     </script>
+    </div>
+    <select name=div id=div size=1></select>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Audio Stream Switch")
+     </script>
+    </div>
+    <select name=only id=only size=1 onchange="onlychange()">
+     <option value=vid>Disable</option>
+     <option value=none>Enable</option>
+    </select>
+   </div>
+   <div class=setting id=tr_adev>
+    <div class=label>
+     <script>
+wdk.putmsg("Audio Device")
+     </script>
+    </div>
+    <select name=adev id=adev size=1 onchange="adevchange()"></select>
+   </div>
+   <div class=setting id=tr_acode>
+    <div class=label>
+     <script>
+wdk.putmsg("Audio Compressed Method")
+     </script>
+    </div>
+    <select name=acode id=acode size=1 onchange="g726limit()"></select>
+   </div>
+   <div class=setting id=tr_arate>
+    <div class=label>
+     <script>
+wdk.putmsg("Sample Rate")
+     </script>
+    </div>
+    <select name=arate id=arate size=1 onchange="g726limit()"></select>
+   </div>
+   <div class=setting id=tr_channel>
+    <div class=label>
+     <script>
+wdk.putmsg("Channel")
+     </script>
+    </div>
+    <select name=channel id=channel size=1 onchange="g726limit()"></select>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset id=twaBlk>
+   <legend>
+    <script>
+wdk.putmsg("2-way audio");
+    </script>
+   </legend>
+   <div class=setting id=twaStr>
+    <div class=label>
+     <script>
+wdk.putmsg("Streaming")
+     </script>
+    </div>
+    <input id=twaOnb class=button type=button onclick=twoWayAudioOn()>
+    <input id=twaOffb class=button type=button onclick=twoWayAudioOff()>
+   </div>
+  </fieldset>
+  <br>
+  <div id=display style="display:none;" align=center>
+  </div>
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

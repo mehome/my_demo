@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['log -xymta']);
+
+var log = wdk.cdbValA('log -xymta');
+var max = 20;
+var lastp = (log.length > max) ? (parseInt((log.length + (max - 1)) / max) - 1) : 0;
+var curp = 0;
+
+function init() {
+	refreshList('entry', max, max);
+	wdk.init_form();
+	showlog(0);
+}
+
+function apply() {}
+
+function download() {
+	var f = document.frm;
+	var day = getDateStr();
+	f.action = day + "-log.bin";
+	f.submit();
+}
+
+function clearPage() {
+	wdk.cliCmd("log clean");
+	refreshPage();
+}
+
+function showlog(cp) {
+	var f = document.frm;
+	var re = new RegExp(/^\[(.*\d)\](.*)/);
+	var line, t, m, m1, m2;
+	f.PP.disabled = (curp <= 0);
+	f.NP.disabled = (curp >= lastp);
+	var j = 0;
+	for (var idx = cp * max; j < max; idx++, j++) {
+		line = '';
+		if (log != 0) {
+			if (idx < log.length) {
+				line = log[idx];
+				//re=new RegExp(/^\[(.*\d)\](.*)/);
+			}
+		}
+		t = m = '';
+		if (re.test(line)) {
+			t = RegExp.$1;
+			m = RegExp.$2;
+		}
+		var i = idx % max;
+		var dd = wdk.getById('entry' + (i + 1))
+		var e = dd.getElementsByTagName('td');
+		e[0].innerHTML = t ? idx + 1 : '';
+		e[1].innerHTML = t;
+		e[2].innerHTML = m;
+		if (i & 1)
+			dd.style.backgroundColor = '#f0f0f0';
+	}
+}
+
+function topage(p) {
+	if (p < 0)
+		p = 0;
+	else if (p > lastp)
+		p = lastp;
+	curp = p;
+	showlog(curp);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <input type=hidden name=cmd value='log -xymta'>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("System Log");
+    </script>
+   </legend>
+   <div class=setting>
+    <script>
+puts('<input type=button class=button name=FP value="' + wdk.msg("First Page") + '" onclick=topage(0)>');
+puts('<input type=button class=button name=PP value="' + wdk.msg("Prev Page") + '" onclick=topage(curp-1)>');
+puts('<input type=button class=button name=NP value="' + wdk.msg("Next Page") + '" onclick=topage(curp+1)>');
+puts('<input type=button class=button name=LP value="' + wdk.msg("Last Page") + '" onclick=topage(lastp)>');
+    </script>
+   </div>
+   <table class=infolist>
+    <tr>
+     <th width=8%>
+      <script>
+wdk.putmsg('No.')
+      </script>
+     </th>
+     <th width=15%>
+      <script>
+wdk.putmsg('Time')
+      </script>
+     </th>
+     <th width=75%>
+      <script>
+wdk.putmsg('Record')
+      </script>
+     </th>
+    </tr>
+    <tr id=entry1>
+     <td align=center></td>
+     <td></td>
+     <td></td>
+    </tr>
+   </table>
+   <div class=setting align=center>
+    <script>
+puts('<input type=button class=button value="' + wdk.msg("Download") + '" onclick=download()>');
+puts('<input type=button class=button value="' + wdk.msg("Clear") + '" onclick=clearPage()>');
+puts('<input type=button class=button value="' + wdk.msg("Settings") + '" onclick=goUrl("logconf.htm")>');
+puts('<input type=button class=button value="' + wdk.msg("Refresh") + '" onclick=refreshPage()>');
+    </script>
+   </div>
+  </fieldset>
+
+  <script>
+footer("nodef")
+  </script>
+ </form>
+
+</html>

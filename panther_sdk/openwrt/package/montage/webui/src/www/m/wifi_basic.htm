@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$wl_ap_isolated',
+	'$wl_bb_mode',
+	'$wl_bss_bssid1-' + SSID_MAX_NUM,
+	'$wl_bss_cipher1-' + SSID_MAX_NUM,
+	'$wl_bss_enable1-' + SSID_MAX_NUM,
+	'$wl_bss_isolated',
+	'$wl_bss_key_mgt1-' + SSID_MAX_NUM,
+	'$wl_bss_num',
+	'$wl_bss_role1-' + SSID_MAX_NUM,
+	'$wl_bss_sec_type1-' + SSID_MAX_NUM,
+	'$wl_bss_ssid1-' + SSID_MAX_NUM,
+	'$wl_bss_ssid_hidden1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_1key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_2key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_3key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_4key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_index1-' + SSID_MAX_NUM,
+	'$wl_bss_wpa_psk1-' + SSID_MAX_NUM,
+	'$wl_bss_wps_state1-' + SSID_MAX_NUM,
+	'$wl_channel',
+	'$wl_enable',
+	'$wl_region'
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var wlanCfg = {
+	'wlan0_ssid': mainObj.config_val('$wl_bss_ssid1'),
+	'wlan0_dot11_mode': mainObj.config_val('$wl_bb_mode'),
+	'channel': mainObj.config_val('$wl_channel'),
+	'region': mainObj.config_val('$wl_region'),
+	'wlan0_ssid_broadcast': mainObj.config_val('$wl_bss_ssid_hidden1'),
+	'wlan0_isolation': mainObj.config_val('$wl_ap_isolated'),
+};
+
+function send_request() {
+	var wlan_ssid = get_by_id("wlan0_ssid").value;
+	var wlan_dot11_mode = get_by_id("wlan0_dot11_mode").value;
+	var wlan_channel = get_by_id("wlan0_channel").value;
+	var wlan_ssid_vs = get_checked_value(get_by_id("wlan0_ssid_broadcast"));
+	var wlan_iso = get_checked_value(get_by_id("wlan0_isolation"));
+
+	mainObj.config_set(wlan_ssid, '$wl_bss_ssid1');
+	mainObj.config_set(wlan_dot11_mode, '$wl_bb_mode');
+	mainObj.config_set(wlan_channel, '$wl_channel');
+
+	if (wlan_ssid_vs) {
+		mainObj.config_set(0, '$wl_bss_ssid_hidden1');
+	} else {
+		mainObj.config_set(1, '$wl_bss_ssid_hidden1');
+	}
+
+	mainObj.config_set(wlan_iso, '$wl_ap_isolated');
+
+	wdk.save_form(2000);
+}
+
+function init() {
+	var wlan0_visible = wlanCfg.wlan0_ssid_broadcast;
+
+	get_by_id("wlan0_ssid").value = wlanCfg.wlan0_ssid;
+	set_selectIndex(wlanCfg.wlan0_dot11_mode, get_by_id("wlan0_dot11_mode"));
+
+	if (wlan0_visible == "0") {
+		set_checked(1, get_by_id("wlan0_ssid_broadcast"));
+	} else {
+		set_checked(0, get_by_id("wlan0_ssid_broadcast"));
+	}
+
+	set_checked(wlanCfg.wlan0_isolation, get_by_id("wlan0_isolation"));
+}
+
+function set_channel() {
+	var region = wlanCfg.region;
+	var current_channel = wlanCfg.channel;
+	var ch;
+	var obj = get_by_id("wlan0_channel");
+	var count = 0;
+
+	var option = document.createElement("option");
+	option.text = "auto";
+	option.value = "0";
+	obj.options[count++] = option;
+	if (0 == current_channel) {
+		option.selected = true;
+	}
+
+	if (region == "CN")
+		ch = 13;
+	else if (region == "JP")
+		ch = 13;
+	else //US
+		ch = 11;
+
+	for (var i = 1; i <= ch; i++) {
+		var option = document.createElement("option");
+		option.text = i;
+		option.value = i;
+		obj.options[count++] = option;
+		if (i == current_channel) {
+			option.selected = true;
+		}
+	}
+
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="wifi.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">WiFi Basic</div>
+   <div id="rightbutton">
+    <a onclick="send_request()">
+     <script>
+show_words("Done")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("Wireless SSID")</script></span>
+     <input name="wlan0_ssid" id="wlan0_ssid" type="text" maxlength="32">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Wireless Network Mode")</script></span>
+     <select name="wlan0_dot11_mode" id="wlan0_dot11_mode" class="duoselectionbuttons" size="1">
+      <option value="1">
+       <script>
+get_words('802.11b')
+       </script>
+      </option>
+      <option value="2">
+       <script>
+get_words("802.11g")
+       </script>
+      </option>
+      <option value="4">
+       <script>
+get_words("802.11n")
+       </script>
+      </option>
+      <option value="3">
+       <script>
+get_words("Mixed 802.11b, 802.11g")
+       </script>
+      </option>
+      <option value="7">
+       <script>
+get_words("Mixed 802.11b, 802.11g, 802.11n")
+       </script>
+      </option>
+     </select>
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Wireless Channel")</script></span>
+     <select name="wlan0_channel" id="wlan0_channel" class="duoselectionbuttons" size="1">
+      <script>
+set_channel();
+      </script>
+     </select>
+    </li>
+   </ul>
+
+   <ul class="pageitem">
+    <li class="checkbox">
+     <span class="name"><script>get_words("Wireless SSID broadcast")</script></span>
+     <input name="wlan0_ssid_broadcast" id="wlan0_ssid_broadcast" type="checkbox" value="1">
+    </li>
+    <li class="checkbox">
+     <span class="name"><script>get_words("AP Isolation")</script></span>
+     <input name="wlan0_isolation" id="wlan0_isolation" type="checkbox" value="1">
+    </li>
+   </ul>
+
+   <ul class="pageitem">
+    <li class="menu">
+     <a href="wifi_security.htm"><span class="name">Security</span><span class="arrow"></span></a>
+    </li>
+   </ul>
+  </div>
+ </form>
+</body>
+
+</html>

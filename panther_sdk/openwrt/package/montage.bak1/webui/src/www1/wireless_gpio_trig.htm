@@ -1,0 +1,126 @@
+<!--ifdef CONFIG_WLAN_GPIO_TRIGGER-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$wl_mac_gpio', '$lan_ip']);
+var lanip = wdk.cdbVal('$lan_ip');
+var is_lan = (lanip == window.location.host);
+
+function init() {
+	var f = document.frm;
+	var r = wdk.cdbVal('$wl_mac_gpio');
+	r = (r == '') ? 'en=1&smac=&desc=' : r;
+	wdk.fill_form_entry(wdk.getById('edit'), r);
+	showHide('wlmac_tab', Number(f.en.value));
+}
+
+function apply() {
+	var f = document.frm;
+	var tab = wdk.findChildNode(wdk.getById('edit'));
+	if (!chkNum(f.gpio, 0, 31, "GPIO")) {
+		highlight("gpio");
+		return;
+	}
+	var mac = wdk.getByName(tab, 'mac');
+	if (!chkMAC(mac, "MAC Address")) {
+		mac.focus();
+		return;
+	}
+	var r = "en=" + Number(f.en.value) + "&mac=" + f.mac.value + "&gpio=" + f.gpio.value;
+	wdk.cdbSet('$wl_mac_gpio', r);
+	wdk.save_form();
+}
+
+function clone_mac(mac) {
+	var cln_MAC = wdk.cliCmd('http peermac');
+	setMAC(mac, cln_MAC, 1);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+
+
+  <fieldset id=edit>
+   <legend>
+    <script>
+wdk.putmsg('Station GPIO Configuration');
+    </script>
+   </legend>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg('GPIO trigger')
+     </script>
+    </div>
+    <select name=en size=1 onchange="showHide('wlmac_tab',Number(this.value))">
+     <option value=0>
+      <script>
+wdk.putmsg("Disable GPIO Control")
+      </script>
+     </option>
+     <option value=1>
+      <script>
+wdk.putmsg("High-active GPIO o/p")
+      </script>
+     </option>
+     <option value=2>
+      <script>
+wdk.putmsg("Low-active GPIO o/p")
+      </script>
+     </option>
+    </select>
+   </div>
+
+   <div id=wlmac_tab>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg('GPIO number');
+      </script>
+     </div>
+     <input placeholder="0 ~ 31" name=gpio size=6 maxlength=2>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg('MAC Address');
+      </script>
+     </div>
+     <input placeholder="aa:bb:cc:dd:ee:ff" name=mac size=17 maxlength=17>
+     <script>
+if (is_lan) {
+	btncls = 'button';
+	en = ''
+} else {
+	btncls = 'BtnGrey';
+	en = 'disabled';
+}
+puts('<input type=button name=Btn class=' + btncls + ' value="' + wdk.msg("Clone MAC") + '" onclick=clone_mac(mac) ' + en + '>');
+     </script>
+
+    </div>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

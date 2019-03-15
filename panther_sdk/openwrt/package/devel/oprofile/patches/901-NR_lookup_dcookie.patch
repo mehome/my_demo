@@ -1,0 +1,11 @@
+diff -Nur a/daemon/opd_cookie.c b/daemon/opd_cookie.c
+--- a/daemon/opd_cookie.c	2013-07-29 23:55:07.000000000 +0800
++++ b/daemon/opd_cookie.c	2018-03-29 16:35:02.839653729 +0800
+@@ -20,6 +20,7 @@
+ #include <stdlib.h>
+ #include <errno.h>
+ 
++#undef __NR_lookup_dcookie
+ #ifndef __NR_lookup_dcookie
+ #if defined(__i386__)
+ #define __NR_lookup_dcookie 253

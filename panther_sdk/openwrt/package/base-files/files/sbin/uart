@@ -1,0 +1,11 @@
+#!/bin/sh
+
+[ -f /sbin/uartcmd ] &&
+{
+	uartcmd uart $@
+} ||
+{
+	echo $@ > /proc/uart
+	cat /proc/uart
+}
+

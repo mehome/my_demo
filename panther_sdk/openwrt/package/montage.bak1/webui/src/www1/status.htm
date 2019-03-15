@@ -1,0 +1,414 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+var conn_time;
+var wan_mode;
+var op_work_mode;
+
+/*--ifdef CONFIG_BRIDGE_MODE--*/
+var funcmode;
+/*--endif--*/
+
+/*--ifdef CONFIG_IPV6--*/
+var wan6_mode;
+var conStatus;
+var wan6IP;
+var wan6Gateway;
+var wan6ErrorStat;
+
+function dfgw() {
+	if (wan6_mode == 3)
+		return wan6IP;
+	else
+		return wan6Gateway;
+}
+
+function printValue(val) {
+	var s;
+	if (Number(conStatus & 3) == 2 && !wan6ErrorStat) s = val;
+	else s = "0.0.0.0";
+	return s;
+}
+
+function ConStatusValue() {
+	var s;
+	var statStr = ["Disconnected", "Connecting", "Connected", "Disconnecting"];
+	if (wan6ErrorStat) s = "Incorrectly configured";
+	else s = statStr[conStatus & 3];
+	return s;
+}
+
+function DefGWValue() {
+	var s;
+	if (Number(conStatus & 3) == 2 && !wan6ErrorStat) s = dfgw();
+	else s = "0.0.0.0";
+	return s;
+}
+
+function initIpv6Tbl() {
+	wan6_mode = Number(wdk.cdbVal('$wan6_mode'));
+	conStatus = wdk.cdbVal('status wan6_state');
+	wan6IP = wdk.cdbVal('status wan6_ip');
+	wan6Gateway = wdk.cdbVal('status wan6_gw');
+	wan6ErrorStat = Number(wdk.cdbVal('status wan6_nstate'));
+
+	var lan6IP = wdk.cdbVal('status lan6_ip');
+	var wan6dns1 = wdk.cdbVal('status wan6_dns1');
+	var wan6dns2 = wdk.cdbVal('status wan6_dns2');
+	var llIP = wdk.cdbVal('status lan6_ll') + " /64";
+	var wan6Mode = ["Auto Configuration(Stateless/DHCPv6)", "Static IPv6", "Stateless Auto Configuration", "DHCPv6(Stateful)", "PPPoE"];
+	//var IPv6List = [
+	//	["IPv6 Connection Mode", wan6Mode[wan6_mode]],
+	//	["Connection Status", wdk.msg(ConStatusValue())],
+	//	["WAN IPv6 Address", printValue(wan6IP)],
+	//	["IPv6 Default Gateway", DefGWValue()],
+	//	["LAN IPv6 Address", printValue(lan6IP)],
+	//	["LAN Ipv6 Connection - Local Address", llIP],
+	//	["Primary DNS Server", printValue(wan6dns1)],
+	//	["Secondary DNS Server", printValue(wan6dns2)]
+	//];
+	//fillTable("tabContent6", IPv6List, 40);
+}
+/*--endif--*/
+
+function initGwTbl() {
+	var dhcps_enable = wdk.cdbVal('$dhcps_enable');
+	var fw_enable = wdk.cdbVal('$fw_enable');
+	var nat_enable = wdk.cdbVal('$nat_enable');
+	var onOff = ["Disable", "Enabled"];
+	var GatewayList = [
+		["IP Address", wdk.cdbVal('$lan_ip')],
+		["Subnet Mask", wdk.cdbVal('$lan_msk')],
+		["DHCP Server", wdk.msg(onOff[dhcps_enable])],
+		["NAT", wdk.msg(onOff[nat_enable])],
+		["Firewall", wdk.msg(onOff[fw_enable])]
+	];
+	fillTable("tabContent1", GatewayList, 25);
+}
+
+function initIntrnTbl() {
+	var wan_state = wdk.cdbVal('status wan_state');
+	var conStat = ["Disconnected", "Connecting", "Connected", "Disconnecting"];
+	var wanMode = ["Static IP", "Dynamic IP", "PPPoE", "PPTP", "L2TP", "BigPond"];
+	var InternetList = [
+		["Cable/DSL", wdk.msg(conStat[wan_state & 3])],
+		["IP Address", wdk.cdbVal('status wan_ip')],
+		["Subnet Mask", wdk.cdbVal('status wan_mask')],
+		["Gateway", wdk.cdbVal('status wan_gw')],
+		["DNS", wdk.cdbVal('status dns1')],
+		["Secondary DNS", wdk.cdbVal('status dns2')],
+		["Domain Name", wdk.cdbVal('status wan_domain')],
+		["Connection Type", wanMode[wan_mode - 1]],
+		["Connection Time", timeStr(conn_time)]
+	];
+	fillTable("tabContent3", InternetList, 25);
+}
+
+function initInfrmTbl() {
+	var InformationList1 = [
+		["System Up Time", timeStr(wdk.cdbVal('time'))],
+		["System Date", wdk.cdbVal('time ntpstr')],
+		["Connected Clients", wdk.cdbVal('dhcps num')],
+		["Firmware Version", wdk.cdbVal('$sw_ver')]
+	];
+	var InformationList2 = [
+		["LAN MAC Address", wdk.cdbVal('status lan_mac')],
+		["WAN MAC Address", wdk.cdbVal('status wan_mac')]
+	];
+	var inforlist = [];
+	inforlist = InformationList1;
+	if (op_work_mode == 2 || op_work_mode == 3) {
+		for (var i = 0; i < InformationList2.length; i++) {
+			inforlist.push(InformationList2[i]);
+		}
+	} else if (op_work_mode == 1 || op_work_mode == 9) {}
+	fillTable("tabContent2", inforlist, 25);
+}
+
+/*--ifdef CONFIG_WLAN--*/
+function initWrlssTbl() {
+	var SSID_NUM = wdk.cdbVal('$wl_bss_num');
+	var k = 0;
+	var WirelessList = new Array();
+	var bssidLists = new Array();
+	var bssid = wdk.cdbVal('status wl_mac');
+	for (var i = 1; i <= SSID_NUM; i++) {
+		if (i > 1)
+			bssid = macPlusOne(wdk.cdbVal('status wl_mac'), i - 1);
+		bssidLists.push(bssid);
+		if (Number(wdk.cdbVal('$wl_bss_enable' + i))) {
+			WirelessList.push(["SSID" + i, wdk.cdbVal('$wl_bss_ssid' + i)]);
+			WirelessList.push(["BSSID" + i, bssidLists[i - 1]]);
+		}
+	}
+	WirelessList.push(["Channel", wdk.cdbVal("get_channel")]);
+	fillTable("tabContent5", WirelessList, 25);
+}
+/*--endif--*/
+
+function init() {
+	wdk.cdbLoad([
+		'time', 'time ntpstr', 'dhcps num',
+		'status wan_state', 'status wan_ip', 'status wan_mask', 'status wan_gw',
+		'status wan_domain', 'status wan_mac', 'status lan_mac',
+		'status conntime', 'status dns1', 'status dns2',
+		/*--ifdef CONFIG_WLAN--*/
+		'get_channel', 'status wl_mac',
+		/*--endif--*/
+	]);
+	wdk.cdbLoad([
+		'$sw_ver', '$wan_mode', '$lan_ip', '$lan_msk',
+		'$dhcps_enable', '$fw_enable', '$nat_enable',
+		/*--ifdef CONFIG_WLAN--*/
+		'$wl_bss_num', '$wl_channel',
+		'$wl_bss_ssid1-' + SSID_MAX_NUM, '$wl_bss_enable1-' + SSID_MAX_NUM,
+		/*--endif--*/
+		/*--ifdef CONFIG_BRIDGE_MODE--*/
+		'$sys_funcmode',
+		/*--endif--*/
+	]);
+	/*--ifdef CONFIG_IPV6--*/
+	wdk.cdbLoad([
+		'$wan6_mode',
+		'status wan6_state', 'status lan6_ll', 'status wan6_nstate',
+		'status wan6_dns1', 'status wan6_dns2', 'status wan6_ip', 'status lan6_ip',
+		'status wan6_gw',
+	]);
+	/*--endif--*/
+
+	conn_time = wdk.cdbVal('status conntime');
+	wan_mode = wdk.cdbVal('$wan_mode');
+	op_work_mode = wdk.cdbVal('$op_work_mode');
+
+	/*--ifdef CONFIG_IPV6--*/
+	initIpv6Tbl();
+	/*--endif--*/
+	initGwTbl();
+	initIntrnTbl();
+	initInfrmTbl();
+	/*--ifdef CONFIG_WLAN--*/
+	initWrlssTbl();
+	/*--endif--*/
+
+	/*--ifdef CONFIG_BRIDGE_MODE--*/
+	funcmode = wdk.cdbVal('$sys_funcmode');
+	showHideFuncMode('status_internet', funcmode);
+	//alert(WirelessList[3][1][19]+=1)
+	/*--endif--*/
+	var int_tbl = document.getElementById("int_tbl");
+	if (op_work_mode == 2 || op_work_mode == 3)
+		int_tbl.style.visibility = "visible";
+	else if (op_work_mode == 1 || op_work_mode == 9)
+		int_tbl.style.visibility = "hidden";
+}
+
+function showConTime() {
+	if (wan_mode == 1) return;
+	puts('<div class=setting><div class=col32>' + wdk.msg("Connection Time") + '<' + '/div>');
+	puts(timeStr(conn_time) + '<' + '/div>');
+}
+
+function showConButton() {
+	if (wan_mode == 1) return;
+	var b1 = ((wan_mode == 2) ? wdk.msg("Release") : wdk.msg("Disconnected"));
+	var b2 = ((wan_mode == 2) ? wdk.msg("Renew") : wdk.msg("Connection"));
+	puts('<input type=button class=button name=conn value="' + b1 + '" onclick=conAction("release")>' +
+		'<input type=button class=button name=conn value="' + b2 + '" onclick=conAction("connect")>');
+}
+
+function conAction(act) {
+	var f = document.frm;
+	wdk.cliCmd("wan " + act);
+	goUrl(wdk.getThisPage());
+	wdk.cliCmd("sleep 100");
+}
+
+/**
+ *  create and fill row for table
+ * @method fillTable
+ * @param {string} id - target table id
+ * @param {object} a - data array
+ * @param {number} k - row width
+ * @return {undefined}
+ */
+function fillTable(id, a, k) {
+	var t = wdk.getById(id);
+	var tb = document.createElement('tbody');
+	var rstr = "";
+	if (!t) {
+		//alert(id + " isn't exist");
+		return;
+	}
+	for (var j = 0; j < a.length; j++) {
+		var r = a[j];
+		var title_str = wdk.msg(r[0]);
+		var content_str = r[1];
+		var tr = document.createElement('tr');
+		var td1 = document.createElement('td');
+		var td2 = document.createElement('td');
+		td2.style.textAlign = "right";
+		for (var i = 0; i < title_str.length; i += k) {
+			if (title_str.length > k)
+				td1.innerHTML += title_str.substring(i, i + k) + '<br>';
+			else
+				td1.innerHTML += title_str.substring(i);
+		}
+
+		for (var i = 0; i < content_str.length; i += k) {
+			if (content_str.length > k)
+				td2.innerHTML += content_str.substring(i, i + k) + '<br>';
+			else
+				td2.innerHTML += content_str.substring(i);
+		}
+		tr.appendChild(td1);
+		tr.appendChild(td2);
+		tb.appendChild(tr);
+	}
+	t.appendChild(tb);
+}
+
+/*--ifdef CONFIG_WLAN--*/
+//for multi ssid
+function macPlusOne(mac, j) {
+	mac = mac.split(':').join('');
+	var num = parseInt(mac, 16);
+	num += j;
+	num = num.toString(16).toUpperCase();
+
+	var macLen = 12;
+	var newMAC = '';
+	for (var zeroIdx = 0; zeroIdx < (macLen - num.length);) {
+		num = "0" + num;
+	}
+
+	for (var macIdx = 0; macIdx < macLen; macIdx += 2) {
+		newMAC += num.slice(macIdx, macIdx + 2);
+		if (macIdx != 10)
+			newMAC += ":";
+	}
+	return newMAC;
+}
+/*--endif--*/
+ </SCRIPT>
+ <style type=text/css>
+div.col2l {
+ float: left;
+ width: 25.774em;
+}
+div.col2r {
+ float: right;
+ width: 25.774em;
+ margin-left: 0.906em;
+ margin-bottom: 1.20em;
+}
+ </style>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header();
+ </script>
+ <form name=frm>
+  <!--ifdef CONFIG_IPV6-->
+  <div>
+   <fieldset>
+    <legend>
+     <script>
+wdk.putmsg("IPv6")
+     </script>
+    </legend>
+    <table id=tabContent6 class=setting border=0></table>
+   </fieldset>
+  </div>
+  <br>
+  <!--endif-->
+  <div>
+   <!--ifdef CONFIG_BRIDGE_MODE-->
+   <script>
+if (funcmode != 1)
+	puts("<div class=col2l>");
+   </script>
+   <!--endif-->
+   <!--ifndef CONFIG_BRIDGE_MODE-->
+   <div class=col2l>
+    <!--endif-->
+    <fieldset>
+     <legend>
+      <script>
+wdk.putmsg("Gateway")
+      </script>
+     </legend>
+     <table id=tabContent1 class=setting border=0></table>
+    </fieldset>
+    <br>
+    <fieldset>
+     <legend>
+      <script>
+wdk.putmsg("Information")
+      </script>
+     </legend>
+     <table id=tabContent2 class=setting border=0></table>
+    </fieldset>
+    <!--ifdef CONFIG_BRIDGE_MODE-->
+    <script>
+if (funcmode != 1)
+	puts("<" + "/div>");
+    </script>
+    <!--endif-->
+    <!--ifndef CONFIG_BRIDGE_MODE-->
+   </div>
+   <!--endif-->
+   <!--ifdef CONFIG_WLAN-->
+   <div class=col2r>
+    <fieldset>
+     <legend>
+      <script>
+wdk.putmsg("Wireless")
+      </script>
+     </legend>
+     <table id=tabContent5 class=setting border=0></table>
+    </fieldset>
+   </div>
+   <!--endif-->
+   <!--ifdef CONFIG_BRIDGE_MODE-->
+   <div id=status_internet style="display:none;">
+    <!--endif-->
+    <div id="int_tbl" class=col2r style="visibility:hidden;">
+     <fieldset>
+      <legend>
+       <script>
+wdk.putmsg("Internet")
+       </script>
+      </legend>
+      <table id=tabContent3 class=setting border=0></table>
+      <table id=tabContent4 class=setting border=0>
+       <tr>
+        <td align=right>
+         <script>
+showConButton()
+         </script>
+        </td>
+       </tr>
+      </table>
+     </fieldset>
+    </div>
+    <!--ifdef CONFIG_BRIDGE_MODE-->
+   </div>
+   <!--endif-->
+  </div>
+
+  <script>
+footer(1)
+  </script>
+ </form>
+
+</html>

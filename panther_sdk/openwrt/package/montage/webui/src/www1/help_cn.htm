@@ -1,0 +1,357 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body>
+ <div class=help1>
+  <dl>
+   <dd>请参考说明手册</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='dns.htm'>域名系统</a></dt>
+   <dd>The Domain Name System (DNS) is how the Internet translates domain or website names into Internet addresses or URLs. Your ISP will provide you with at least one DNS Server IP address. If you wish to utilize another, enter that IP address in one of these fields. You can enter up to three DNS Server IP addresses here. The router will utilize these for quicker access to functioning DNS servers.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_DHCPC-->
+ <div class=help1>
+  <dl>
+   <dt><a id='dhcpc.htm'>DHCP (动态主机设置协议)</a></dt>
+   <dd>从ISP自动获取一个IP位址.</dd>
+   <dt>MAC位址複製功能</dt>
+   <dd>将WAN端的MAC位址改为LAN端客户的MAC位址.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='fixip.htm'>静态IP</a></dt>
+   <dd>设定网际网路上路由器的IP位址与子网路遮罩.</dd>
+   <dt>预设闸道器</dt>
+   <dd>ISP应该告知您闸道器的IP位址.</dd>
+   <dt>MTU (最大传输单元)</dt>
+   <dd>指定网路传输所使用的封包大小上限.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_PPPOE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='pppoe.htm'></a></dt>
+   <dt>持续连线选项</dt>
+   <dd>持续连线,甚至当连线閒置.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='hostconf.htm'>时区</a></dt>
+   <dd>请根据你的位置选择时区</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='porttrig.htm'>端口触发</a></dt>
+   <dd>不用指定转发到某个IP位址的一种端口转发功能. 根据端口触发规则, 当发现触发端口上有出境封包, 接着将允许公用服务端口上入境的封包被转发到触发的LAN端客户. 这被叫做端口触发因为是由出境封包触发入境封包的端口转发功能.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='dhcps.htm'>LAN设置</a></dt>
+   <dd>设定LAN端<b>IP位址</b>与<b>子网路遮罩</b>
+   </dd>
+   <dt>DHCP(动态主机设置协议)</dt>
+   <dd>使用DHCP来得到IP网路上的必要讯息.这将减少网路管理者的负担,并允许装置加入网路不需要手动设置.</dd>
+   <dt>DHCP伺服器探测</dt>
+   <dd>侦测LAN端是否有其他DHCP伺服器.如果侦测到其他DHCP伺服器,将关闭路由器的DHCP伺服器.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='clientlist.htm'>DHCP使用者列表</a></dt>
+   <dd>可以看到LAN端使用者的IP位址,主机名称,MAC位址.另外,可针对特定主机给予IP位址.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='VLAN_Port_Settings'>Virtual LAN</a></dt>
+   <dd>Virtual LAN allow you to separate range of broadcast domain. Members in the same VLAN have the same VLAN identifier.</dd>
+   <dt>PVID</dt>
+   <dd>Each port VID range is from 1 ~ 4094. WAN port VID can't be equal to anyone of LAN port's VID in router mode.</dd>
+   <dt>Priority</dt>
+   <dd>802.1p user priority 0 is the lowest priority while 7 is the highest.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='VLAN_Group_Settings'>Group Settings</a></dt>
+   <dd>Up to eight VLAN group rules can config and enable to classfied VLAN identifier and port membership. There are three options on each port, select X for any port that is not included in the VLAN group. Select the Tag option to enable tagging for the port. Select the Untag option to include the port in the VLAN group without tagging.</dd>
+   <dt>Management VID</dt>
+   <dd>Management VLAN identifier can be changed to suit the administrator's preference in bridge mode.</dd>
+   <dt>PVID settings</dt>
+   <dd>Each port has it's port VID and use to classfied VLAN membership if untag packet.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_NAT-->
+ <div class=help1>
+  <dl>
+   <dt><a id='vserver.htm'>虚拟伺服器</a></dt>
+   <dd>允许建立网路上公开的服务,像是网站,FTP伺服器,e-mail伺服器. 利用端口转发的功能将封包从路由器上的公用服务端口转发到LAN端的私用服务端口.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='portmap.htm'>端口映射</a></dt>
+   <dd>允许建立网路上公开的服务,像是网站,FTP伺服器,e-mail伺服器,或是一些特殊的网际网路应用. 特殊的网际网路应用指的是视讯会议或是线上游戏. 当网际网路上有这些服务要求发生的时候,将转送这些要求到指定的PC上.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='routetable.htm'>路由表</a></dt>
+   <dd>显示当前所有路由规则</dd>
+   <dt>路由规则</dt>
+   <dd>路由规则决定路由器收到的封包要转送往哪一个IP位址</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='staticroute.htm'>静态路由</a></dt>
+   <dd>静态路由是由用户或网路管理者手动设置的路由规则(例如: 目的网路IP: 192.168.100.1，子网路遮罩: 255.255.255.0，闸道器IP: 192.168.0.2)</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UPNP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='upnp.htm'>UPnP (通用即插即用)</a></dt>
+   <dd>启动UPnP后,会自动搜寻LAN端支援通用即插即用的装置.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_DDNS-->
+ <div class=help1>
+  <dl>
+   <dt><a id='ddns.htm'>DDNS (动态DNS)</a></dt>
+   <dd>将定时刷新路由器IP位址给DDNS伺服器</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='config.htm'>回復设定</a></dt>
+   <dd>系统设定被回復为出厂设定.注意!!!出厂设定:[使用者帐号: admin]，[密码: admin]，[IP位址: 192.168.0.1]，[网路遮罩: 255.255.255.0]</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='alg.htm'>VPN (虚拟私人网路)</a></dt>
+   <dd>根据您的<b>VPN使用需要</b>打开对应的穿透功能</dd>
+   <dt>FTP(文件传输协议)</dt>
+   <dd>让您LAN端的FTP伺服器可以支援被动模式; 让LAN端的FTP客户可以支援主动模式</dd>
+   <dt>网路会议</dt>
+   <dd>为了让网路会议可以被发起, 监控端口1720.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='urlf.htm'>URL过滤</a></dt>
+   <dd>设定使用者不能存取的网站</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='macf.htm'>MAC过滤</a></dt>
+   <dd>设定禁止连上网际网路的使用者</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='clientf.htm'>使用者过滤</a></dt>
+   <dd>封锁使用者特定连线的建立，请设定使用者的IP位址 端口编号(80:HTTP) 传输协定(TCP/IP)</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='hacker.htm'>防火牆选项</a></dt>
+   <dd>启用网路攻击防护功能</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='status.htm'>状态</a></dt>
+   <dd>此页面显示路由器当前的状态和设定</dd>
+   <dt>韧体版本</dt>
+   <dd>可上网<a href="http://www.vendor.com" target="_blank">www.vendor.com</a>查看是否有更新的韧体</dd>
+   <dt>DNS</dt>
+   <dd>路由器使用的DNS伺服器IP位址，通常会设定多个DNS伺服器，以第一个设定为先</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_LOG-->
+ <div class=help1>
+  <dl>
+   <dt><a id='log.htm'>纪录</a></dt>
+   <dd>装置上的活动和事件将被纪录在此</dd>
+   <dd>你可以下载此纪录档</dd>
+   <dd>当装置重新启动，此纪录档将自动被清除</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='upgrade.htm'>韧体更新</a></dt>
+   <dd>请先确认韧体档案已经储存在主机的硬碟内，接着按下Browse选择韧体</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='tool.htm'>工具</a></dt>
+   <dd>如果系统没有回应，可按下<b>重启</b>键进行强制重启</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='lang.htm'>语言</a></dt>
+   <dd>指定网页显示的语言</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='logconf.htm'>Email纪录</a></dt>
+   <dd>Email路由器纪录资讯到收件者电子邮件地址</dd>
+   <dt>SMTP伺服器</dt>
+   <dd>寄件者的邮件伺服器</dd>
+   <dt>电子邮件信箱</dt>
+   <dd>请先设定好寄件与收件者的电子邮件地址，再按<b>传收</b>进行收件测试</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='logout.htm'>登出</a></dt>
+   <dd>登出帐号，需重新输入帐号密码!!</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_PPTP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='pptp.htm'>PPTP (点对点隧道协议)</a></dt>
+   <dd>PPTP是一种用来实现虚拟私人网路的隧道协议.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_L2TP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='l2tp.htm'>L2TP (第二层隧道协议)</a></dt>
+   <dd>L2TP是一种用来实现虚拟私人网路的隧道协议.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='Rate_Control'>流量限制</a></dt>
+   <dd>频宽的换算关係为：
+    <br>1KBps=8Kbps;1Mbps=1000Kbps
+    <br>
+    <dd>总(上传/下载)频宽:
+     <br>请根据实际您所申请的频宽情况进行选择和填写，如不清楚，请谘询您的电信商
+     <br>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_WIZARD_WEB-->
+ <div class=help1>
+  <dl>
+   <dt><a id='wizard.htm'>主机名称</a></dt>
+   <dd>您替路由器取的名称</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_VIDEO_STREAM-->
+ <div class=help1>
+  <dl>
+   <dt><a id='stream.htm'>浏览器的媒体播放器插件</a></dt>
+   <dd>请选用<a href="http://www.videolan.org" target="_blank">VLC</a>播放</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='webcam_record.htm'>在一周裡的排程计画</a></dt>
+   <dd>一周分为七天
+    <br>每一天再以半小时来切开</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_SONIX_MOTION_DETECTION-->
+ <div class=help1>
+  <dl>
+   <dt><a id='sonix_md.htm'>Motion Detection</a></dt>
+   <dd>Motion detection 是一种检测物体位置变化的处理</dd>
+   <dt>如何选择或取消一个检测范围?</dt>
+   <dd>1. 选择解锁
+    <br>2. 使用滑鼠左键切换选择或取消模式
+    <br>3. 移动游标选择或取消区块
+   </dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='x'>x</a></dt>
+   <dd>x's definition</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+</body>
+
+</html>

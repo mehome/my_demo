@@ -1,0 +1,110 @@
+<!--ifdef CONFIG_PRINTER_SERVER-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$prn_enable', 'prn name']);
+
+var prnInfo = wdk.cdbValA('prn name');
+
+function init() {
+	wdk.init_form();
+	showHide('edit1', Number(wdk.cdbVal('$prn_enable')));
+}
+
+function apply() {
+	wdk.save_form(2000);
+}
+
+function EnablePrn(n) {
+	var m, f = document.frm;
+
+	if (n == 1)
+		m = "Do you want to enable the printer server?";
+	else
+		m = "Do you want to disable the printer server?";
+
+	if (confirm(wdk.msg(m))) {
+		wdk.save_form(2000);
+	} else f.usbprnEn.value = Number(wdk.cdbVal('$prn_enable'));
+}
+
+function prn_name_lists() {
+	var i, s = ''
+
+	s += '<table border=0>';
+	if (prnInfo.length) {
+		for (i = 0; i < prnInfo.length; i++) {
+			if (i % 4 == 0) s += '<tr>';
+			s += '<td><img src=images/prnt.gif width=15 height=17 border=0 alt="' + prnInfo[i] + '">&nbsp;';
+			s += prnInfo[i];
+			s += '<' + '/td>';
+			if (i % 4 == 3) s += '<' + '/tr>';
+		}
+	} else
+		s += '<tr align=center><td>No printer is available.<' + '/td><' + '/tr>';
+	s += '<' + '/table>';
+	puts(s);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings")
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Printer server")
+     </script>
+    </div>
+    <select name=usbprnEn id=$prn_enable size=1 onchange='EnablePrn(this.value);'>
+     <option value=0>
+      <script>
+wdk.putmsg("Disable")
+      </script>
+     </option>
+     <option value=1>
+      <script>
+wdk.putmsg("Enable")
+      </script>
+     </option>
+    </select>
+   </div>
+   <div id=edit1>
+    <fieldset>
+     <legend>
+      <script>
+wdk.putmsg('Printer Server List');
+      </script>
+     </legend>
+     <script>
+prn_name_lists()
+     </script>
+    </fieldset>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

@@ -1,0 +1,18 @@
+---- WIFIAudio_UciConfig_SearchValueString Matches (13 in 4 files) ----
+Playlist_info_json.c (src):		//char *value = WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.playmode");
+Playlist_info_json.c (src):		//reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+Playlist_info_json.c (src):		  //plm = WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.playmode");
+Playlist_info_json.c.bak (src):	    char *value = WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.playmode");
+Playlist_info_json.c.bak (src):	char *value = WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.playmode");
+Playlist_info_json.c.bak (src):       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+Playlist_info_json.c.bak (src):       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+Playlist_info_json.c.bak (src):       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+Playlist_info_json.c.bak (src):       reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+Playlist_info_json.c.bak (src):         reline=WIFIAudio_UciConfig_SearchValueString("xzxwifiaudio.config.current_contentURL");
+uciConfig.c (src):char * WIFIAudio_UciConfig_SearchValueString(char *psearch)
+uciConfig.c (src):		printf("Error of parameter : NULL == psearch in WIFIAudio_UciConfig_SearchValueString\r\n");
+uciConfig.h (src):extern char * WIFIAudio_UciConfig_SearchValueString(char *psearch);
+---- WIFIAudio_UciConfig_SearchValueString Search Errors Encountered (2) ----
+The following 2 files could not be processed:
+\\192.168.1.250\quejw\gitwork\panther\panther_sdk_20180124\panther_sdk\openwrt\package\legacy\creatplaylist\si\panther_creatplaylist.IAB : File could not be opened.
+\\192.168.1.250\quejw\gitwork\panther\panther_sdk_20180124\panther_sdk\openwrt\package\legacy\creatplaylist\si\panther_creatplaylist.IMB : File could not be opened.

@@ -1,0 +1,233 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$sw_ver', '$sw_build']);
+var tryTimes= 60;
+var reqPeriod= 5000;
+var sysUpgradeReqStatusPeriod= 500;
+var sysUpgradeTimeOut= 300000;
+var sysUpgradeTimeOutTimer= 0;
+var sysUpgradeLastBarPosition= 0;
+var sysUpgradeLastBarPositionTicks= 0;
+
+function apply() {
+	var f = document.frm;
+
+	/*--ifdef CONFIG_BOOTIMG_UPGRADE--*/
+	f.filetype.value = f.FT[0].checked ? 1 : 3;
+	/*--endif--*/
+	if (f.files.value == "") {
+		alert(wdk.msg("Please select file to upgrade system!"));
+		return;
+	}
+
+	if (confirm(wdk.msg("Do you really want to upgrade?"))) {
+		wdk.cliCmd('http largepost');
+		wdk.stopTimeout();
+		wdk.showResultBG();
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("upgrading...");
+		sysUpgradeTimeOutTimer = 0;
+		sysUpgradeLastBarPosition = 0;
+		sysUpgradeLastBarPositionTicks = 0;
+		setTimeout("real_submit()", 100); /* wait loading picture */
+	}
+}
+
+function checkSiteAvaliable() {
+    var img = document.getElementById('check_online');
+    var server_addr = wdk.cdbVal('status server_addr');
+    var server_port = wdk.cdbVal('status server_port');
+
+    img.onload = function()
+    {
+        if (server_port=='443')
+            document.location.href = "https://" + server_addr;
+        else
+            document.location.href = "http://" + server_addr;
+    };
+    img.onerror = function()
+    {
+        setTimeout("checkSiteAvaliable()", 1000);
+    };
+    img.src = "form/online_check.png";
+}
+
+function progress_bar_move() {
+    var elem = document.getElementById("progress_bar_now");
+    var elem_label = document.getElementById("progress_bar_label");
+    var width;
+    var bar_position;
+    var progress_bar_val;
+    wdk.cdbLoad(['$upgrade_progress_bar']);
+    wdk.cdbLoad(['$upgrade_interrupt']);
+    bar_position = wdk.cdbVal('$upgrade_progress_bar');
+    interrupt = wdk.cdbVal('$upgrade_interrupt');
+
+    if(interrupt > 0)
+    {
+        result_fail();
+    }
+    if(sysUpgradeTimeOutTimer > sysUpgradeTimeOut)
+    {
+        setTimeout("checkSiteAvaliable()", 5000);
+        result_fail();
+    }
+
+    if(sysUpgradeLastBarPosition < bar_position)
+    {
+        sysUpgradeLastBarPositionTicks = 0;
+        sysUpgradeLastBarPosition = bar_position;
+    }
+    else if(sysUpgradeLastBarPosition < 95)
+    {
+        /* make a fake bar position, do not more than real position over 15% */
+        sysUpgradeLastBarPositionTicks++;
+        if(sysUpgradeLastBarPositionTicks/4 < 15)
+        {
+            if(sysUpgradeLastBarPositionTicks%4 == 0)
+                sysUpgradeLastBarPosition++;
+        }
+    }
+
+    width = sysUpgradeLastBarPosition;
+    if(width < 100)
+    {
+        elem.style.width = width + '%';
+        elem_label.innerHTML = width * 1  + '%';
+        sysUpgradeTimeOutTimer += sysUpgradeReqStatusPeriod;
+        setTimeout("progress_bar_move()", sysUpgradeReqStatusPeriod);
+    }
+    else if(width == 100)
+    {
+        elem.style.width = width + '%';
+        elem_label.innerHTML = width * 1  + '%';
+        wdk.getById("titleupwarng").innerHTML = wdk.msg("rebooting...");
+        setTimeout("checkSiteAvaliable()", 5000);
+    }
+
+}
+function real_submit() {
+	//filetype=1 or 3
+	//fileid=0
+	document.frm.submit();
+	setTimeout("progress_bar_move()", 3000);
+	//add delay to avoid not yet submit
+	//setTimeout("checkSiteAvaliable()", 15000);
+	//setTimeout(function() {
+	//	wdk.showUpgradeResult(0, result_success, result_fail, true);
+	//}, 1000);
+}
+
+function result_success() {
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Start to firmware upgrade!");
+    setTimeout(function(){req()},10000);  
+}
+
+
+function req(){
+  tryTimes --; 
+  var ret=wdk.httpReq('status.htm');
+  if(ret!=''){
+    location.reload(true);
+    return;
+  }
+
+  if(tryTimes <0)
+  {
+     location.reload(true); 
+     return; 
+  } 
+  setTimeout(function(){req()} ,reqPeriod);
+}
+
+
+function result_fail() {
+	var bkstr = wdk.msg("Failed! Please check the firmware image and tool.") + '<br><br><input class=button name=apply_button value=' + wdk.msg("Back") + ' type=button onclick=javascript:onClick=goUrl("upgrade.htm")>'
+	wdk.getById("result").innerHTML = bkstr;
+}
+
+function init()
+{
+	wdk.cdbLoad([
+		'status server_addr',
+	]);
+	wdk.cdbLoad([
+		'status server_port',
+	]);
+}
+
+function cancel()
+{
+	window.location.reload(true);
+}
+
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+upgradeHeader()
+ </script>
+ <form name=frm action=upgrade.cgi method=post target=save_frame encType=multipart/form-data>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Firmware Upgrade");
+    </script>
+   </legend>
+   <p class=text1><b><font color="#465F88">
+	<script>wdk.putmsg("Current Firmware Version");</script>: <script> puts(wdk.cdbVal("$sw_ver")); </script><br>
+	<script>wdk.putmsg("Firmware Date");</script>: <script> puts(wdk.cdbVal("$sw_build")); </script>
+	</font></b>
+   </p>
+   <!--ifdef CONFIG_BOOTIMG_UPGRADE-->
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("File Type");
+     </script>
+    </div>
+    <input id=f1 type=radio value=1 name=FT checked>
+    <script>
+wdk.putmsg("Application");
+    </script>
+    <input id=f2 type=radio value=3 name=FT>
+    <script>
+wdk.putmsg("Bootcode");
+    </script>
+   </div>
+   <!--endif-->
+   <div class=setting>
+    <div class=text1>
+     <img id="check_online" style="display:none;" />
+     <script>
+wdk.putmsg("Enter the path and name of the upgrade file then click the OK button below.");
+     </script>
+    </div>
+    <!--ifndef CONFIG_BOOTIMG_UPGRADE-->
+    <input type=hidden name=filetype value=1>
+    <!--endif-->
+    <!--ifdef CONFIG_BOOTIMG_UPGRADE-->
+    <input type=hidden name=filetype>
+    <!--endif-->
+    <input type=hidden name=fileid value=0>
+    <input type=file size=35 name=files>
+   </div>
+   <iframe id=save_frame name=save_frame src=# style="width:0;height:0;border:0px solid #fff;"></iframe>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

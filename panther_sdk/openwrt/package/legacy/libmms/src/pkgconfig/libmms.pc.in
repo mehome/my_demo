@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@/
+
+Name: libmms
+Description: Library implementing the MMS protocol 
+Version: @VERSION@
+Libs: -L${libdir} -lmms -lm
+Cflags: -I${includedir}

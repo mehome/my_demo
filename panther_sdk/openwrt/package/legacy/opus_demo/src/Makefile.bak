@@ -1,0 +1,21 @@
+DIR_INC = ./include
+DIR_LIB = ../libs
+
+TARGET	= opus_demo
+#CFLAGS = -g -Wall -I . -isystem /usr/include/glib-2.0 -isystem /usr/lib/i386-linux-gnu/glib-2.0/include
+OBJECTS := $(patsubst %.c,%.o,$(wildcard *.c))
+LDFLAGS += -ljson-c -lmpdclient -lmonitor -lcdb -ldl
+#LDFLAGS +=  -luci -Wall -Wno-unused-function -O3 -static-ljson-c 
+all: $(TARGET)
+$(TARGET) : $(OBJECTS)
+	@echo "Building $@ ..."
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+%.o : %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+clean:
+	@rm -f *.o $(TARGET)
+
+.PHONY:clean
+
+

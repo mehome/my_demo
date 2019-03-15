@@ -1,0 +1,191 @@
+<!--ifdef CONFIG_SONIX_OSD-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$webcam_format', '$webcam_osd']);
+
+function brHide(id, en) {
+	var e = wdk.getById(id);
+	e.style.display = ((en != 0) ? 'inline' : 'none');
+}
+
+function apply() {
+	var str;
+	var en = wdk.getById("en").checked ? 1 : 0;
+	var ostr = wdk.getById("ostr").value;
+	var srow = wdk.getById("srow").value;
+	var scol = wdk.getById("scol").value;
+	var ffg = wdk.getById("ffg").value;
+	var fbg = wdk.getById("fbg").value;
+	var size = wdk.getById("size").value;
+
+	//check
+	var legal = /[^A-Z0-9-\s:]/;
+	if (!chkStr(wdk.getById("ostr"), "string", legal)) {
+		highlight("ostr");
+		return;
+	}
+	if (!chkNum(wdk.getById("srow"), 0, 70, "row")) {
+		highlight("srow");
+		return;
+	}
+	if (!chkNum(wdk.getById("scol"), 0, 70, "column")) {
+		highlight("scol");
+		return;
+	}
+
+	// set $webcam_osd
+	str = "en=" + en;
+	str += "&str=" + ostr;
+	str += "&srow=" + srow;
+	str += "&scol=" + scol;
+	str += "&ffg=" + ffg;
+	str += "&fbg=" + fbg;
+	str += "&size=" + size;
+	wdk.cdbSet("$webcam_osd", str)
+	if (wdk.cdbChg("$webcam_osd")) {
+		showHide('display', 0);
+		wdk.showResultBG();
+		wdk.redirect(5);
+		wdk.save_form(0, 1);
+		// sent commands
+		wdk.cliCmd("webcam osd_ctl en " + en);
+		//padding to 19 chars
+		ostr = (ostr + Array(20).join(" ")).slice(0, 19);
+		//replace ' ' to '_' 
+		ostr = ostr.replace(/\s/g, "_");
+		/*WSIM_BEGIN*/
+		alert("webcam osd_ctl str " + ostr);
+		alert("webcam osd_ctl start " + srow + " " + scol);
+		alert("webcam osd_ctl fcolor " + ffg + " " + fbg);
+		alert("webcam osd_ctl size " + size);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam osd_ctl str " + ostr);
+		wdk.cliCmd("webcam osd_ctl start " + srow + " " + scol);
+		wdk.cliCmd("webcam osd_ctl fcolor " + ffg + " " + fbg);
+		wdk.cliCmd("webcam osd_ctl size " + size);
+	} else
+		alert(wdk.msg('The settings are not changed!!'));
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var vdev = rule2var(format, "vdev");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+	var player_html = '<object classid="clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921" codebase="http://downloads.videolan.org/pub/videolan/vlc/latest/win32/axvlc.cab" width="480" height="360" id="vlc"><param name="Src" value="' + url + '"><' + '/param><param name="AutoLoop" value="no"><' + '/param><param name="AutoPlay" value="yes"><' + '/param><embed type="application/x-vlc-plugin" pluginspage="http://www.videolan.org" id="vlcfirefox" autoplay="yes" loop="no" width="480" height="360" target="' + url + '"><' + '/embed><' + '/object>';
+
+	wdk.getById("display").innerHTML = player_html;
+	showHide("display", 1);
+
+	f.reset();
+	wdk.init_form();
+
+	showHide('osdopt', wdk.getById("en").checked);
+	showHide('display', wdk.getById("en").checked);
+	brHide('d_br', wdk.getById("en").checked);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset id=$webcam_osd>
+   <legend>
+    <script>
+wdk.putmsg("Settings")
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Enabled");
+     </script>
+    </div>
+    <input type=checkbox name=en id=en value=1 onclick="brHide('d_br',this.checked);showHide('osdopt',this.checked);showHide('display',this.checked)">
+   </div>
+   <div id=osdopt>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("2nd string");
+      </script>
+      <em>&nbsp;(0-9, A-Z, -, :, whitespace)</em>
+     </div>
+     <input name=str id=ostr maxlength=19>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Start Position");
+      </script>
+      <em>&nbsp;(row, column)</em>
+     </div>
+     <input name=srow id=srow size=10>,
+     <input name=scol id=scol size=10>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Font Color");
+      </script>
+      <em>&nbsp;(foreground, background)</em>
+     </div>
+     <select name=ffg id=ffg size=1>
+      <option value='0'>Black</option>
+      <option value='1'>Red</option>
+      <option value='2'>Green</option>
+      <option value='3'>Blue</option>
+      <option value='4'>White</option>
+     </select>
+     ,
+     <select name=fbg id=fbg size=1>
+      <option value='0'>Black</option>
+      <option value='1'>Red</option>
+      <option value='2'>Green</option>
+      <option value='3'>Blue</option>
+      <option value='4'>White</option>
+     </select>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Font Size");
+      </script>
+     </div>
+     <select name=size id=size size=1>
+      <option value='0'>Auto</option>
+      <option value='1'>1</option>
+      <option value='2'>2</option>
+      <option value='3'>3</option>
+      <option value='4'>4</option>
+     </select>
+    </div>
+   </div>
+  </fieldset>
+  <br id=d_br>
+  <div id=display style="display:none;" align=center>
+  </div>
+  <script>
+footer(0)
+  </script>
+ </form>
+
+</html>
+<!--endif-->

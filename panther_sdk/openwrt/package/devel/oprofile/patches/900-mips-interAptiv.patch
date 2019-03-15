@@ -1,0 +1,30 @@
+diff -Nur a/libop/op_cpu_type.c b/libop/op_cpu_type.c
+--- a/libop/op_cpu_type.c	2013-07-29 23:55:07.000000000 +0800
++++ b/libop/op_cpu_type.c	2017-10-13 11:12:41.642547623 +0800
+@@ -97,6 +97,7 @@
+ 	{ "ARM Cortex-A9", "arm/armv7-ca9", CPU_ARM_V7_CA9, 7 },
+ 	{ "MIPS 74K", "mips/74K", CPU_MIPS_74K, 4},
+ 	{ "MIPS 1004K", "mips/1004K", CPU_MIPS_1004K, 2},
++	{ "MIPS interAptiv", "mips/interAptiv", CPU_MIPS_34K, 2},	
+ 	{ "AMD64 family12h", "x86-64/family12h", CPU_FAMILY12H, 4 },
+ 	{ "AMD64 family14h", "x86-64/family14h", CPU_FAMILY14H, 4 },
+ 	{ "AMD64 family15h", "x86-64/family15h", CPU_FAMILY15H, 6 },
+@@ -541,6 +542,7 @@
+ 	{ .key = "MIPS 34Kc", .value = "mips/34K" },		/* CPU_34K */
+ 	{ .key = "MIPS 74Kc", .value = "mips/74K" },		/* CPU_74K */
+ 	{ .key = "MIPS M14Kc", .value = "mips/M14Kc" },		/* CPU_M14KC */
++	{ .key = "MIPS interAptiv", .value = "mips/interAptiv" },	
+ 	{ .key = "RM9000", .value = "mips/rm9000" },		/* CPU_RM9000 */
+ 	{ .key = "R10000", .value = "mips/r10000" }, 		/* CPU_R10000 */
+ 	{ .key = "R12000", .value = "mips/r12000" },		/* CPU_R12000 */
+diff -Nur a/pe_counting/Makefile.am b/pe_counting/Makefile.am
+--- a/pe_counting/Makefile.am	2013-07-29 23:55:07.000000000 +0800
++++ b/pe_counting/Makefile.am	2017-10-13 11:16:40.546560040 +0800
+@@ -23,6 +23,6 @@
+ 	../libpe_utils/libpe_utils.a \
+ 	../libop/libop.a \
+ 	../libutil/libutil.a \
+-	../libutil++/libutil++.a
++	../libutil++/libutil++.a -lpthread -ldl
+ 
+ endif

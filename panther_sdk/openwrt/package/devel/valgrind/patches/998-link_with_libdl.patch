@@ -1,0 +1,12 @@
+diff -Nbur a/coregrind/Makefile.am b/coregrind/Makefile.am
+--- a/coregrind/Makefile.am	2014-09-08 20:28:30.000000000 +0800
++++ b/coregrind/Makefile.am	2017-09-14 12:45:34.006566454 +0800
+@@ -83,7 +83,7 @@
+ vgdb_CFLAGS    += -static
+ endif
+ if !VGCONF_PLATVARIANT_IS_ANDROID
+-vgdb_LDADD     = -lpthread
++vgdb_LDADD     = -lpthread -ldl
+ endif
+ if VGCONF_PLATFORMS_INCLUDE_X86_DARWIN
+ vgdb_LDFLAGS   += -Wl,-read_only_relocs -Wl,suppress

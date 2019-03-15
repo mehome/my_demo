@@ -1,0 +1,279 @@
+<!--ifdef CONFIG_WLAN-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT src=md5.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$wl_preamble', '$wl_2choff', '$wl_tx_rate', '$wl_tx_pwr', '$wl_frag', '$wl_rts', '$wl_tbtt', '$wl_ht_mode',
+	'$wl_dtim', '$wl_bss_wmm_enable1', '$wl_ps_mode', '$wl_sgi', '$wl_protection', '$wl_basic_rates',
+	/*--ifdef CONFIG_TX_MCAST2UNI--*/
+	'$wl_m2u_mode',
+	/*--endif--*/
+]);
+
+var Trans_Rate = ["Auto", "1   Mbps", "2   Mbps", "5.5 Mbps", "11 Mbps", "OFDM/6   Mbps", "OFDM/9   Mbps", "OFDM/12   Mbps",
+	"OFDM/18   Mbps", "OFDM/24   Mbps", "OFDM/36   Mbps", "OFDM/48   Mbps", "OFDM/54   Mbps",
+	"MCS 0", "MCS 1", "MCS 2", "MCS 3", "MCS 4", "MCS 5", "MCS 6", "MCS 7"
+];
+
+function init() {
+	var f = document.frm;
+	wdk.init_form();
+	f.wl_ps.checked = (Number(wdk.cdbVal("$wl_ps_mode")) == 2 ? 1 : 0);
+}
+
+function apply() {
+	var f = document.frm;
+	if (!chkNum(f.wl_as_ft, 256, 2346, "Fragmentation Threshold")) {
+		f.wl_as_ft.focus();
+		return;
+	}
+	if (!chkNum(f.wl_as_rt, 256, 2432, "RTS Threshold")) {
+		f.wl_as_rt.focus();
+		return;
+	}
+	if (!chkNum(f.wl_as_bp, 20, 1000, "Beacon Period")) {
+		f.wl_as_bp.focus();
+		return;
+	}
+	if (!chkNum(f.wl_as_dp, 1, 255, "DTIM Period")) {
+		f.wl_as_dp.focus();
+		return;
+	}
+
+	if (f.wl_ps.checked)
+		wdk.cdbSet('$wl_ps_mode', 2);
+	else
+		wdk.cdbSet('$wl_ps_mode', 1);
+	wdk.save_form(2000);
+	return;
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings");
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Radio Preamble");
+     </script>
+    </div>
+    <select name=wl_as_rp id=$wl_preamble SIZE=1>
+     <!--<option value=0><script>wdk.putmsg("Atuo");</script></option>-->
+     <option value=0>
+      <script>
+wdk.putmsg("Short");
+      </script>
+     </option>
+     <option value=1>
+      <script>
+wdk.putmsg("Long");
+      </script>
+     </option>
+    </select>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Channel Width");
+     </script>
+    </div>
+    <select name=wl_adv_c_width id=$wl_2choff SIZE=1>
+     <option value=0>20&nbsp;Mhz</option>
+     <!--ifdef CONFIG_WLAN_USER_SPECIFY_2CHOFFSET-->
+     <option value=1>40&nbsp;Mhz&nbsp;
+      <script>
+wdk.putmsg("and second channel is above");
+      </script>
+     </option>
+     <option value=2>40&nbsp;Mhz&nbsp;
+      <script>
+wdk.putmsg("and second channel is below");
+      </script>
+     </option>
+     <!--endif-->
+     <option value=3>20/40&nbsp;Mhz&nbsp;</option>
+    </select>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Basic Rate");
+     </script>
+    </div>
+    <select name=wl_as_br id=$wl_basic_rates SIZE=1>
+     <option value=0>
+      <script>
+wdk.putmsg("Auto");
+      </script>
+     </option>
+     <option value=3>1,2Mbps</option>
+     <option value=16>1,2,5.5,11Mbps</option>
+     <option value=127>1,2,5.5,6,11,12,24Mbps</option>
+    </select>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Transmission Power");
+     </script>
+    </div>
+    <select name=wl_as_tx_pwr id=$wl_tx_pwr SIZE=1>
+     <option value=15>
+      <script>
+wdk.putmsg("High")
+      </script>
+     </option>
+     <option value=10>
+      <script>
+wdk.putmsg("Medium")
+      </script>
+     </option>
+     <option value=5>
+      <script>
+wdk.putmsg("Low")
+      </script>
+     </option>
+    </select>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Fragmentation Threshold");
+puts(' (256-2346)');
+     </script>
+    </div>
+    <input name=wl_as_ft id=$wl_frag size=15>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+puts('RTS ');
+wdk.putmsg("Threshold");
+puts(' (256-2432)');
+     </script>
+    </div>
+    <input name=wl_as_rt id=$wl_rts size=15>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Beacon Period");
+puts(' (20-1000)');
+     </script>
+    </div>
+    <input name=wl_as_bp id=$wl_tbtt size=15>Milliseconds
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+puts('DTIM');
+wdk.putmsg("Period");
+puts(' (1-255)');
+     </script>
+    </div>
+    <input name=wl_as_dp id=$wl_dtim size=15>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("WMM");
+     </script>
+    </div>
+    <input type=checkbox name=wl_as_wmm id=$wl_bss_wmm_enable1>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("UAPSD");
+     </script>
+    </div>
+    <input type=checkbox name=wl_ps>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Green Field");
+     </script>
+    </div>
+    <input type=checkbox name=n_mode id=$wl_ht_mode>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+   </div>
+
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Short Guard Interval");
+     </script>
+    </div>
+    <input type=checkbox name=wl_as_sgi id=$wl_sgi>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+   </div>
+
+   <!--<div class=setting>
+	<div class=label><script>wdk.putmsg("Protection Mode");</script></div>
+	<input type=checkbox name=wl_as_prot_mode id=$wl_protection>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+</div>-->
+
+   <!--ifdef CONFIG_TX_MCAST2UNI-->
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Multicast to Unicast");
+     </script>
+    </div>
+    <input type=checkbox name=wl_tx_m2u_mode id=$wl_m2u_mode>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+   </div>
+   <!--endif-->
+  </fieldset>
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>
+<!--endif-->

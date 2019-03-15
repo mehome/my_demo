@@ -1,0 +1,54 @@
+
+# generate new private and public key
+./msign -G -p key.pub -s key
+
+# encrypt boot.img, page size 2048
+./msign -M -s key -i boot.img -o sboot.img
+
+# encrypt boot.img, page size 4096
+./msign -M -s key -i boot.img -o sboot.img -b 4096
+
+# encrypt firmware.img, start from offset 131072  (skip first 131072 bytes)
+./msign -M -s key -i firmware.img -o sfirmware.img -e 131072
+
+# sign sfirmware.img
+./msign -I -s key -i sfirmware.img
+
+# verify firmware.img
+./msign -R -p key.pub -i sfirmware.img
+
+# output OTP key
+./msign -O -s key
+
+# generate erased page header file
+./msign -H -s key -o erased_page.h
+
+######################################################################
+# if private key in ~/.msign/key  &&  public key in ~/.msign/key.pub #
+######################################################################
+
+# mkdir ~/.msign
+# cp key ~/.msign
+# cp key.pub ~/.msign
+
+# encrypt boot.img, page size 2048
+./msign -M -i boot.img -o sboot.img
+
+# encrypt boot.img, page size 4096
+./msign -M -i boot.img -o sboot.img -b 4096
+
+# encrypt firmware.img, start from offset 131072  (skip first 131072 bytes)
+./msign -M -i firmware.img -o sfirmware.img -e 131072
+
+# sign sfirmware.img
+./msign -I -i sfirmware.img
+
+# verify firmware.img
+./msign -R -i sfirmware.img
+
+# output OTP key
+./msign -O
+
+# generate erased page header file
+./msign -H -o erased_page.h
+

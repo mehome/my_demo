@@ -1,0 +1,356 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body>
+ <div class=help1>
+  <dl>
+   <dd>See manual for detail.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='dns.htm'>DNS</a></dt>
+   <dd>The Domain Name System (DNS) is how the Internet translates domain or website names into Internet addresses or URLs. Your ISP will provide you with at least one DNS Server IP address. If you wish to utilize another, enter that IP address in one of these fields. You can enter up to three DNS Server IP addresses here. The router will utilize these for quicker access to functioning DNS servers.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_DHCPC-->
+ <div class=help1>
+  <dl>
+   <dt><a id='dhcpc.htm'>DHCP</a></dt>
+   <dd>Obtain an IP address automatically from the ISP (Internet Service Provider).</dd>
+   <dt>MAC Address Clone</dt>
+   <dd>You can use the "Clone MAC Address" button to copy the MAC address of the Ethernet Card installed by your ISP and replace the WAN MAC address with this MAC address.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='fixip.htm'>Static IP Mode</a></dt>
+   <dd>The router's IP Address and Subnet Mask as seen by external users on the Internet (including your ISP). If your Internet connection requires a static IP address, then your ISP will provide you with a Static IP Address and Subnet Mask.</dd>
+   <dt>Default Gateway</dt>
+   <dd>Your ISP will provide you with the Gateway IP Address.</dd>
+   <dt>MTU (Maximum Transmission Unit)</dt>
+   <dd>Specify the largest packet size permitted for Internet transmission.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_PPPOE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='pppoe.htm'>PPPOE Mode</a></dt>
+   <dt>Keep Alive Option</dt>
+   <dd>Keeps you connected to the Internet indefinitely, even when your connection sits idle.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='hostconf.htm'>Time Zone</a></dt>
+   <dd>Select the time zone for your location.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='porttrig.htm'>Port Triggering</a></dt>
+   <dd>Allow you to do port forwarding without setting a fixed PC. By setting Port Triggering rules, you can allow inbound traffic to arrive at a specific LAN host, using ports different than those used for the outbound traffic. This is called port triggering since the outbound traffic triggers to which ports inbound traffic is directed.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='dhcps.htm'>LAN Setting</a></dt>
+   <dd>The router IP Address and Subnet Mask as seen on the internal LAN. The default value is 192.168.0.1 for IP Address and 255.255.255.0 for Subnet Mask.</dd>
+   <dt>DHCP (Dynamic Host Configuration Protocol)</dt>
+   <dd>DHCP is a protocol used to obtain the information necessary for operation in an Internet Protocol network. This protocol reduces system administration workload, allowing devices to be added to the network with little or no manual intervention.</dd>
+   <dt>DHCP Sever Probe</dt>
+   <dd>Enable Probe will detect whether other DHCP server on LAN side. When detected other DHCP server, probe will turnoff route's DHCP server, or it will restart DHCP server.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='clientlist.htm'>DHCP Client List</a></dt>
+   <dd>Allow you to see which clients are connected to the Router via IP address, host name, and MAC address.You can select static to fixed it.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='VLAN_Port_Settings'>Virtual LAN</a></dt>
+   <dd>Virtual LAN allow you to separate range of broadcast domain. Members in the same VLAN have the same VLAN identifier.</dd>
+   <dt>PVID</dt>
+   <dd>Each port VID range is from 1 ~ 4094. WAN port VID can't be equal to anyone of LAN port's VID in router mode.</dd>
+   <dt>Priority</dt>
+   <dd>802.1p user priority 0 is the lowest priority while 7 is the highest.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='VLAN_Group_Settings'>Group Settings</a></dt>
+   <dd>Up to eight VLAN group rules can config and enable to classfied VLAN identifier and port membership. There are three options on each port, select X for any port that is not included in the VLAN group. Select the Tag option to enable tagging for the port. Select the Untag option to include the port in the VLAN group without tagging.</dd>
+   <dt>Management VID</dt>
+   <dd>Management VLAN identifier can be changed to suit the administrator's preference in bridge mode.</dd>
+   <dt>PVID settings</dt>
+   <dd>Each port has it's port VID and use to classfied VLAN membership if untag packet.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_NAT-->
+ <div class=help1>
+  <dl>
+   <dt><a id='vserver.htm'>Virtual Server </a></dt>
+   <dd>Allow you to set up public services on your network, such as web servers, ftp servers, e-mail servers, or other specialized Internet applications. Specialized Internet applications are any applications that use Internet access to perform functions such as videoconferencing or online gaming. When users send this type of request to your network via the Internet, the router will forward those requests to the appropriate PC.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='portmap.htm'>Port Mapping</a></dt>
+   <dd>Allow you to set up public services on your network, such as web servers, ftp servers, e-mail servers, or other specialized Internet applications. Specialized Internet applications are any applications that use Internet access to perform functions such as videoconferencing or online gaming. When users send this type of request to your network via the Internet, the router will forward those requests to the appropriate PC.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='routetable.htm'>Routing Table</a></dt>
+   <dd>The routing table display the current routing information in system.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='staticroute.htm'>Static Routing</a></dt>
+   <dd>A static route is a pre-determined pathway that network information must travel to reach a specific host or network. (For example: Destination Network IP: 192.168.100.1, Subnet Mask: 255.255.255.0, Gateway IP: 192.168.0.2)</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_UPNP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='upnp.htm'>UPnP (Universal Plug and Play)</a></dt>
+   <dd>UPnP allows automatic discovery and configuration of equipment attached to your LAN. UPnP is supported by Windows ME, XP, or later. It provides compatibility with networking equipment, software and peripherals of the over 400 vendors that cooperate in the Universal Plug and Play forum.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_DDNS-->
+ <div class=help1>
+  <dl>
+   <dt><a id='ddns.htm'>DDNS (Dynamic DNS)</a></dt>
+   <dd>DDNS provides you on the Internet with a method to tie their domain name to a computer or server. DDNS allows your domain name to follow your IP address automatically by having your DNS records changed when your IP address changes.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='config.htm'>Reset default</a></dt>
+   <dd>System configuration is reset to the factory default settings. Default settings are: "Username: admin","Password: admin","IP: 192.168.0.1","Netmask: 255.255.255.0</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='alg.htm'>VPN</a></dt>
+   <dd>Some applications require an application level gateway throught the router.</dd>
+   <dt>FTP</dt>
+   <dd>If the FTP server is using a non-standard FTP port number,this can prevent FTP data connections from being established.</dd>
+   <dt>NetMeeting</dt>
+   <dd>To accept the connection request from any outside NetMeeting client, the virtual server for H.323/Netmeeting(Port:1720) must be enabled.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='urlf.htm'>URL Filter</a></dt>
+   <dd>Url Filtering allowing you to prevent users from accessing specified websites on the basis of some policy.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='macf.htm'>MAC Address Filter</a></dt>
+   <dd>The MAC address filter enables you to allow or restrict specified nodes from communicating with other nodes.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='clientf.htm'>Client Filter</a></dt>
+   <dd>Allow you to block Internet access for local clients based on IP addresses, application types, (i.e., HTTP port), and time of day.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='hacker.htm'>Firewall</a></dt>
+   <dd>Prevent Network Attack. It can protect your network to prevent hackers attack.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='status.htm'>Firmware Version</a></dt>
+   <dd>The version number of the firmware currently installed is displayed here.</dd>
+   <dt>IP Address, Subnet Mask, and Default Gateway</dt>
+   <dd>The Internet IP Address, Subnet Mask, and Default Gateway IP Address of the router, as seen by external users on the Internet, are displayed.</dd>
+   <dt>DNS</dt>
+   <dd>The DNS (Domain Name System) IP Addresses currently used by the router are shown here. Multiple DNS IP settings are common. In most cases, the first available DNS entry is used.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_LOG-->
+ <div class=help1>
+  <dl>
+   <dt><a id='log.htm'>Log</a></dt>
+   <dd>The log file keeps a running log of events and activities occurring on the device. You may want to save the log files by clicking on Log Setting. When the device is rebooted, the logs are automatically cleared.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='upgrade.htm'>Firmware Upgrade</a></dt>
+   <dd>You can upgrade the firmware of the device using this tool. Make sure that the firmware you want to use is saved on the local hard drive of the computer. Click on Browse to search the local hard drive for the firmware to be used for the update.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='tool.htm'>Tools</a></dt>
+   <dd>If for any reason the device is not responding correctly, you may want to restart the unit by clicking on the <b>Reboot</b> button.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='lang.htm'>Language</a></dt>
+   <dd>Specify the language of the device menu.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='logconf.htm'>Log Settings</a></dt>
+   <dd>Not only does the device display the logs of activities and events, it can be setup to send these logs to another location. The logs can be sent via email to a specific email account.</dd>
+   <dt>SMTP Server</dt>
+   <dd>The address of the SMTP (Simple Mail Transfer Protocol) server that will be used to send the logs.</dd>
+   <dt>Email Address</dt>
+   <dd>The email address the logs will be sent to. Click on Email Log Now to send the email.</dd>
+  </dl>
+ </div>
+
+ <div class=help1>
+  <dl>
+   <dt><a id='logout.htm'>Logout</a></dt>
+   <dd>Logout Account, need to re-type your account and password!!</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_PPTP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='pptp.htm'>PPTP Mode</a></dt>
+   <dd>The Point-to-Point Tunneling Protocol (PPTP) is a method for implementing virtual private networks.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_L2TP-->
+ <div class=help1>
+  <dl>
+   <dt><a id='l2tp.htm'>L2TP Mode</a></dt>
+   <dd>The Layer Two Tunneling Protocol (L2TP) is a method for implementing virtual private networks.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='Rate_Control'>Rate control</a></dt>
+   <dd>The relationship between bandwidth:
+    <br>1KBps=8Kbps;1Mbps=1000Kbps</dd>
+   <dd>Total(upload/download)bandwidth:
+    <br>Please fill in the suitable value you apply for,if not clear,please ask your ISP for help.
+    <br>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_WIZARD_WEB-->
+ <div class=help1>
+  <dl>
+   <dt><a id='wizard.htm'>Host Name</a></dt>
+   <dd>The Host Name is the name of the router.</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_VIDEO_STREAM-->
+ <div class=help1>
+  <dl>
+   <dt><a id='stream.htm'>Browser Media Player Plugin</a></dt>
+   <dd>Please select <a href="http://www.videolan.org" target="_blank">VLC</a> to play.</dd>
+   <dt>How to enable 2-way audio function?</dt>
+   <dd>1. Click button "ON".
+    <br>2. Permit browser to access microphone.
+    <br>3. Click button "OFF" to end communication.
+   </dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <div class=help1>
+  <dl>
+   <dt><a id='webcam_record.htm'>Record Schedule in a week</a></dt>
+   <dd>A week be divided to 7 days.
+    <br>A day be divided by half hour.</dd>
+  </dl>
+ </div>
+
+ <!--ifdef CONFIG_SONIX_MOTION_DETECTION-->
+ <div class=help1>
+  <dl>
+   <dt><a id='sonix_md.htm'>Motion Detection</a></dt>
+   <dd>Motion detection is the process of detecting a change in the position of an object relative to its surroundings or a change in the surroundings relative to an object.</dd>
+   <dt>How to select/unselect a range?</dt>
+   <dd>1. Check the unlocked checkbox.
+    <br>2. Toggle select/unselect mode by the left mouse button.
+    <br>3. Move cursor over the target range.
+   </dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+ <!--ifdef CONFIG_UNDEFINED_FEATURE-->
+ <div class=help1>
+  <dl>
+   <dt><a id='x'>x</a></dt>
+   <dd>x's definition</dd>
+  </dl>
+ </div>
+ <!--endif-->
+
+</body>
+
+</html>

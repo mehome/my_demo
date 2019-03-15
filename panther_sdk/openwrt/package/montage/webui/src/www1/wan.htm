@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <script>
+wdk.cdbLoad(['$wan_mode', '$op_work_mode']);
+var op_work_mode = wdk.cdbVal("$op_work_mode");
+var wan_mode = wdk.cdbVal("$wan_mode");
+ </script>
+</head>
+
+<body onload="wanModeChg(Number(wan_mode),Number(op_work_mode))">
+</BODY>
+
+</HTML>

@@ -1,0 +1,39 @@
+CGI_PATH := $(CGI_PATH)/provision
+
+SETWIFI_INC := Lenovo_Debug.h Lenovo_FileName.h Lenovo_Json.h Lenovo_Semaphore.h Lenovo_UciConfig.h
+SETWIFI_SRC := Lenovo_setWifi.c Lenovo_Json.c Lenovo_Semaphore.c Lenovo_UciConfig.c
+SETWIFI_TARGET := setWifi.cgi
+SETWIFI_CFLAGS := -I$(STAGING_DIR)/usr/include/json-c -I$(STAGING_DIR)/usr/include $(CFLAGS)  $(LDFLAGS) -ljson-c -luci
+
+DEVICEINFO_INC := Lenovo_Debug.h Lenovo_FileName.h Lenovo_Json.h Lenovo_Semaphore.h Lenovo_UciConfig.h
+DEVICEINFO_SRC := Lenovo_deviceInfo.c Lenovo_Json.c Lenovo_Semaphore.c Lenovo_UciConfig.c
+DEVICEINFO_TARGET := deviceInfo.cgi
+DEVICEINFO_CFLAGS := -I$(STAGING_DIR)/usr/include/json-c -I$(STAGING_DIR)/usr/include $(CFLAGS)  $(LDFLAGS) -ljson-c -luci
+
+COMPANIONINFO_INC := Lenovo_Debug.h Lenovo_FileName.h Lenovo_Json.h Lenovo_Semaphore.h Lenovo_UciConfig.h
+COMPANIONINFO_SRC := Lenovo_companionInfo.c Lenovo_Json.c Lenovo_Semaphore.c Lenovo_UciConfig.c
+COMPANIONINFO_TARGET := companionInfo.cgi
+COMPANIONINFO_CFLAGS := -I$(STAGING_DIR)/usr/include/json-c -I$(STAGING_DIR)/usr/include $(CFLAGS)  $(LDFLAGS) -ljson-c -luci
+
+
+all:	$(SETWIFI_TARGET) $(DEVICEINFO_TARGET) $(COMPANIONINFO_TARGET) 
+$(SETWIFI_TARGET):	$(SETWIFI_INC) $(SETWIFI_SRC)
+	$(CC) $^ -o $@ $(SETWIFI_CFLAGS)
+	
+$(DEVICEINFO_TARGET):	$(DEVICEINFO_INC) $(DEVICEINFO_SRC)
+	$(CC) $^ -o $@ $(DEVICEINFO_CFLAGS)
+	
+$(COMPANIONINFO_TARGET):	$(COMPANIONINFO_INC) $(COMPANIONINFO_SRC)
+	$(CC) $^ -o $@ $(COMPANIONINFO_CFLAGS)
+	mkdir -p $(CGI_PATH)	
+	cp $(SETWIFI_TARGET) cgi-bin/ -rf
+	cp $(DEVICEINFO_TARGET) cgi-bin/ -rf
+	cp $(COMPANIONINFO_TARGET) cgi-bin/ -rf
+	
+.PHONY:	clean
+
+clean:
+	rm -rf $(SETWIFI_TARGET)
+	rm -rf $(DEVICEINFO_TARGET)
+	rm -rf $(COMPANIONINFO_TARGET)
+	

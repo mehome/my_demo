@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+function clearAuth() {
+	document.execCommand("ClearAuthenticationCache");
+}
+
+function logout() {
+	if (!confirm(wdk.msg("Do you really want to logout?"))) {
+		showHide('logout', 0);
+		showHide('login', 1);
+		return;
+	}
+	showHide('logout', 1);
+	showHide('login', 0);
+	if (isIE())
+		clearAuth();
+	else
+		wdk.cliCmd("logout");
+}
+
+function init() {
+	logout();
+}
+
+function login() {
+	goUrl("status.htm");
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Logout");
+    </script>
+   </legend>
+   <div class=setting id=logout style="display:none" align=center>
+    <script>
+wdk.putmsg('Congratulations! You have logout.');
+puts('<br><input type=button class=button value="' + wdk.msg("Login") + '" onclick=login()>');
+    </script>
+   </div>
+   <div class=setting id=login style="display:none" align=center>
+    <script>
+wdk.putmsg("You have not logout yet.");
+puts('<br><input type=button class=button value="' + wdk.msg("Logout") + '" onclick=logout()>');
+    </script>
+   </div>
+  </fieldset>
+
+  <script>
+footer(1)
+  </script>
+ </form>
+
+</html>

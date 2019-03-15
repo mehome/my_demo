@@ -1,0 +1,36 @@
+diff -Nur a/libop/op_cpu_type.c b/libop/op_cpu_type.c
+--- a/libop/op_cpu_type.c	2017-06-29 02:40:22.000000000 +0800
++++ b/libop/op_cpu_type.c	2018-03-29 07:01:49.097866106 +0800
+@@ -55,6 +55,7 @@
+ 	{ "MIPS 24K", "mips/24K", CPU_MIPS_24K, 2},
+ 	{ "MIPS 25K", "mips/25K", CPU_MIPS_25K, 2},
+ 	{ "MIPS 34K", "mips/34K", CPU_MIPS_34K, 2},
++	{ "MIPS interAptiv", "mips/interAptiv", CPU_MIPS_34K, 2},	
+ 	{ "MIPS 5K", "mips/5K", CPU_MIPS_5K, 2},
+ 	{ "MIPS R10000", "mips/r10000", CPU_MIPS_R10000, 2 },
+ 	{ "MIPS R12000", "mips/r12000", CPU_MIPS_R12000, 4 },
+@@ -618,6 +619,7 @@
+ 	{ .key = "MIPS 34Kc", .value = "mips/34K" },		/* CPU_34K */
+ 	{ .key = "MIPS 74Kc", .value = "mips/74K" },		/* CPU_74K */
+ 	{ .key = "MIPS M14Kc", .value = "mips/M14Kc" },		/* CPU_M14KC */
++	{ .key = "MIPS interAptiv", .value = "mips/interAptiv" },		
+ 	{ .key = "RM9000", .value = "mips/rm9000" },		/* CPU_RM9000 */
+ 	{ .key = "R10000", .value = "mips/r10000" }, 		/* CPU_R10000 */
+ 	{ .key = "R12000", .value = "mips/r12000" },		/* CPU_R12000 */
+diff -Nur a/pp/oparchive.cpp b/pp/oparchive.cpp
+--- a/pp/oparchive.cpp	2016-07-13 01:57:11.000000000 +0800
++++ b/pp/oparchive.cpp	2018-03-28 14:29:13.778770703 +0800
+@@ -261,7 +261,13 @@
+ 		/* determine the session name of sample file */
+ 		int offset = sample_name.find('{');
+ 		string base_samples_dir = sample_name.substr(0, offset-1);
++#if 1
++                const char *c_filename = base_samples_dir.c_str();
++                const char *p = strrchr(c_filename, '/');
++                string session = p ? p+1 : c_filename;
++#else		
+ 		string session = basename(base_samples_dir.c_str());
++#endif		
+ 		/* Get rid of the the archive_path from the name */
+ 		string sample_base = sample_name.substr(offset);
+ 		string sample_archive_file = dest_samples_dir + "/" + session + "/" + sample_base;

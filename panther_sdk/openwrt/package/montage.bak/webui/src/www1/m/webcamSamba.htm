@@ -1,0 +1,127 @@
+<!--ifdef CONFIG_PACKAGE_samba36_client-->
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Samba Upload</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+wdk.cdbLoad(['$smb_file', '$smb_url', '$smb_usr', '$smb_pass']);
+var fin = false;
+
+function upload_prompt() {
+
+	var val = Number(wdk.cliCmd("smbc upload_status").trim());
+	fin = (val == 1) ? true : false;
+	if (fin) {
+		var message = "Upload files successfully!" + '<br><br><input class=button value=' + wdk.msg('Continue') + ' type=button onclick="wdk.goThisPage()">';
+		document.getElementById("result").innerHTML =
+			'<center><b>' + message + '<' + '/b><' + '/center><br>';
+		return;
+	}
+	setTimeout(upload_prompt, 500);
+}
+
+function upload_cmd() {
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+	wdk.showResultBG();
+	var file = wdk.getById('$smb_file').value;
+	var path = wdk.getById('$smb_url').value;
+	var user = wdk.getById('$smb_usr').value;
+	var pass = wdk.getById('$smb_pass').value;
+	var s = 'smbc upload ' + file + ' ' + path + ' ' + user + ' ' + pass;
+
+	setTimeout(function() {
+		wdk.cliCmd(s);
+		setTimeout(function() {
+			upload_prompt();
+		}, 500);
+	}, 1000)
+}
+
+function init() {
+	var f = document.frm;
+
+	f.reset();
+	wdk.init_form();
+	wdk.getById("uploadBtn").value = wdk.msg("Upload");
+}
+
+function send_request() {
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("");
+	wdk.save_form(5000);
+}
+ </script>
+</head>
+
+<body onload=init()>
+
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="webcamFunc.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">Samba Upload</div>
+  <div id="rightbutton">
+   <a onclick="send_request()">
+    <script>
+show_words("Done")
+    </script>
+   </a>
+  </div>
+ </div>
+
+ <form name=frm>
+  <fieldset>
+   <span class="graytitle">Samba Upload</span>
+
+   <ul class="pageitem">
+
+    <li class="smallfield">
+     <span class="name"><script>get_words("Samba URL")</script></span>
+     <input type="text" id="$smb_url" class="rightlongname" name="$smb_url" size="30">
+    </li>
+
+    <li class="button">
+     <input id="uploadBtn" class="button" type="button" onclick="upload_cmd()">
+    </li>
+
+    <li class="smallfield">
+     <span class="name"><script>get_words("Samba User Name")</script></span>
+     <input name="$smb_usr" id="$smb_usr">
+    </li>
+
+    <li class="smallfield">
+     <span class="name"><script>get_words("Samba Password")</script></span>
+     <input id="$smb_pass" name="$smb_pass">
+    </li>
+
+    <li class="smallfield">
+     <span class="leftshortname"><script>get_words("File")</script></span>
+     <input class="rightlongname" id="$smb_file" name="$smb_file">
+    </li>
+
+   </ul>
+  </fieldset>
+ </form>
+</body>
+
+</html>
+<!--endif-->

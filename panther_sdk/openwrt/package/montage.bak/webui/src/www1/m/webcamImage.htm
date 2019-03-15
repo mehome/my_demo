@@ -1,0 +1,302 @@
+<!--ifdef CONFIG_WEBCAM_IMAGE_PARAMETERS-->
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Webcam Image</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+wdk.cdbLoad(['$webcam_format']);
+var image_range = wdk.cliCmd("webcam img_rng");
+var target;
+
+function parseRange(attr) {
+	var l = image_range.split("\n");
+	var re = new RegExp(attr + "=(.*)");
+	for (i in l) {
+		var s = l[i];
+		if (re.test(s)) {
+			var v1 = s.split('=');
+			if (v1[0] == attr) {
+				return v1[1].split(':');
+			}
+		}
+	}
+	return "";
+}
+
+function addMenuOptions(attr, v) {
+	var e = wdk.getById(attr);
+	for (var i = 1; i < v.length; i++) {
+		var o = v[i].split(".");
+		var op = document.createElement("option");
+		op.value = o[0];
+		op.text = o[1];
+		e.add(op);
+	}
+	return "";
+}
+
+function getRuleName(rule) {
+	var r = rule.split('&');
+	var a = [];
+	for (i in r) {
+		var t = r[i].split('=');
+		a.push(t[0]);
+	}
+	return a;
+}
+
+function arrayMbrExist(arr, mbr) {
+	for (i in arr) {
+		if (arr[i] == mbr)
+			return true;
+	}
+	return false;
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var vdev = rule2var(format, "vdev");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+
+	//parse default value then store into wdk.cdb
+	var image = wdk.cliCmd("webcam img_dft");
+	target = getRuleName(image);
+	for (i in target) {
+		var n = target[i];
+		wdk.cdbNew(n, rule2var(image, n));
+		wdk.getById(n).parentElement.style.display = 'list-item';
+	}
+
+	f.reset();
+	wdk.init_form();
+
+	//call onchange function
+	for (i in target) {
+		var n = target[i];
+		if (wdk.getById(n) != null) {
+			if (wdk.getById(n).type == "range") {
+				var x = parseRange(n);
+				if (x.length)
+					updateRange(n, x);
+			}
+			var cdbValue = wdk.cdbVal(n);
+			wdk.getById(n).value = cdbValue;
+			updateSliderVal(n, cdbValue);
+		} else {
+			console.log("Missing cdb " + n);
+		}
+	}
+	if (arrayMbrExist(target, 'exposure_absolute')) {
+		wdk.getById("exposure_auto").setAttribute("onchange", "exposure_auto_onchange(this.value)");
+		wdk.getById("exposure_auto").onchange();
+	}
+	if (arrayMbrExist(target, 'white_balance_temperature')) {
+		wdk.getById("white_balance_temperature_auto").setAttribute("onchange", "wbt_auto_onchange(this.checked)");
+		wdk.getById("white_balance_temperature_auto").onchange();
+	}
+	if (arrayMbrExist(target, 'power_line_frequency')) {
+		var x = parseRange('power_line_frequency');
+		addMenuOptions('power_line_frequency', x);
+	}
+	if (arrayMbrExist(target, 'exposure_auto')) {
+		var x = parseRange('exposure_auto');
+		addMenuOptions('exposure_auto', x);
+	}
+}
+
+function updateSliderVal(id_, val) {
+	wdk.getById(id_).value = val;
+	var id = id_ + "_val";
+	var id2 = document.getElementById(id);
+	if (id2 != null)
+		id2.innerHTML = val;
+}
+
+function updateRange(id_, x) {
+	var e = wdk.getById(id_);
+	//min,max,step
+	e.setAttribute("min", x[0]);
+	e.setAttribute("max", x[1]);
+	e.setAttribute("step", x[2]);
+}
+
+function wbt_auto_onchange(checked) {
+	//restore when auto mode
+	var e = wdk.getById("white_balance_temperature");
+	if (checked) {
+		e.value = wdk.cdbVal("white_balance_temperature");
+		e.oninput();
+		e.disabled = true;
+	} else
+		e.disabled = false;
+}
+
+function exposure_auto_onchange(mode) {
+	//restore when auto mode
+	var e = wdk.getById("exposure_absolute");
+	if (mode == 3) {
+		e.value = wdk.cdbVal("exposure_absolute");
+		e.oninput();
+		e.disabled = true;
+	} else
+		e.disabled = false;
+}
+
+function send_request() {
+	if (wdk.is_form_update()) {
+		wdk.showResultBG();
+		wdk.redirect(5);
+
+		// sent commands
+		for (i in target) {
+			var n = target[i];
+			if (wdk.cdbChg(n))
+				wdk.cliCmd("webcam img_ctl " + n + " " + wdk.cdbVal(n));
+		}
+	} else
+		alert(wdk.msg('The settings are not changed!!'));
+}
+ </script>
+ <style type=text/css>
+li.h {
+ display: none
+}
+ </style>
+</head>
+
+<body onload=init()>
+
+ <!-- Block window -->
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="webcamFunc.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">Webcam Image</div>
+  <div id="rightbutton">
+   <a onclick="send_request()">
+    <script>
+show_words("Done")
+    </script>
+   </a>
+  </div>
+ </div>
+
+ <!--Constructing template, too-->
+ <form name="frm">
+  <fieldset>
+   <span class="graytitle"><script>wdk.putmsg("Image Parameters")</script></span> 
+
+   <ul class="pageitem">
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Brightness")</script></span>
+     <input type="range" id="brightness" oninput="updateSliderVal('brightness',value)">
+     <span id="brightness_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Contrast")</script></span>
+     <input type="range" id="contrast" oninput="updateSliderVal('contrast',value)">
+     <span id="contrast_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Saturation")</script></span>
+     <input type="range" id="saturation" oninput="updateSliderVal('saturation',value)">
+     <span id="saturation_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Hue")</script></span>
+     <input type="range" id="hue" oninput="updateSliderVal('hue',value)">
+     <span id="hue_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="checkbox h">
+     <span class="name"><script>get_words("AWB");</script></span>
+     <input type="checkbox" id="white_balance_temperature_auto">
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Gamma")</script></span>
+     <input type="range" id="gamma" oninput="updateSliderVal('gamma',value)">
+     <span id="gamma_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Gain")</script></span>
+     <input type="range" id="gain" oninput="updateSliderVal('gain',value)">
+     <span id="gain_val" class="webcamSliderVal"></span>
+    </li>
+
+    <!-- Power Line Frequency -->
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Line Frequency")</script></span>
+     <select id="power_line_frequency" size="1"></select>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("WB Temp")</script></span>
+     <input type="range" id="white_balance_temperature" oninput="updateSliderVal('white_balance_temperature',value)">
+     <span id="white_balance_temperature_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Sharpness")</script></span>
+     <input type="range" id="sharpness" oninput="updateSliderVal('sharpness',value)">
+     <span id="sharpness_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("BLC")</script></span>
+     <input type="range" id="backlight_compensation" oninput="updateSliderVal('backlight_compensation',value)">
+     <span id="backlight_compensation_val" class="webcamSliderVal"></span>
+    </li>
+
+    <!-- Exposure Mode -->
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Exposure Mode")</script></span>
+     <select id="exposure_auto" size="1"></select>
+    </li>
+
+    <li class="smallfield h">
+     <span class="name"><script>get_words("Exposure Time")</script></span>
+     <input type="range" id="exposure_absolute" oninput="updateSliderVal('exposure_absolute',value)">
+     <span id="exposure_absolute_val" class="webcamSliderVal"></span>
+    </li>
+
+    <li class="checkbox h">
+     <span class="name"><script>get_words("Auto Exposure")</script></span>
+     <input type="checkbox" id="exposure_auto_priority">
+    </li>
+   </ul>
+  </fieldset>
+ </form>
+</body>
+
+</html>
+<!--endif-->

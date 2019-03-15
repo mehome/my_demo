@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$wan_mobile_apn',
+	'$wan_mobile_pin',
+	'$wan_mobile_dial'
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var _3gCfg = {
+	'ap': mainObj.config_val('$wan_mobile_apn'),
+	'pin': mainObj.config_val('$wan_mobile_pin'),
+	'dial': mainObj.config_val('$wan_mobile_dial'),
+};
+
+function send_request() {
+	var rexStr = new RegExp("[^a-zA-Z0-9#_\.@*-]");
+	var _ap = get_by_id("ap").value;
+	var _pin = get_by_id("pin").value;
+	var _dial = get_by_id("dial").value;
+	var ret = 0;
+
+	if (!chkStr(get_by_id("ap"), "Access Point Name")) {
+		return;
+	}
+
+	if (!chkStr(get_by_id("pin"), "Personal Identification Number")) {
+		return;
+	}
+
+	if (!chkStr(get_by_id("dial"), "Dial Number", rexStr)) {
+		return;
+	}
+
+	mainObj.config_set(_ap, '$wan_mobile_apn');
+	mainObj.config_set(_pin, '$wan_mobile_pin');
+	mainObj.config_set(_dial, '$wan_mobile_dial');
+
+	ret = wdk.request_submit(1);
+	if (ret) {
+		wdk.goThisPage();
+	}
+
+}
+
+function init() {
+	get_by_id("ap").value = _3gCfg.ap;
+	get_by_id("pin").value = _3gCfg.pin;
+	get_by_id("dial").value = _3gCfg.dial;
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="index.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">3G</div>
+   <div id="rightbutton">
+    <a href="#" onclick="send_request()">
+     <script>
+show_words("Done")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("Access Point")</script></span>
+     <input name="ap" id="ap" type="text" maxlength="36">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("PIN")</script></span>
+     <input name="pin" id="pin" type="text" maxlength="8">
+    </li>
+    <li class="smallfield">
+     <span class="name"><script>get_words("Dial Number")</script></span>
+     <input name="dial" id="dial" type="text" maxlength="30">
+    </li>
+   </ul>
+  </div>
+ </form>
+</body>
+
+</html>

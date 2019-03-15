@@ -1,0 +1,11 @@
+diff -Nur a/m4/binutils.m4 b/m4/binutils.m4
+--- a/m4/binutils.m4	2013-07-29 23:55:07.000000000 +0800
++++ b/m4/binutils.m4	2018-03-29 10:02:54.334430829 +0800
+@@ -34,6 +34,7 @@
+ 			extern const bfd_target bfd_elf64_powerpcle_vec;
+ 			char * ppc_name = bfd_elf64_powerpc_vec.name;
+ 			char * ppcle_name = bfd_elf64_powerpcle_vec.name;
++			__force__compile_failure__
+ 			printf("%s %s\n", ppc_name, ppcle_name);]])
+ 		])
+ 	$CC conftest.$ac_ext $CFLAGS $LDFLAGS $LIBS -o  test-for-synth > /dev/null 2>&1

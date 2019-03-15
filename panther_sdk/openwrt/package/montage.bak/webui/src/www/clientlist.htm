@@ -1,0 +1,229 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$lan_ip', '$dhcps_lease_time', 'dhcps leases', 'time ntp']);
+
+var total, oldtotal;
+var max = 255;
+var dhcpEntryList = new Array();
+var dhcpList = wdk.cdbValA('dhcps leases');
+var ctime = wdk.cdbVal('time ntp');
+var lanip = wdk.cdbVal('$lan_ip');
+var netip = lanip.replace(/\.\d{1,3}$/, ".");
+dhcpEntryList = dhcpList;
+oldtotal = dhcpEntryList.length;
+
+function init() {
+	total = dhcpList.length;
+	refreshList('entry', max, total);
+
+	for (var i = 1; i <= total; i++) {
+		wdk.fill_form_entry(wdk.getById('entry' + i), dhcpList[i - 1]);
+	}
+}
+
+function time_load(v, ti) {
+	v.value = timeStr(ti - ctime);
+}
+
+function apply() {
+	var cmd = [],
+		send_count = 10,
+		flag = 1,
+		change = 0,
+		cnum = 0;
+
+	for (var i = 1, j = 1; i <= total; i++) {
+		var e = wdk.findChildNode(wdk.getById('entry' + i));
+		var name = wdk.getByName(e, 'name');
+		var ip = wdk.getByName(e, 'ip');
+		var mac = wdk.getByName(e, 'mac');
+		var flg = wdk.getByName(e, 'flg');
+		var r = 'name=' + name.value + '&ip=' + ip.value + '&mac=' + mac.value + '&flg=' + Number(flg.checked);
+		t = dhcpEntryList[i - 1].split('&exp=');
+		if ((t[0] != r) || (oldtotal != total)) {
+			cnum++;
+			cmd.push('dhcps set ' + r);
+			if (i == (send_count * j)) {
+				cmd = encodeURI(cmd.join('%;')).replace(/&/g, '%26');
+				wdk.cliCmd(cmd);
+				j++;
+				cmd = [];
+				if (i == total) {
+					wdk.showResultBG();
+					wdk.showResult(1000);
+					flag = 0;
+				}
+			}
+		}
+	}
+	if (flag == 1) {
+		if (cnum) {
+			cmd = encodeURI(cmd.join('%;')).replace(/&/g, '%26');
+			wdk.cliCmd(cmd);
+			wdk.showResultBG();
+			wdk.showResult(1000);
+		} else
+			alert(wdk.msg('The settings are not changed!!'));
+	}
+}
+
+function add_static(hn, ip, mac) {
+	if (!chkNum(ip, 1, 254, "IP Address")) {
+		ip.focus();
+		return;
+	}
+	if (!chkMAC(mac, "MAC Address")) {
+		mac.focus();
+		return;
+	}
+	if (!chkStr(hn, "Host Name")) {
+		hn.focus();
+		return;
+	}
+	var all = dhcpList.toString() + '&ip=' + lanip;
+	if (all.indexOf('ip=' + netip + ip.value) >= 0) {
+		alert(wdk.msg("Duplicated IP address !"));
+		return;
+	}
+
+	for (var k = 0; k < total; k++) {
+		if (chkSubStr(dhcpList[k], "mac=" + mac.value, 1)) {
+			//if (!confirm(wdk.msg("Duplicated MAC address. Replace with new IP address?"))) return ;
+			//dhcpList.splice(k,1);
+			alert(wdk.msg("Duplicated MAC address."));
+			return;
+		}
+	}
+	if (dhcpList.length >= max) {
+		alert(wdk.msg("Too many entries, maximum is ") + max);
+		return
+	}
+	var r = 'name=' + hn.value + '&ip=' + netip + ip.value + '&mac=' + mac.value + '&flg=1&exp=0';
+	dhcpList.push(r);
+	init();
+}
+
+function cancel() {
+	window.location.reload(true);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg('DHCP Client List');
+    </script>
+   </legend>
+   <table class=infolist>
+    <tr align=center>
+     <th>
+      <script>
+wdk.putmsg("Host Name")
+      </script>
+     </th>
+     <th>
+      <script>
+wdk.putmsg("IP Address")
+      </script>
+     </th>
+     <th>
+      <script>
+wdk.putmsg("MAC Address")
+      </script>
+     </th>
+     <th>
+      <script>
+wdk.putmsg("Remaining Time")
+      </script>
+     </th>
+     <th>
+      <script>
+wdk.putmsg("Static")
+      </script>
+     </th>
+    </tr>
+    <tr align=center id=entry1>
+     <td>
+      <input name=name disabled size=8>
+     </td>
+     <td>
+      <input name=ip disabled size=15>
+     </td>
+     <td>
+      <input name=mac disabled size=18>
+     </td>
+     <td>
+      <input name=exp disabled size=14 load=time_load>
+     </td>
+     <td>
+      <input type=CHECKBOX name=flg value=1 size=4>
+     </td>
+    </tr>
+   </table>
+   <div class=setting align=center>
+    <script>
+puts('<input type=button class=button valign=center value="' + wdk.msg('Refresh') + '" onclick=refreshPage()>');
+    </script>
+   </div>
+  </fieldset>
+  <br>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg('Static Client Configuration');
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg('Host Name');
+     </script>
+    </div>
+    <input placeholder="Enter a host name like: 'MyDHCPServer'" name=HN size=32 maxlength=32>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg('IP Address');
+     </script>
+    </div>
+    <script>
+puts(netip)
+    </script>
+    <input placeholder="1 ~ 254" name=IP size=6 maxlength=3>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg('MAC Address');
+     </script>
+    </div>
+    <input placeholder="aa:bb:cc:dd:ee:ff" name=MAC size=17 maxlength=17>
+    <script>
+puts('<input type=button class=button value="' + wdk.msg('Add') + '" onclick=add_static(this.form.HN,this.form.IP,this.form.MAC);>')
+    </script>
+   </div>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

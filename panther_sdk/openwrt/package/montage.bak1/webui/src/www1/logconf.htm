@@ -1,0 +1,225 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT src=md5.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$log_rm_enable', '$log_sys_ip'
+	/*--ifdef CONFIG_SMTP--*/
+	, '$log_mail_en', '$log_rm_type', '$log_mail_ip',
+	'$log_mode', '$log_mail_addr', '$log_mail_send', '$log_mail_auth'
+	/*--endif--*/
+]);
+
+/*--ifdef CONFIG_SMTP--*/
+var opass = rule2var(wdk.cdbVal('$log_mail_auth'), "ps");
+/*--endif--*/
+
+function init() {
+	var f = document.frm;
+	wdk.init_form();
+	/*--ifdef CONFIG_SMTP--*/
+	showHide('fmail', wdk.cdbVal('$log_mail_en'));
+	f.auth_enable.checked = parseInt(rule2var(wdk.cdbVal('$log_mail_auth'), "en"));
+	f.name.value = rule2var(wdk.cdbVal('$log_mail_auth'), "un");
+	f.pass1.value = f.pass2.value = rule2var(wdk.cdbVal('$log_mail_auth'), "ps");
+	check_auth_ebox();
+	/*--endif--*/
+}
+
+/*--ifdef CONFIG_SMTP--*/
+function check_mailf(f) {
+	if (!chkEmailAdd(f.sender.value, "Sender Email Address")) {
+		highlight("$log_mail_send");
+		return 0;
+	}
+	if (!chkEmailAdd(f.email.value, "Recipient Email Address")) {
+		highlight("$log_mail_addr");
+		return 0;
+	}
+	if (!chkIpOrDomain(f.smtp, "SMTP Server IP address")) {
+		highlight("$log_mail_ip");
+		return 0;
+	}
+	return 1;
+}
+
+function send_mail(f) {
+	if (f.mail_en.checked && !check_mailf(f)) return;
+	wdk.cliCmd('log -s');
+	wdk.showResultBG();
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Send Email! Please wait....");
+	setTimeout("real_submit()", 2000); /* wait loading picture */
+}
+/*--endif--*/
+function real_submit() {
+	wdk.getById("resultbg").style.display = 'none';
+}
+/*--ifdef CONFIG_SMTP--*/
+function check_auth_ebox() {
+	var f = document.frm;
+	if (f.auth_enable.checked) {
+		f.name.disabled = false;
+		f.pass1.disabled = false;
+		f.pass2.disabled = false;
+	} else {
+		f.name.disabled = true;
+		f.pass1.disabled = true;
+		f.pass2.disabled = true;
+	}
+}
+/*--endif--*/
+function apply() {
+	var f = document.frm;
+	if (f.rm_en.checked)
+		if (!chkIP(f.logip, "Send log IP address")) {
+			highlight("$log_sys_ip");
+			return;
+		}
+		/*--ifdef CONFIG_SMTP--*/
+	if (f.mail_en.checked) {
+		if (!check_mailf(f)) return;
+
+		//if(f.auth_enable.checked)
+		{
+			if (f.SYSPSC.value == 0) {
+				r = 'en=' + Number(f.auth_enable.checked) + '&un=' + f.name.value + '&ps=' + opass;
+			} else {
+				if (f.pass1.value != "") {
+					if (!chkStrLen(f.pass1, 0, 20, "Password")) return;
+					if (!chkPass(f.pass1, f.pass2, f.SYSPSC, "Password is not consistent!")) return;
+				}
+				r = 'en=' + Number(f.auth_enable.checked) + '&un=' + f.name.value + '&ps=' + f.pass1.value;
+			}
+			wdk.cdbSet('$log_mail_auth', r);
+		}
+	}
+	/*--endif--*/
+	wdk.save_form(2000);
+	return;
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm method=POST>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings")
+    </script>
+   </legend>
+   <input type=hidden name=SYSPSC value=0>
+   <input style="display:none">
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Remote Log");
+     </script>
+    </div>
+    <input type=checkbox name=rm_en id=$log_rm_enable>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Log Server");
+     </script>
+    </div>
+    <input maxLength=15 name=logip id=$log_sys_ip size=15>
+   </div>
+   <!--ifdef CONFIG_SMTP-->
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Email Log");
+     </script>
+    </div>
+    <input type=checkbox name=mail_en id=$log_mail_en onclick="showHide('fmail',this.checked)">
+   </div>
+   <div id=fmail>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Send Email");
+      </script>
+     </div>
+     <script>
+puts('<INPUT class=button type=button value="' + wdk.msg('Send') + '" onclick=send_mail(this.form)>')
+     </script>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Sender Email Address");
+      </script>
+     </div>
+     <input placeholder="Example@gmail.com" name=sender id=$log_mail_send size=35 maxlength=60>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Recipient Email Address");
+      </script>
+     </div>
+     <input placeholder="Example2@gmail.com" name=email id=$log_mail_addr size=35 maxlength=60>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("SMTP Server");
+      </script>
+     </div>
+     <input name=smtp id=$log_mail_ip size=35 maxlength=60>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Enable Authentication");
+      </script>
+     </div>
+     <input type=checkbox name=auth_enable value=1 onclick="check_auth_ebox();">
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Account Name");
+      </script>
+     </div>
+     <input id=logconfAccName name=name size=15 maxlength=60>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Password");
+      </script>
+     </div>
+     <input type=password name=pass1 maxlength="60" onFocus=chkPassInput(this.form.pass2,this,this.form.SYSPSC);>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg("Re-type Password");
+      </script>
+     </div>
+     <input type=password name=pass2 maxlength="60" onFocus=chkPassInput(this.form.pass1,this,this.form.SYSPSC);>
+    </div>
+   </div>
+   <!--endif-->
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

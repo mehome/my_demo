@@ -1,0 +1,13 @@
+menu "Change CDB Default Value"
+depends on PACKAGE_cdb
+
+config CDB_SSID_NAME
+   string "WLAN AP SSID NAME"
+   default "Demo_AP"
+
+config CDB_SSID_SUFFIX_MACNUM
+   int "SSID SUFFIX MAC num (Range:1-6)"
+   range 1 6
+   default	3
+
+endmenu

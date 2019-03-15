@@ -1,0 +1,200 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$route_entry1-20']);
+
+var max = 20;
+var listnum;
+var curIdx = -1;
+var routeList = new Array();
+
+function init() {
+	var f = document.frm;
+	listnum = wdk.cdbLen('$route_entry', max);
+	refreshList('$route_entry', max, listnum);
+	f.reset();
+	wdk.init_form();
+}
+
+function apply() {
+	wdk.save_form(2000);
+}
+
+function edit(idx) {
+	var r = wdk.cdbVal('$route_entry' + idx);
+	//r=(r=='')? 'en=0&lip=&gp=&desc=' : r;
+	wdk.fill_form_entry(wdk.getById('edit'), r);
+	markEntry(wdk.getById('$route_entry' + idx));
+	curIdx = idx;
+}
+
+function Remove(idx) {
+	wdk.cdbDel('$route_entry' + idx, max);
+	if (curIdx > 2)
+		curIdx--;
+	init();
+}
+
+function change(add) {
+	//var f=document.frm;
+	var r = '';
+	var tab = wdk.findChildNode(wdk.getById('edit'));
+	var en = wdk.getByName(tab, 'en');
+	var ip = wdk.getByName(tab, 'ip');
+	var nm = wdk.getByName(tab, 'nm');
+	var gw = wdk.getByName(tab, 'gw');
+	var metric = wdk.getByName(tab, 'metric');
+	if (!chkIP(ip, "Destination Network IP", 1)) {
+		ip.focus();
+		return;
+	}
+	if (!chkMsk(nm, wdk.msg("Subnet Mask"))) {
+		nm.focus();
+		return;
+	}
+	if (!chkIP(gw, "Gateway IP")) {
+		gw.focus();
+		return;
+	}
+	//if (!BinaryChk_IP(ip.value, nm.value, gw.value)) return;
+
+	//r='ip='+getIP(ip)+'&nm='+getIP(nm)+'&gw='+getIP(gw)+'&en='+Number(en.checked)+'&metric='+metric.value;
+	r = 'en=1&ip=' + getIP(ip) + '&nm=' + getIP(nm) + '&gw=' + getIP(gw);
+	k = curIdx;
+	if (add) {
+		k = listnum + 1;
+		var NetworkIP = ByMask_IPrange(ip.value, nm.value, 0);
+		for (var i = 1; i <= listnum; i++) {
+			var oip = rule2var(wdk.cdbVal('$route_entry' + i), "ip")
+			var onm = rule2var(wdk.cdbVal('$route_entry' + i), "nm");
+			var NetworkIP1 = ByMask_IPrange(oip, onm, 0);
+			if (NetworkIP == NetworkIP1) {
+				if (!window.confirm(wdk.msg("There's already exist one entry which has the same Network IP.\n Replace with it?"))) return;
+				k = i;
+				break;
+			}
+		}
+		if (k > max) {
+			alert(wdk.msg("Too many entries, maximum is ") + max);
+			return
+		}
+	}
+	wdk.cdbSet('$route_entry' + k, r);
+	init();
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg('Static Routes Configuration')
+    </script>
+   </legend>
+   <div id=edit>
+    <!--<div class=setting>
+		<div class=label><script>wdk.putmsg("Enable")</script></div>
+		<input type=checkbox name=en>
+	</div>-->
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg('Destination Network IP')
+      </script>
+     </div>
+     <input placeholder="74.125.225.206" name=ip size=20 maxlength=15>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg('Subnet Mask')
+      </script>
+     </div>
+     <input placeholder="255.255.255.0" name=nm size=20 maxlength=15>
+    </div>
+    <div class=setting>
+     <div class=label>
+      <script>
+wdk.putmsg('Gateway IP')
+      </script>
+     </div>
+     <input placeholder="74.125.225.206" name=gw size=20 maxlength=15>
+    </div>
+    <!--<div class=setting>
+		<div class=label><script>wdk.putmsg('Metric')</script></div>
+			<input name=metric size=5 maxlength=5>
+	</div>-->
+    <div class=setting>
+     <center>
+      <script>
+puts('<input type=button class=button name=Add value="' + wdk.msg('Add') + '" onclick=change(1)>' +
+	'<input type=button class=button name=Mod value="' + wdk.msg('Modify') + '" onclick=change(0)>');
+      </script>
+     </center>
+    </div>
+   </div>
+   <table class=infolist>
+    <tr>
+     <!--<th><script>wdk.putmsg('')</script></th>-->
+     <th>
+      <script>
+wdk.putmsg('Destination Network IP')
+      </script>
+     </th>
+     <th>
+      <script>
+wdk.putmsg('Subnet Mask')
+      </script>
+     </th>
+     <th>
+      <script>
+wdk.putmsg('Gateway IP')
+      </script>
+     </th>
+     <!--<th><script>wdk.putmsg('Metric')</script></th>-->
+     <th>
+      <script>
+wdk.putmsg('Action')
+      </script>
+     </th>
+    </tr>
+    <tr align=center id=$route_entry1>
+     <td nowrap>
+      <!--<input type=checkbox name=en disabled></td>-->
+      <input name=ip disabled>
+     </td>
+     <td>
+      <input name=nm disabled>
+     </td>
+     <td>
+      <input name=gw disabled>
+     </td>
+     <!--<td><input name=metric disabled></td>-->
+     <td>
+      <img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode.rowIndex)>&nbsp;
+      <img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode.rowIndex)>
+     </td>
+    </tr>
+   </table>
+  </fieldset>
+
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

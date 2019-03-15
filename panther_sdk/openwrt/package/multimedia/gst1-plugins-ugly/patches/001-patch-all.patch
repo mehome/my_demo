@@ -1,0 +1,30 @@
+diff -Nur a/configure.ac b/configure.ac
+--- a/configure.ac	2017-09-18 19:36:35.000000000 +0800
++++ b/configure.ac	2017-10-04 18:42:22.797622681 +0800
+@@ -467,14 +467,7 @@
+ ext/sidplay/Makefile
+ ext/twolame/Makefile
+ ext/x264/Makefile
+-docs/Makefile
+-docs/plugins/Makefile
+-docs/version.entities
+-tests/Makefile
+-tests/check/Makefile
+-tests/files/Makefile
+ m4/Makefile
+-po/Makefile.in
+ pkgconfig/Makefile
+ pkgconfig/gstreamer-plugins-ugly-uninstalled.pc
+ )
+diff -Nur a/Makefile.am b/Makefile.am
+--- a/Makefile.am	2017-05-15 23:46:35.000000000 +0800
++++ b/Makefile.am	2017-10-04 18:42:45.305623851 +0800
+@@ -1,7 +1,7 @@
+ DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc
+ 
+ SUBDIRS = \
+-	gst-libs gst ext docs m4 tests common pkgconfig po
++	gst-libs gst ext m4 common pkgconfig
+ 	
+ EXTRA_DIST = \
+ 	depcomp \

@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+//CIPHER MODE
+var CIPHER_WAPI = 16;
+var CIPHER_AES = 8;
+var CIPHER_TKIP = 4;
+var CIPHER_WEP104 = 2;
+var CIPHER_WEP40 = 1;
+var CIPHER_NONE = 0;
+
+//SECURITY MODE
+var SECURITY_DISABLE = 0;
+var SECURITY_WEP_OPEN = 1;
+var SECURITY_WEP_SHARED = 2;
+var SECURITY_WEP = 4;
+var SECURITY_WEP_PLUS = 5;
+var SECURITY_WPA = 8;
+var SECURITY_WPA2 = 16;
+var SECURITY_WPA_WPA2 = 24;
+var SECURITY_WPS = 32;
+var SECURITY_WAPI = 128;
+
+//8021x
+var WPA_MULTIPLE = 32;
+var EAP_WITH_WPA2 = SECURITY_WPA2 * WPA_MULTIPLE;
+var EAP_WITH_WPA_WPA2 = SECURITY_WPA_WPA2 * WPA_MULTIPLE;
+
+var wps_enable;
+
+var param = [
+	'$wl_bss_num',
+	'$wl_bss_enable1-' + SSID_MAX_NUM,
+	'$wl_bss_sec_type1-' + SSID_MAX_NUM,
+	'$wl_bss_wpa_psk1-' + SSID_MAX_NUM,
+	'$wl_bss_cipher1-' + SSID_MAX_NUM,
+	'$wl_bss_wpa_rekey1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_index1-' + SSID_MAX_NUM,
+	'$wl_bss_key_mgt1-' + SSID_MAX_NUM,
+	'$wl_bss_radius_svr1-' + SSID_MAX_NUM,
+	'$wl_bss_radius_svr_port1-' + SSID_MAX_NUM,
+	'$wl_bss_radius_svr_key1-' + SSID_MAX_NUM,
+	'$wl_bss_wps_state1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_1key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_2key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_3key1-' + SSID_MAX_NUM,
+	'$wl_bss_wep_4key1-' + SSID_MAX_NUM,
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var wlanCfg = {
+	'wlan0_security_mode': mainObj.config_val("$wl_bss_sec_type1"),
+
+	'wlan0_chiper_mode': mainObj.config_val("$wl_bss_cipher1"),
+	'wlan0_wep_key_index': mainObj.config_val("$wl_bss_wep_index1"),
+	'wlan0_wep_key_1': mainObj.config_val("$wl_bss_wep_1key1"),
+	'wlan0_wep_key_2': mainObj.config_val("$wl_bss_wep_2key1"),
+	'wlan0_wep_key_3': mainObj.config_val("$wl_bss_wep_3key1"),
+	'wlan0_wep_key_4': mainObj.config_val("$wl_bss_wep_4key1"),
+
+	'wlan0_wpa_psk_key': mainObj.config_val("$wl_bss_wpa_psk1"),
+	'wlan0_wpa_key_interval': mainObj.config_val("$wl_bss_wpa_rekey1"),
+
+	'wlan0_8021x': mainObj.config_val("$wl_bss_key_mgt1"),
+	'wlan0_eap_ip': mainObj.config_val("$wl_bss_radius_svr1"),
+	'wlan0_eap_port': mainObj.config_val("$wl_bss_radius_svr_port1"),
+	'wlan0_eap_key': mainObj.config_val("$wl_bss_radius_svr_key1"),
+};
+
+function show_wlan0_security() {
+	auth_mode = get_by_id("wlan0_security_mode").value;
+	switch (auth_mode) {
+		case "768":
+		case "512":
+			showHide("show_wep_auth", 0);
+			showHide("show_wpa_auth", 0);
+			showHide("show_eap_auth", 1);
+			showHide("show_wpa_wpa2", 1);
+			showHide("show_wapi", 0);
+			break;
+
+		case "128":
+			showHide("show_wep_auth", 0);
+			showHide("show_wpa_auth", 1);
+			showHide("show_eap_auth", 0);
+			showHide("show_wpa_wpa2", 0);
+			showHide("show_wapi", 1);
+			break;
+
+		case "24":
+		case "16":
+		case "8":
+			showHide("show_wep_auth", 0);
+			showHide("show_wpa_auth", 1);
+			showHide("show_eap_auth", 0);
+			showHide("show_wpa_wpa2", 1);
+			showHide("show_wapi", 0);
+			break;
+
+		case "5":
+			showHide("show_wep_auth", 1);
+			showHide("show_wpa_auth", 0);
+			showHide("show_eap_auth", 0);
+			showHide("show_wpa_wpa2", 1);
+			showHide("show_wapi", 0);
+			break;
+
+		case "0":
+		default:
+			showHide("show_wep_auth", 0);
+			showHide("show_wpa_auth", 0);
+			showHide("show_eap_auth", 0);
+			showHide("show_wpa_wpa2", 1);
+			showHide("show_wapi", 0);
+			break;
+	}
+}
+
+function check_wep_key(auth_len, keys) {
+	var len = keys.length;
+
+	for (var i = 0; i < len; i++) {
+		if (auth_len == SECURITY_WEP_OPEN) {
+			if (keys[i].length == "5") {
+				if (!chkStr(keys[i], 'WEP Key' + i)) {
+					return 1;
+				}
+			} else if (keys[i].length == "10") {
+				if (!chkHex(keys[i], 'WEP Key' + i)) {
+					return 1;
+				}
+			} else {
+				alert("SSID WEP Key" + i + " is Invalid!\n It should be 5 ASCII characters or 10 hex digits.");
+				return 1;
+			}
+		} else if (auth_len == SECURITY_WEP_SHARED) {
+			if (keys[i].length == "13") {
+				if (!chkStr(keys[i], 'WEP Key' + i)) {
+					return 1;
+				}
+			} else if (keys[i].length == "26") {
+				if (!chkHex(keys[i], 'WEP Key' + i)) {
+					return 1;
+				}
+			} else {
+				alert("SSID WEP Key" + i + " is Invalid!\n It should be 13 ASCII characters or 26 hex digits.");
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+function check_wpa_key(key) {
+
+	var illeagalPatt;
+
+	if (key.length >= 64) {
+		illeagalPatt = /[^0-9a-fA-F]/;
+		if (illeagalPatt.test(key.value)) {
+			alert(wdk.msg("Pre-shared Key requires 64 hex digits or ASCII code between 8 and 63."));
+			return 1;
+		}
+	} else if (key.length > 63 || key.length < 8) {
+		alert(wdk.msg("Pre-shared Key requires 64 hex digits or ASCII code between 8 and 63."));
+		return 1;
+	} else {
+		illeagalPatt = /[^\x20-\x7E]/;
+		if (illeagalPatt.test(key.value)) {
+			alert(wdk.msg("Pre-shared Key contains invalid characters!"));
+			return 1;
+		}
+	}
+	return 0;
+}
+
+function send_request() {
+	var s_mode = get_by_id("wlan0_security_mode").value;
+
+	if (s_mode == SECURITY_WEP_PLUS) {
+		var auth_mode = get_by_id("wlan0_auth_mode").value;
+		var auth_len = get_by_id("wlan0_auth_len").value;
+		var key_index = get_by_id("wlan0_wep_key_sel").value;
+		var key = [];
+		key[0] = get_by_id("wlan0_wep_key_1").value;
+		key[1] = get_by_id("wlan0_wep_key_2").value;
+		key[2] = get_by_id("wlan0_wep_key_3").value;
+		key[3] = get_by_id("wlan0_wep_key_4").value;
+
+		if (wps_enable) {
+			if (!confirm(wdk.msg("Are you sure to change Security Mode to WEP?\nWPS will be also invalidated!"))) {
+				return;
+			}
+			wps_enable = 0;
+		}
+
+		if (check_wep_key(auth_len, key)) {
+			return;
+		}
+
+		for (var i = 0; i < key.length; i++) {
+			mainObj.config_set(key[i], '$wl_bss_wep_' + (i + 1) + 'key1');
+		}
+
+		if (auth_mode == SECURITY_WEP_OPEN) {
+			mainObj.config_set(Number(SECURITY_WEP) + Number(SECURITY_WEP_OPEN), '$wl_bss_sec_type1');
+		} else {
+			mainObj.config_set(Number(SECURITY_WEP) + Number(SECURITY_WEP_SHARED), '$wl_bss_sec_type1');
+		}
+		mainObj.config_set(auth_len, '$wl_bss_cipher1');
+		mainObj.config_set(key_index, '$wl_bss_wep_index1');
+		mainObj.config_set(0, '$wl_bss_key_mgt1');
+	} else if ((s_mode == SECURITY_WPA2) || (s_mode == SECURITY_WPA_WPA2)) {
+		var c_mode = get_by_id("wlan0_chipher_mode").value;
+		var key = get_by_id("wlan0_wpa_key").value;
+		var key_interval = get_by_id("wlan0_wpa_key_interval").value;
+
+		if (check_wpa_key(key)) {
+			return;
+		}
+
+		if (!chkNum(get_by_id("wlan0_wpa_key_interval"), 0, 65535, "Group Key Update Interval")) {
+			return;
+		}
+
+		mainObj.config_set(c_mode, '$wl_bss_cipher1');
+		mainObj.config_set(key, '$wl_bss_wpa_psk1');
+		mainObj.config_set(key_interval, '$wl_bss_wpa_rekey1');
+
+		mainObj.config_set(Number(s_mode) + Number(SECURITY_WEP_OPEN), '$wl_bss_sec_type1');
+		mainObj.config_set(0, '$wl_bss_key_mgt1');
+	} else if (s_mode == SECURITY_WAPI) {
+		var c_mode = get_by_id("wlan0_wapi_mode").value;
+		var key = get_by_id("wlan0_wpa_key").value;
+		var key_interval = get_by_id("wlan0_wpa_key_interval").value;
+
+		if (wps_enable) {
+			if (!confirm(wdk.msg("Are you sure to change Security Mode to WAPI-PSK?\nWPS will be also invalidated!"))) {
+				return;
+			}
+			wps_enable = 0;
+		}
+
+		if (check_wpa_key(key)) {
+			return;
+		}
+
+		if (!chkNum(get_by_id("wlan0_wpa_key_interval"), 0, 65535, "Group Key Update Interval")) {
+			return;
+		}
+
+		mainObj.config_set(c_mode, '$wl_bss_cipher1');
+		mainObj.config_set(key, '$wl_bss_wpa_psk1');
+		mainObj.config_set(key_interval, '$wl_bss_wpa_rekey1');
+
+		mainObj.config_set(Number(s_mode) + Number(SECURITY_WEP_OPEN), '$wl_bss_sec_type1');
+		mainObj.config_set(2, '$wl_bss_key_mgt1');
+	} else if ((s_mode == EAP_WITH_WPA2) || (s_mode == EAP_WITH_WPA_WPA2)) {
+		var c_mode = get_by_id("wlan0_eap_chipher_mode").value;
+		var key_interval = get_by_id("wlan0_eap_key_interval").value;
+		var s_ip = get_by_id("wlan0_eap_ip").value;
+		var s_port = get_by_id("wlan0_eap_port").value;
+		var key = get_by_id("wlan0_eap_pass").value;
+
+		if (wps_enable) {
+			if (!confirm(wdk.msg("Are you sure to change Security Mode to 802.1X?\nWPS will be also invalidated!"))) {
+				return;
+			}
+			wps_enable = 0;
+		}
+
+		if (!chkNum(get_by_id("wlan0_eap_key_interval"), 0, 65535, "Group Key Update Interval")) {
+			return;
+		}
+
+		if (!chkIpOrDomain(get_by_id("wlan0_eap_ip"), "Radius server IP Address/Domain Name")) {
+			return;
+		}
+
+		if (!chkNum(get_by_id("wlan0_eap_port"), 1, 65535, "Radius server Port")) {
+			return;
+		}
+
+		if (!chkStr(get_by_id("wlan0_eap_pass"), "Radius server Shared Secret")) {
+			return;
+		}
+
+		mainObj.config_set(s_ip, "$wl_bss_radius_svr1");
+		mainObj.config_set(s_port, "$wl_bss_radius_svr_port1");
+		mainObj.config_set(key, "$wl_bss_radius_svr_key1");
+		mainObj.config_set(key_interval, "$wl_bss_wpa_rekey1");
+
+		mainObj.config_set((s_mode / WPA_MULTIPLE) + SECURITY_WEP_OPEN, '$wl_bss_sec_type1');
+		mainObj.config_set(c_mode, '$wl_bss_cipher1');
+		mainObj.config_set(1, '$wl_bss_key_mgt1');
+	} else {
+		if (wps_enable) {
+			if (!confirm(wdk.msg("Are you sure to change Security Mode to Disable\nIt is not safe!"))) {
+				return;
+			}
+		}
+
+		mainObj.config_set(SECURITY_DISABLE, '$wl_bss_sec_type1');
+		mainObj.config_set(CIPHER_NONE, '$wl_bss_cipher1');
+		mainObj.config_set(0, '$wl_bss_key_mgt1');
+	}
+
+	if (wps_enable) {
+		s_mode = mainObj.config_val('$wl_bss_sec_type1') | SECURITY_WPS;
+		mainObj.config_set(s_mode, '$wl_bss_sec_type1');
+	}
+
+	mainObj.config_set(2, '$wl_bss_wps_state1');
+
+	wdk.save_form(2000);
+}
+
+function init() {
+	var s_mode = wlanCfg.wlan0_security_mode;
+	var w_8021x = wlanCfg.wlan0_8021x;
+
+	wps_enable = s_mode & SECURITY_WPS;
+
+	if (w_8021x == "1") {
+		if ((s_mode & SECURITY_WPA_WPA2) == SECURITY_WPA_WPA2) {
+			s_mode = EAP_WITH_WPA_WPA2;
+		} else {
+			s_mode = EAP_WITH_WPA2;
+		}
+	}
+
+	if (s_mode & SECURITY_WEP) {
+		set_selectIndex("5", get_by_id("wlan0_security_mode"));
+	} else if ((s_mode & SECURITY_WPA2) == SECURITY_WPA2) {
+		set_selectIndex("16", get_by_id("wlan0_security_mode"));
+	} else if ((s_mode & SECURITY_WPA_WPA2) == SECURITY_WPA_WPA2) {
+		set_selectIndex("24", get_by_id("wlan0_security_mode"));
+	} else if ((s_mode & SECURITY_WAPI) == SECURITY_WAPI) {
+		set_selectIndex("128", get_by_id("wlan0_security_mode"));
+	} else if (s_mode == EAP_WITH_WPA2) {
+		set_selectIndex("512", get_by_id("wlan0_security_mode"));
+	} else if (s_mode == EAP_WITH_WPA_WPA2) {
+		set_selectIndex("768", get_by_id("wlan0_security_mode"));
+	} else {
+		set_selectIndex("0", get_by_id("wlan0_security_mode"));
+	}
+
+	//wep
+	if (s_mode & SECURITY_WEP_OPEN) {
+		set_selectIndex("1", get_by_id("wlan0_auth_mode"));
+	} else {
+		set_selectIndex("2", get_by_id("wlan0_auth_mode"));
+	}
+
+	set_selectIndex(wlanCfg.wlan0_chiper_mode, get_by_id("wlan0_auth_len"));
+
+	set_selectIndex(wlanCfg.wlan0_wep_key_index, get_by_id("wlan0_wep_key_sel"));
+	get_by_id("wlan0_wep_key_1").value = wlanCfg.wlan0_wep_key_1;
+	get_by_id("wlan0_wep_key_2").value = wlanCfg.wlan0_wep_key_2;
+	get_by_id("wlan0_wep_key_3").value = wlanCfg.wlan0_wep_key_3;
+	get_by_id("wlan0_wep_key_4").value = wlanCfg.wlan0_wep_key_4;
+
+	//wpa/wpa2
+	set_selectIndex(wlanCfg.wlan0_chiper_mode, get_by_id("wlan0_chipher_mode"));
+	get_by_id("wlan0_wpa_key").value = wlanCfg.wlan0_wpa_psk_key;
+	get_by_id("wlan0_wpa_key_interval").value = wlanCfg.wlan0_wpa_key_interval;
+
+	//802.1x
+	set_selectIndex(wlanCfg.wlan0_chiper_mode, get_by_id("wlan0_eap_chipher_mode"));
+	get_by_id("wlan0_eap_key_interval").value = wlanCfg.wlan0_wpa_key_interval;
+	get_by_id("wlan0_eap_ip").value = wlanCfg.wlan0_eap_ip;
+	get_by_id("wlan0_eap_port").value = wlanCfg.wlan0_eap_port;
+	get_by_id("wlan0_eap_pass").value = wlanCfg.wlan0_eap_key;
+
+	show_wlan0_security();
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <form id="form1" name="form1" method="post" action="">
+  <div id="topbar">
+   <div id="leftnav">
+    <a href="wifi_basic.htm">
+     <img alt="home" src="images/back.gif" />
+    </a>
+   </div>
+   <div id="title">WiFi Security</div>
+   <div id="rightbutton">
+    <a onclick="send_request()">
+     <script>
+show_words("Done")
+     </script>
+    </a>
+   </div>
+  </div>
+
+  <div id="content">
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("Security Mode")</script></span>
+     <select name="wlan0_security_mode" id="wlan0_security_mode" class="duoselectionbuttons" size="1" onChange="show_wlan0_security()">
+      <option value="0">
+       <script>
+get_words('Disable')
+       </script>
+      </option>
+      <option value="5">
+       <script>
+get_words("WEP")
+       </script>
+      </option>
+      <!--<option value="8"><script>get_words("WPA - PSK")</script></option>-->
+      <option value="16">
+       <script>
+get_words("WPA2 - PSK")
+       </script>
+      </option>
+      <option value="24">
+       <script>
+get_words("WPA/WPA2 - PSK")
+       </script>
+      </option>
+      <option value="128">
+       <script>
+get_words("WAPI - PSK")
+       </script>
+      </option>
+      <!--ifdef CONFIG_WPA_1X-->
+      <option value="512">
+       <script>
+get_words("WPA2 - 802.1X")
+       </script>
+      </option>
+      <option value="768">
+       <script>
+get_words("WPA/WPA2 - 802.1X")
+       </script>
+      </option>
+      <!--endif-->
+     </select>
+    </li>
+   </ul>
+
+   <div id="show_wep_auth" style="display:none">
+    <ul class="pageitem">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Authentication Mode")</script></span>
+      <select name="wlan0_auth_mode" id="wlan0_auth_mode" class="duoselectionbuttons" size="1">
+       <option value="1">
+        <script>
+get_words('Open System')
+        </script>
+       </option>
+       <option value="2">
+        <script>
+get_words("Shared System")
+        </script>
+       </option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Authentication Length")</script></span>
+      <select name="wlan0_auth_len" id="wlan0_auth_len" class="duoselectionbuttons" size="1">
+       <option value="1">
+        <script>
+get_words('64 Bit')
+        </script>
+       </option>
+       <option value="2">
+        <script>
+get_words("128 Bit")
+        </script>
+       </option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("WEP Key Selection")</script></span>
+      <select name="wlan0_wep_key_sel" id="wlan0_wep_key_sel" class="duoselectionbuttons" size="1">
+       <option value="0">
+        <script>
+get_words('Key 1')
+        </script>
+       </option>
+       <option value="1">
+        <script>
+get_words("Key 2")
+        </script>
+       </option>
+       <option value="2">
+        <script>
+get_words("Key 3")
+        </script>
+       </option>
+       <option value="3">
+        <script>
+get_words("Key 4")
+        </script>
+       </option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("WEP Key 1")</script></span>
+      <input name="wlan0_wep_key_1" id="wlan0_wep_key_1" type="text" maxlength="15">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("WEP Key 2")</script></span>
+      <input name="wlan0_wep_key_2" id="wlan0_wep_key_2" type="text" maxlength="15">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("WEP Key 3")</script></span>
+      <input name="wlan0_wep_key_3" id="wlan0_wep_key_3" type="text" maxlength="15">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("WEP Key 4")</script></span>
+      <input name="wlan0_wep_key_4" id="wlan0_wep_key_4" type="text" maxlength="15">
+     </li>
+    </ul>
+   </div>
+
+   <div id="show_wpa_auth" style="display:none">
+    <ul class="pageitem">
+     <li class="smallfield" id="show_wpa_wpa2" style="display:none">
+      <span class="name"><script>get_words("Chipher Mode")</script></span>
+      <select name="wlan0_chipher_mode" id="wlan0_chipher_mode" class="duoselectionbuttons" size="1">
+       <option value="4">
+        <script>
+get_words("TKIP")
+        </script>
+       </option>
+       <option value="8">
+        <script>
+get_words("AES")
+        </script>
+       </option>
+       <option value="12">
+        <script>
+get_words("TKIP & AES")
+        </script>
+       </option>
+      </select>
+     </li>
+
+     <li class="smallfield" id="show_wapi" style="display:none">
+      <span class="name"><script>get_words("Chipher Mode")</script></span>
+      <select name="wlan0_wapi_mode" id="wlan0_wapi_mode" class="duoselectionbuttons" size="1" disabled="true">
+       <option value="128">
+        <script>
+get_words("SMS4")
+        </script>
+       </option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Pre-shared Key")</script></span>
+      <input name="wlan0_wpa_key" id="wlan0_wpa_key" type="text" maxlength="15">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Group Key Interval")</script></span>
+      <input name="wlan0_wpa_key_interval" id="wlan0_wpa_key_interval" type="text" placeholder="0 ~ 65535">
+     </li>
+    </ul>
+   </div>
+
+   <div id="show_eap_auth" style="display:none">
+    <ul class="pageitem">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Chipher Mode")</script></span>
+      <select name="wlan0_eap_chipher_mode" id="wlan0_eap_chipher_mode" class="duoselectionbuttons" size="1">
+       <option value="4">
+        <script>
+get_words("TKIP")
+        </script>
+       </option>
+       <option value="8">
+        <script>
+get_words("AES")
+        </script>
+       </option>
+       <option value="12">
+        <script>
+get_words("TKIP & AES")
+        </script>
+       </option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Group Key Interval")</script></span>
+      <input name="wlan0_eap_key_interval" id="wlan0_eap_key_interval" type="text" placeholder="0 ~ 65535">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Radius Server IP")</script></span>
+      <input name="wlan0_eap_ip" id="wlan0_eap_ip" type="text">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Radius Server Port")</script></span>
+      <input name="wlan0_eap_port" id="wlan0_eap_port" type="text">
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Radius Server Shared Secret")</script></span>
+      <input name="wlan0_eap_pass" id="wlan0_eap_pass" type="text">
+     </li>
+    </ul>
+   </div>
+  </div>
+ </form>
+</body>
+
+</html>

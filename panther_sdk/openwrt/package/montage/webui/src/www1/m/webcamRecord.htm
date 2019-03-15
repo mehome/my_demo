@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Webcam Record</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+wdk.cdbLoad(['$webcam_support', '$webcam_format', '$webcam_rsch_enable', '$webcam_rsch_rules', 'webcam status']);
+var record_status = Number(wdk.cdbVal('webcam status'));
+var webcamRules = wdk.cdbVal("$webcam_rsch_rules").trim();
+
+var schArr = [];
+var startTimeList = [];
+var endTimeList = [];
+var weekDay = ['Sun', 'Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat'];
+var timeLength = 0;
+var table = "";
+var sch_str = "";
+var bmap = [
+	'0000', '0001', '0010', '0011',
+	'0100', '0101', '0110', '0111',
+	'1000', '1001', '1010', '1011',
+	'1100', '1101', '1110', '1111'
+];
+var BITMAPLENGTH = 84;
+
+function cdbToTable(str) {
+	if (str == "") {
+		console.log("There should exist default cdb value.");
+	}
+	for (var i = 0; i < BITMAPLENGTH; i++) {
+		table += bmap[parseInt(str.slice(i, i + 1), 16)];
+	}
+}
+
+function tableToObj(str) {
+	var set = 'n';
+	var sum = [];
+	for (i in str) {
+		if (str[i] == 1) {
+			if (set == "n") {
+				var l = [];
+				l.push(i);
+				sum.push(l);
+				set = 'y'
+			} else {
+				sum[sum.length - 1].push(i)
+				set = 'y'
+			}
+		} else
+			set = 'n'
+	}
+	return sum;
+}
+
+function objToTable() {
+	var s = [];
+	for (var i = 0; i < 335; i++)
+		s.push('0')
+
+	var start;
+	var end;
+	for (var i = 0; i < schArr.length; i++) {
+		start = schArr[i].startInd;
+		end = schArr[i].endInd;
+
+		for (var j = start; j <= end; j++) {
+			s[j] = 1;
+		}
+	}
+	table = s;
+}
+
+function tableToCdb() {
+	var s0 = "";
+	var tableStr = "";
+	for (i in table) {
+		tableStr += table[i];
+	}
+
+	for (var i = 0; i < tableStr.length; i += 4) {
+		var pattern = tableStr.substring(i, i + 4);
+		s0 += parseInt(pattern, 2).toString(16);
+	}
+	sch_str = s0;
+}
+
+function genTimeList() {
+	var hourList = [];
+	var minList = ['00', '30'];
+
+	for (var i = 0; i < 24; i++) {
+		var hour = i.toString();
+		hourList.push(hour);
+		startTimeList.push(hour + ":" + minList[0]);
+		startTimeList.push(hour + ":" + minList[1]);
+	}
+
+
+	for (i = 1; i < startTimeList.length; i++) {
+		endTimeList.push(startTimeList[i])
+	}
+	endTimeList.push("24:00");
+
+	timeLength = startTimeList.length;
+}
+
+function sch(startInd, endInd) {
+	var timeLength = 48;
+	this.startInd = Number(startInd);
+	this.endInd = Number(endInd);
+
+	this.strDayWeekInd = -1;
+	this.strDayTimeInd = -1;
+	this.endDayWeekInd = -1;
+	this.endDayTimeInd = -1;
+	this.strDayR = null;
+	this.endDayR = null;
+	this.duration = null;
+
+	this.genInd = function() {
+		if (this.strDayWeekInd == -1 || this.strDayTimeInd == -1 || this.endDayWeekInd == -1 || this.endDayTimeInd == -1) {
+			console.log("Some variables are not set properly");
+			return;
+		}
+		this.startInd = Number(this.strDayWeekInd * timeLength + this.strDayTimeInd);
+		this.endInd = Number(this.endDayWeekInd * timeLength + this.endDayTimeInd);
+	}
+
+	this.genDwDt = function() {
+		this.strDayWeekInd = Math.floor(this.startInd / timeLength);
+		this.strDayTimeInd = Math.floor(this.startInd % timeLength);
+		this.endDayWeekInd = Math.floor(this.endInd / timeLength);
+		this.endDayTimeInd = Math.floor((this.endInd) % timeLength);
+	}
+
+	this.genDateR = function() {
+		this.strDayR = weekDay[this.strDayWeekInd] + " " + startTimeList[this.strDayTimeInd];
+		this.endDayR = weekDay[this.endDayWeekInd] + " " + endTimeList[this.endDayTimeInd];
+		this.duration = this.strDayR + "~" + this.endDayR;
+	}
+}
+
+function addNewSchedule() {
+	var ret = window.confirm(wdk.msg("Adding new schedule rule might update the current schedule rules, continue?"));
+	if (!ret)
+		return;
+
+	var startWeekDayInd = document.getElementById('webcamRecStartDay').selectedIndex;
+	var startTimeInd = document.getElementById('webcamRecStartTime').selectedIndex;
+	var endWeekDayInd = document.getElementById('webcamRecEndDay').selectedIndex;
+	var endTimeInd = document.getElementById('webcamRecEndTime').selectedIndex;
+
+	if (startWeekDayInd == 0 && startTimeInd == 0 && endWeekDayInd == 6 && endTimeInd == 47) {
+		alert(wdk.msg("If you want to record everyday, please just press \"Record\" button, instead of using scheduling rules."));
+		highlight("rb");
+		return;
+	}
+
+	if (startWeekDayInd * 6 + startTimeInd > endWeekDayInd * 6 + endTimeInd) {
+		alert(wdk.msg("End time should be later than start time"));
+		return;
+	}
+
+	var newSch = new sch();
+	newSch.strDayWeekInd = Number(startWeekDayInd);
+	newSch.strDayTimeInd = Number(startTimeInd);
+	newSch.endDayWeekInd = Number(endWeekDayInd);
+	newSch.endDayTimeInd = Number(endTimeInd);
+	newSch.genDateR();
+	newSch.genInd();
+	schArr.push(newSch);
+	merge();
+	updateSchListView();
+}
+
+function merge() {
+	var schSortedArr = schArr.sort(compare);
+	tmpStack = [];
+	tmpStack.push(schSortedArr[0]);
+	for (var i = 1; i < schSortedArr.length; i++) {
+		var topEle = tmpStack[tmpStack.length - 1];
+		var cmpedEle = schSortedArr[i];
+		if (topEle.endInd < cmpedEle.startInd) {
+			tmpStack.push(cmpedEle);
+		} else if (cmpedEle.endInd > topEle.endInd) {
+			topEle.endInd = cmpedEle.endInd;
+			topEle.genDwDt();
+			topEle.genDateR();
+		}
+	}
+	schArr = tmpStack;
+}
+
+
+function compare(a, b) {
+	return (a.startInd <= b.startInd) ? -1 : 1;
+}
+
+function searchIndById(arr, Id_) {
+	for (i in arr) {
+		if (arr[i].startInd == Id_) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+function schListView(Id_, Sch_) {
+	this.Id = Id_;
+	this.Sch = Sch_;
+	this.create = function() {
+		var listView = document.createElement('li');
+		listView.className = "smallfield";
+		listView.setAttribute("value", this.Sch);
+		listView.setAttribute("id", this.Id);
+
+		var img = document.createElement('img');
+		img.setAttribute("src", "images/trash.jpg");
+		img.setAttribute("alt", "Remove");
+		img.listId = this.Id;
+		img.addEventListener('click', accessId, false);
+
+		var sp1 = document.createElement('span');
+		sp1.className = "longlabel";
+		sp1.innerHTML = this.Sch;
+
+		listView.appendChild(img);
+		listView.appendChild(sp1);
+		return listView;
+	}
+
+	function accessId(e) {
+		var eleId = e.target.listId;
+		var ele = document.getElementById(eleId);
+		if (ele == null) {
+			console.log("The element with the id " + eleId + " does not exist.");
+			return;
+		}
+
+		var ind = searchIndById(schArr, eleId);
+
+		if (ind == -1) {
+			console.log("The id doesn't match any element in the array or doesn't exist. Check error");
+			return;
+		}
+		schArr.splice(ind, 1);
+		ele && ele.parentNode && ele.parentNode.removeChild(ele);
+	}
+}
+
+function record_toggle() {
+	if (!record_status && !media_exist())
+		return;
+	else {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+		wdk.showResultBG();
+		// showHide("display", 0);
+	}
+
+	update_prompt();
+	if (record_status)
+		wdk.cliCmd("webcam rec_off");
+	else
+		wdk.cliCmd("webcam rec_on");
+}
+
+function updateSchListView() {
+	webcamSchViewAnchor = document.getElementById('webcamScheduledRules');
+	while (webcamSchViewAnchor.firstChild) {
+		webcamSchViewAnchor.removeChild(webcamSchViewAnchor.firstChild);
+	}
+
+	for (i in schArr) {
+		var newList = new schListView(schArr[i].startInd, schArr[i].duration).create();
+		webcamSchViewAnchor.appendChild(newList);
+	}
+}
+
+
+function media_exist() {
+	wdk.showResultBG();
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("check if storage exists");
+	var s = wdk.cliCmd("stor ls " + encodeURIComponent("/"));
+	if (s.indexOf("mmcblk") != -1)
+		return true;
+	else {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Please insert a SD card before starting video recording");
+		setTimeout(function() {
+			top.location.reload(true);
+		}, 2000);
+		return false;
+	}
+}
+
+function update_prompt() {
+	var rc = Number(wdk.cliCmd("webcam status"));
+	if (record_status == rc) {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+		setTimeout(update_prompt, 1000);
+	} else {
+		if ((record_status == 0) && (rc == 5))
+			wdk.getById("titleupwarng").innerHTML = wdk.msg("Recording");
+		else if ((record_status == 5) && (rc == 0))
+			wdk.getById("titleupwarng").innerHTML = wdk.msg("Record completed");
+		else
+			wdk.getById("titleupwarng").innerHTML = wdk.msg("Failed");
+		setTimeout(function() {
+			top.location.reload(true);
+		}, 1000);
+	}
+}
+
+
+function add_select_option(s, v) {
+	if (s.length) return;
+	addOptions(s, v);
+}
+
+function init() {
+	var f = document.frm;
+	var format = wdk.cdbVal('$webcam_format');
+	var target_ip = window.location.hostname;
+	var port = rule2var(format, "port");
+	var prot = (rule2var(format, "prot") == "HTTP") ? "http" : "rtsp";
+	var path = rule2var(format, "path");
+	var fmt = rule2var(format, "ifmt");
+	var vdev = rule2var(format, "vdev");
+	var url = prot + "://" + target_ip + ":" + port + "/" + path;
+
+	var support = wdk.cdbVal('$webcam_support');
+	var ifmt = rule2var(support, "ifmt").split(":");
+	var ft = rule2var(support, "ft").split(":");
+	add_select_option(wdk.getById("ifmt"), ifmt);
+	add_select_option(wdk.getById("ft"), ft);
+
+	wdk.getById("fsuffix").innerHTML = "_" + ((fmt == "date") ? "YMDhms" : fmt) + ".";
+
+	wdk.cdbNew('$web_record_ops', format);
+
+	f.reset();
+	wdk.init_form();
+	update_status_display();
+
+
+	wdk.getById("systime").value = wdk.cliCmd('time ntpstr').trim();
+	wdk.getById("systime").innerHTML = wdk.cliCmd('time ntpstr').trim();
+
+
+	genTimeList();
+	genOption("webcamRecStartTime", startTimeList);
+	genOption("webcamRecEndTime", endTimeList);
+	checkboxToggle('recordSch', wdk.getById("$webcam_rsch_enable").checked);
+
+
+	cdbToTable(webcamRules);
+	var tmp0 = tableToObj(table);
+
+	for (i in tmp0) {
+		if (tmp0[i].length == 1) {
+			startInd = endInd = tmp0[i][0];
+		} else {
+			startInd = tmp0[i][0];
+			endInd = tmp0[i][tmp0[i].length - 1];
+		}
+		var nSch = new sch(startInd, endInd);
+		nSch.genDwDt();
+		nSch.genDateR();
+		schArr.push(nSch)
+	}
+	updateSchListView();
+}
+
+function send_request() {
+	if (!chkNum(wdk.getById("st"), 60, 3600, "Time")) {
+		highlight("st");
+		return;
+	}
+	if (!chkStrNoNull(wdk.getById("out"), "Filename Prefix", /[^a-zA-Z0-9#\.@-]/)) {
+		highlight("out");
+		return;
+	}
+
+	objToTable();
+	tableToCdb();
+	wdk.cdbSet("$webcam_rsch_rules", sch_str);
+	wdk.cdbSet("$webcam_rsch_enable", Number(wdk.getById("$webcam_rsch_enable").checked));
+
+	if (wdk.cdbChg("$webcam_rsch_enable") && wdk.cdbVal("$webcam_rsch_enable") == 0) {
+		/*WSIM_BEGIN*/
+		alert("webcam sch_dis");
+		/*WSIM_END*/
+		wdk.cliCmd("webcam sch_dis");
+	}
+
+	if ((wdk.cdbVal("$webcam_rsch_enable") == 1) &&
+		(wdk.cdbChg("$webcam_rsch_rules") ||
+			wdk.cdbChg("$webcam_rsch_enable"))) {
+		/*WSIM_BEGIN*/
+		alert("webcam sch " + sch_str);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam sch " + sch_str);
+	}
+
+
+	var str = wdk.cdbVal("$webcam_format")
+	var ost = rule2var(str, "st");
+	var st = wdk.getById("st").value;
+	var ifmt = getSelectValue("ifmt");
+	var ft = getSelectValue("ft");
+	var oout = rule2var(str, "out");
+	var out = wdk.getById("out").value;
+
+	str = updaterulevar(str, "st", st);
+	str = updaterulevar(str, "ifmt", ifmt);
+	str = updaterulevar(str, "ft", ft);
+	str = updaterulevar(str, "out", out);
+	wdk.cdbSet("$webcam_format", str)
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("");
+
+	if (ost != st) {
+		/*WSIM_BEGIN*/
+		alert("webcam mrp " + st);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam mrp " + st);
+	}
+	if (oout != out) {
+		/*WSIM_BEGIN*/
+		alert("webcam rec_pfx " + out);
+		/*WSIM_END*/
+		wdk.cliCmd("webcam rec_pfx " + out);
+	}
+
+	if (!(wdk.cdbChg("$webcam_format") || wdk.cdbChg("$webcam_rsch_enable") || wdk.cdbChg("$webcam_rsch_rules"))) {
+		alert(wdk.msg('The settings are not changed!!'));
+	} else {
+		wdk.save_form(0, 1);
+		wdk.showResultBG();
+		wdk.redirect(5);
+	}
+}
+
+function checkboxToggle(eleId, checked) {
+	var ele = wdk.getById(eleId);
+	if (ele != null) {
+		ele.style.display = (checked) ? "block" : "none";
+	}
+}
+
+function genOption(targetSelId, optionList) {
+	var targetSel = document.getElementById(targetSelId);
+	if (targetSel == null) {
+		console.log("There is no element with the ID  " + targetSelId);
+		return;
+	}
+
+	var optList = genOpt(optionList);
+	for (i in optList) {
+		targetSel.appendChild(optList[i]);
+	}
+}
+
+function resetSchOpt() {
+	var startWeekDay = document.getElementById('webcamRecStartDay');
+	var startTime = document.getElementById('webcamRecStartTime');
+	var endWeekDay = document.getElementById('webcamRecEndDay');
+	var endTime = document.getElementById('webcamRecEndTime');
+
+	startWeekDay.selectedIndex = 0;
+	startTime.selectedIndex = 0;
+	endWeekDay.selectedIndex = 0;
+	endTime.selectedIndex = 0;
+}
+
+function update_status_display() {
+	var p = "";
+	var d = true;
+	var v = "";
+
+	switch (record_status) {
+		case 0:
+			p = wdk.msg("no recording");
+			d = false;
+			v = wdk.msg("Record");
+			break;
+		case 3:
+			p = wdk.msg("motion detection recording");
+			d = false;
+			v = wdk.msg("Stop");
+			break;
+		case 5:
+			p = wdk.msg("software switch recording");
+			d = false;
+			v = wdk.msg("Stop");
+			break;
+		case 9:
+			p = wdk.msg("schedule recording");
+			d = true;
+			v = wdk.msg("N/A");
+			break;
+		case 17:
+			p = wdk.msg("hardware switch recording");
+			d = true;
+			v = wdk.msg("N/A");
+			break;
+		default:
+			p = wdk.msg("exception");
+			break;
+	}
+
+	wdk.getById("rst").setAttribute("value", p);
+	wdk.getById("rst").innerHTML = p;
+
+	wdk.getById("rb").disabled = d;
+	wdk.getById("rb").value = v;
+}
+
+function on_click_manual_sync() {
+	var computer_time = 0;
+	var curdate = new Date();
+
+	if (!confirm(wdk.msg("RTP Server will restart after system time synchronization")))
+		return;
+
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Processing! Please wait ");
+	wdk.showResultBG();
+
+	computer_time = parseInt(curdate.getTime() / 1000);
+	wdk.cliCmd('time sync ' + computer_time);
+	wdk.cliCmd('webcam restart');
+	setTimeout(function() {
+		top.location.reload(true);
+	}, 2000);
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="webcamFunc.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">Webcam Record</div>
+  <div id="rightbutton">
+   <a onclick="send_request()">
+    <script>
+show_words("Done")
+    </script>
+   </a>
+  </div>
+ </div>
+
+ <!--Constructing template, too-->
+ <form name="frm">
+  <fieldset id="$web_record_ops">
+   <span class="graytitle"><script>get_words("Record Settings")</script>
+      </span> 
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("Status")</script></span>
+     <!-- readonly to label -->
+     <span class="label" id="rst" name="rst" value=""></span> 
+    </li>
+
+    <li class="button">
+     <input id="rb" type="button" value="" onclick="record_toggle()">
+    </li>
+
+    <li class="smallfield">
+     <div class="leftname">
+      <script>
+get_words("Max Record Time 60~3600(s)")
+      </script>
+     </div>
+     <input type="text" id="st" class="rightname" name="st" maxlength="6">
+    </li>
+   </ul>
+
+   <span class="graytitle"><script>get_words("Record File Path")</script></span> 
+   <ul class="pageitem">
+    <li class="smallfield">
+     <span class="name"><script>get_words("Root Path")</script></span> 
+     <span class="label"><script>get_words("/mmcblkx/record/")</script>
+          </span> 
+    </li>
+
+    <li class="smallfield">
+     <span class="name">
+            <script>get_words("File Name Prefix")</script>
+          </span>
+     <input type="text" id="out" name="out" maxlength=20>
+    </li>
+
+    <li id="ifmtList" class="smallfield" style="display:none">
+     <span class="name">
+            <script>get_words("File Name Suffix")</script>
+          </span>
+     <select id="ifmt" name="ifmt" size=1></select>
+    </li>
+
+    <li class="smallfield">
+     <span class="name">
+            <script>get_words("Current File Suffix")</script>
+          </span>
+     <span class="label" id="fsuffix" name="fsuffix"></span> 
+    </li>
+
+    <li id="ftList" class="smallfield">
+     <span class="name">
+            <script>get_words("Record format")</script>
+          </span>
+     <select id="ft" name="ft" size="1"></select>
+    </li>
+   </ul>
+
+   <span class="graytitle"><script>get_words("Schedule")</script></span> 
+   <ul class="pageitem">
+    <li class="checkbox">
+     <span class="name"><script>get_words("Record Schedule")</script></span>
+     <input type="checkbox" id="$webcam_rsch_enable" value=1 onclick="checkboxToggle('recordSch', this.checked)">
+    </li>
+   </ul>
+
+   <div id="recordSch" style="display:none">
+    <span class="graytitle"><script>get_words("System Time")</script></span>
+    <ul class="pageitem">
+
+     <li class="button">
+      <input type="button" id="sb" onclick="on_click_manual_sync()" value="Sync with host">
+
+     </li>
+     <li class="smallfield">
+      <span class="centerlabel" id="systime" name="systime"></span> 
+     </li>
+    </ul>
+
+    <span class="graytitle"><script>get_words("Add new schedule")</script></span>
+    <ul class="pageitem">
+     <li class="smallfield">
+      <span class="name"><script>get_words("Start Day Of Week")</script></span> 
+      <select id="webcamRecStartDay">
+       <option value="0" selected>Sun</option>
+       <option value="1">Mon</option>
+       <option value="2">Tues</option>
+       <option value="3">Wed</option>
+       <option value="4">Thurs</option>
+       <option value="5">Fri</option>
+       <option value="6">Sat</option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("Start Time")</script></span> 
+      <select id="webcamRecStartTime">
+
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("End Day Of Week")</script></span> 
+      <select id="webcamRecEndDay">
+       <option value="0" selected>Sun</option>
+       <option value="1">Mon</option>
+       <option value="2">Tues</option>
+       <option value="3">Wed</option>
+       <option value="4">Thurs</option>
+       <option value="5">Fri</option>
+       <option value="6">Sat</option>
+      </select>
+     </li>
+
+     <li class="smallfield">
+      <span class="name"><script>get_words("End Time")</script></span> 
+      <select id="webcamRecEndTime">
+      </select>
+     </li>
+    </ul>
+
+    <div>
+     <input id="editDone" class="edit" type="button" value="Add" onclick="addNewSchedule()">
+     <input id="editCancel" class="edit" type="button" value="Cancel" onclick="resetSchOpt()">
+    </div>
+
+    <span class="graytitle"><script>get_words("Schedule Rules")</script></span>
+    <ul class="pageitem">
+     <div id="webcamScheduledRules">
+
+     </div>
+    </ul>
+   </div>
+  </fieldset>
+ </form>
+</body>
+
+</html>

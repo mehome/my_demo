@@ -1,0 +1,27 @@
+diff -Nur a/webrtc/modules/audio_processing/Makefile.am b/webrtc/modules/audio_processing/Makefile.am
+--- a/webrtc/modules/audio_processing/Makefile.am	2017-10-01 18:57:39.000000000 +0800
++++ b/webrtc/modules/audio_processing/Makefile.am	2017-10-01 19:24:27.605539393 +0800
+@@ -186,4 +186,4 @@
+ # autotools conditionals in place
+ EXTRA_DIST = BUILD.gn \
+ 	     			aec/aec_core_mips.c \
+-	     			aecm/aecm_core_mips.c \
++	     			aecm/aecm_core_mips.c
+diff -Nur a/webrtc/typedefs.h b/webrtc/typedefs.h
+--- a/webrtc/typedefs.h	2017-10-01 18:57:39.000000000 +0800
++++ b/webrtc/typedefs.h	2017-10-01 19:36:23.445576599 +0800
+@@ -41,9 +41,13 @@
+ //#define WEBRTC_ARCH_ARMEL
+ #define WEBRTC_ARCH_32_BITS
+ #define WEBRTC_ARCH_LITTLE_ENDIAN
+-#elif defined(__MIPSEL__)
++#elif defined(__mips__)
+ #define WEBRTC_ARCH_32_BITS
++#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
++#define WEBRTC_ARCH_BIG_ENDIAN
++#else
+ #define WEBRTC_ARCH_LITTLE_ENDIAN
++#endif
+ #elif defined(__pnacl__)
+ #define WEBRTC_ARCH_32_BITS
+ #define WEBRTC_ARCH_LITTLE_ENDIAN

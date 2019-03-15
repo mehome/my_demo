@@ -1,0 +1,18 @@
+Index: src/src/hostapi/alsa/pa_linux_alsa.c
+===================================================================
+--- src.orig/src/hostapi/alsa/pa_linux_alsa.c	2018-05-16 12:17:01.000000000 +0800
++++ src/src/hostapi/alsa/pa_linux_alsa.c	2018-05-16 12:18:25.909103898 +0800
+@@ -1121,7 +1121,12 @@
+ static int OpenPcm( snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode, int waitOnBusy )
+ {
+     int ret, tries = 0, maxTries = waitOnBusy ? busyRetries_ : 0;
+-
++    if((strcmp(name, "hw:7,1") == 0)    || (strcmp(name, "hw:5,1") == 0) ||
++       (strcmp(name, "hw:7,0") == 0)    || (strcmp(name, "hw:5,0") == 0) ||
++       (strcmp(name, "loopbackoutMixer") == 0) )
++    {
++        return -EBUSY;
++    }
+     ret = alsa_snd_pcm_open( pcmp, name, stream, mode );
+
+     for( tries = 0; tries < maxTries && -EBUSY == ret; ++tries )

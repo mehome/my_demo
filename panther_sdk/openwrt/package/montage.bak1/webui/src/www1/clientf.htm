@@ -1,0 +1,472 @@
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$lan_ip', '$fw_clientf_mode', '$fw_clientf1-20']);
+
+var netip = subNet(wdk.cdbVal("$lan_ip"));
+var max = 20;
+var listnum;
+var curIdx = -1;
+
+function init() {
+	var f = document.frm;
+	listnum = wdk.cdbLen('$fw_clientf', max);
+	refreshList('$fw_clientf', max, listnum);
+	wdk.getById('usage').innerHTML = listnum + '/' + max;
+	f.reset();
+	wdk.init_form();
+	showHide('fwcli_tab', Number(wdk.cdbVal('$fw_clientf_mode')));
+	daytime_disable();
+}
+
+function change_init() {
+	wdk.presubmit_form();
+	init();
+}
+
+function change(add) {
+	var r = '';
+	var f = document.frm;
+	var tab = wdk.findChildNode(wdk.getById('edit'));
+	var en = wdk.getByName(tab, 'en');
+	var sip = wdk.getAllByName(tab, 'sip');
+	var dp = wdk.getAllByName(tab, 'dp');
+	var prot = wdk.getByName(tab, 'prot');
+	var schen = wdk.getAllByName(tab, 'schen');
+	var day = wdk.getAllByName(tab, 'day');
+	var desc = wdk.getByName(tab, 'desc');
+	var block = (schen[0].checked == 1 ? 0 : 1)
+	var day_total = 0;
+	var st = 0;
+	var et = 86400;
+
+	if (!chkNum(sip[0], 1, 254, "IP Address")) {
+		highlight("sip1");
+		return;
+	}
+	if (!chkNum(sip[1], 1, 254, "IP Address")) {
+		highlight("sip2");
+		return;
+	}
+	if (Number(sip[0].value) > Number(sip[1].value)) {
+		alert(wdk.msg("IP Pool Starting Address should not be greater than IP Pool Ending Address !"));
+		sip[0].focus();
+		return;
+	}
+	if (!chkNum(dp[0], 1, 65535, "Port")) {
+		dp[0].focus();
+		return;
+	}
+	if (!chkNum(dp[1], 1, 65535, "Port")) {
+		dp[1].focus();
+		return;
+	}
+	if (Number(dp[0].value) > Number(dp[1].value)) {
+		alert(wdk.msg("Starting Port should not be greater than Ending Port!"));
+		dp[0].focus();
+		return;
+	}
+
+	if (block) {
+		for (var k = 0; k < 7; k++)
+			if (day[k].checked) day_total |= (1 << k);
+		if (!day_total) {
+			alert(wdk.msg("Please select the days of the week!"));
+			return;
+		}
+		st = Number(f.time[0].value);
+		et = Number(f.time[1].value);
+		if (et > 86400) {
+			st = 0;
+			et = 86400;
+		} else if (st >= et) {
+			alert(wdk.msg("Starting Time should be less than Ending Time!"));
+			return;
+		}
+	}
+
+	if (!chkStr(desc, "Comment")) return;
+
+	for (var i = 1; i <= listnum; i++) {
+		if (!add && i == curIdx) continue;
+		/*	if (wdk.cdbVal('$fw_macf'+i).indexOf('gp='+gp.value+'&') > -1)
+		{
+			alert("Duplicated port range!!");
+			return;
+		}*/
+	}
+
+	r = 'en=' + Number(en.checked) + '&dir=0&sip=' + netip + sip[0].value + '-' + netip + sip[1].value + '&dp=' + dp[0].value + '-' + dp[1].value + '&prot=' + prot.value + '&schen=' + block + '&time=' + st + '-' + et + '&day=' + day_total + '&desc=' + desc.value;
+	k = curIdx;
+	if (add) {
+		k = listnum + 1;
+		if (k > max) {
+			alert(wdk.msg("Too many entries, maximum is ") + max);
+			return
+		}
+	}
+	wdk.cdbSet('$fw_clientf' + k, r);
+	change_init();
+}
+
+function ip_load(s, rng) {
+	var ip = rng.split('-');
+	var e = s.nextSibling.nextSibling;
+	s.value = ip[0].match(/\d+$/);
+	e.value = ip[1].match(/\d+$/);
+}
+
+function pt_load(s, rng) {
+	var prt = rng.split('-');
+	var e = s.nextSibling.nextSibling;
+	s.value = prt[0].match(/\d+$/);
+	e.value = prt[1].match(/\d+$/);
+}
+
+function blk_load(s, b) {
+	var all = wdk.findChildNode(s.parentNode);
+	var e = wdk.getAllByName(all, 'schen');
+	for (var k = 0; k < e.length; k++)
+		e[k].checked = (e[k].value == b);
+}
+
+function day_load(s, day) {
+	var d = Number(day);
+	var all = wdk.findChildNode(s.parentNode);
+	var v = wdk.getAllByName(all, 'day');
+	for (var k = 0; k < v.length; k++)
+		v[k].checked = (d >> k) & 1;
+}
+
+function time_load(s, rng) {
+	var v = rng.split('-');
+	var e = s.nextSibling.nextSibling;
+	s.value = v[0];
+	e.value = v[1];
+}
+
+function edit(idx) {
+	var r = wdk.cdbVal('$fw_clientf' + idx);
+	r = (r == '') ? 'en=1&desc=' : r;
+	wdk.fill_form_entry(wdk.getById('edit'), r);
+	markEntry(wdk.getById('$fw_clientf' + idx));
+	daytime_disable();
+	curIdx = idx;
+}
+
+function Remove(idx) {
+	wdk.cdbDel('$fw_clientf' + idx, max);
+	if (curIdx > 2)
+		curIdx--;
+	change_init();
+}
+
+var week = wdk.msg('Su,Mo,Tu,We,Th,Fr,Sa').split(',');
+
+function day_show(v, day) {
+	var d = Number(day);
+	for (var k = 0; k < 7; k++)
+		v.value += (((d >> k) & 1) ? week[k] : '-')
+}
+
+function time_show(v, time) {
+	var s = time.split('-');
+	v.value = twoDig(s[0] / 3600) + ':00 - ' + twoDig(s[1] / 3600) + ':00';
+}
+
+function chkStartTime(f) {
+	if (Number(f.time[1].value) > 23 * 3600)
+		f.time[1].value = 25 * 3600;
+}
+
+function chkEndTime(f) {
+	if (Number(f.time[1].value) > 24 * 3600)
+		f.time[0].value = 24 * 3600;
+}
+
+function genTimeOpt(end) {
+	var m = '<option value=' + (end * 3600) + '>' + wdk.msg("Always") + '<' + '/option>';
+	for (var i = 0; i < end; i++) {
+		m += '<option value=' + (i * 3600) + '>' + twoDig(i) + ':00<' + '/option>';
+	}
+	return m;
+}
+
+function daytime_disable() {
+	if (document.frm.schen0.checked) {
+		document.frm.time1.value = 86400;
+		document.frm.time2.value = 90000;
+		for (var i = 1; i <= 2; i++) {
+			eval("document.frm.time" + i + ".disabled = true;")
+		}
+		for (var i = 1; i <= 7; i++) {
+			eval("document.frm.day" + i + ".disabled = true;")
+		}
+	} else {
+		for (var i = 1; i <= 2; i++) {
+			eval("document.frm.time" + i + ".disabled = false;")
+		}
+		for (var i = 1; i <= 7; i++) {
+			eval("document.frm.day" + i + ".disabled = false;")
+		}
+	}
+}
+
+function apply() {
+	wdk.save_form(2000);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+ <form name=frm>
+  <fieldset>
+   <legend>
+    <script>
+wdk.putmsg("Settings")
+    </script>
+   </legend>
+   <div class=setting>
+    <div class=col29>
+     <script>
+puts(wdk.msg("Enable") + ' ' + wdk.msg("Client Filter"))
+     </script>
+    </div>
+    <input type=checkbox name=check id='$fw_clientf_mode' onclick="showHide('fwcli_tab',this.checked)">
+   </div>
+   <br>
+   <div id=fwcli_tab>
+    <div id=edit>
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Enable")
+       </script>
+      </div>
+      <input type=checkbox name=en>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("IP Address")
+       </script>
+      </div>
+      <script>
+puts(netip);
+      </script>
+      <input placeholder="1" maxLength=3 id=sip1 name=sip size=3 load=ip_load>~
+      <input placeholder="254" id=sip2 maxLength=3 name=sip size=3>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Port");
+       </script>
+      </div>
+      <input placeholder="1" maxLength=5 name=dp size=5 load=pt_load>~
+      <input placeholder="65535" maxLength=5 name=dp size=5>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Type")
+       </script>
+      </div>
+      <select name=prot>
+       <option value=tcp>TCP</option>
+       <option value=udp>UDP</option>
+       <option value=tcp/udp>
+        <script>
+wdk.putmsg("Both")
+        </script>
+       </option>
+      </select>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Block Time");
+       </script>
+      </div>
+      <input type=radio id=schen0 name=schen value=0 load=blk_load onclick=daytime_disable();>
+      <script>
+wdk.putmsg("Always");
+      </script>
+      <input type=radio id=schen1 name=schen value=1 onclick=daytime_disable();>
+      <script>
+wdk.putmsg("Block");
+      </script>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Day");
+       </script>
+      </div>
+      <input type=checkbox id=day7 name=day load=day_load>
+      <script>
+wdk.putmsg("SUN");
+      </script>
+      <input type=checkbox id=day1 name=day>
+      <script>
+wdk.putmsg("MON");
+      </script>
+      <input type=checkbox id=day2 name=day>
+      <script>
+wdk.putmsg("TUE");
+      </script>
+      <input type=checkbox id=day3 name=day>
+      <script>
+wdk.putmsg("WED");
+      </script>
+      <input type=checkbox id=day4 name=day>
+      <script>
+wdk.putmsg("THU");
+      </script>
+      <input type=checkbox id=day5 name=day>
+      <script>
+wdk.putmsg("FRI");
+      </script>
+      <input type=checkbox id=day6 name=day>
+      <script>
+wdk.putmsg("SAT");
+      </script>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Time");
+       </script>
+      </div>
+      <div>
+       <select id=time1 name=time load=time_load size=1 onchange=chkStartTime(this.form)>
+        <script>
+puts(genTimeOpt(24))
+        </script>
+       </select>
+       &nbsp;~&nbsp;
+       <select id=time2 name=time size=1 onchange=chkEndTime(this.form)>
+        <script>
+puts(genTimeOpt(25))
+        </script>
+       </select>
+      </div>
+     </div>
+
+     <div class=setting>
+      <div class=col29>
+       <script>
+wdk.putmsg("Comment");
+       </script>
+      </div>
+      <input placeholder="Add some comment" maxLength=40 name=desc size=40>
+     </div>
+
+     <div class=setting>
+      <center>
+       <script>
+puts('<input type=button class=button name=Add value="' + wdk.msg('Add') + '" onclick=change(1)>' +
+	'<input type=button class=button name=Mod value="' + wdk.msg('Modify') + '" onclick=change(0)>');
+       </script>
+      </center>
+     </div>
+    </div>
+    <div class=setting>
+     <div class=col29>
+      <script>
+wdk.putmsg("Rules Listing")
+      </script>
+     </div>
+     <div class=col3r><span id=usage></span>
+      <script>
+wdk.putmsg(" (using/max)")
+      </script>
+     </div>
+    </div>
+    <div class=floatKiller></div>
+    <hr>
+    <table class=infolist>
+     <tr>
+      <th>
+      </th>
+      <th width=30%>
+       <script>
+wdk.putmsg("IP Address")
+       </script>
+      </th>
+      <th width=20%>
+       <script>
+wdk.putmsg("Port")
+       </script>
+       <script>
+wdk.putmsg("Type")
+       </script>
+      </th>
+      <th width=20%>
+       <script>
+wdk.putmsg("Block Time")
+       </script>
+      </th>
+      <th width=20%>
+       <script>
+wdk.putmsg("Comment")
+       </script>
+      </th>
+      <th width=10%>
+       <script>
+wdk.putmsg("Action")
+       </script>
+      </th>
+     </tr>
+     <tr align=center id=$fw_clientf1>
+      <td nowrap>
+       <input type=checkbox name=en disabled>
+      </td>
+      <td>
+       <input name=sip disabled size=25>
+      </td>
+      <td>
+       <input name=prot disabled size=6>
+       <br>
+       <input name=dp disabled size=13>
+      </td>
+      <td>
+       <input name=day disabled size=15 load=day_show>
+       <br>
+       <input name=time disabled size=15 load=time_show>
+      </td>
+      <td>
+       <input name=desc disabled size=10>
+      </td>
+      <td>
+       <img src=images/edit.gif width=15 height=17 border=0 alt=edit onclick=edit(this.parentNode.parentNode.rowIndex)>&nbsp;
+       <img src=images/trash.gif width=15 height=17 border=0 alt=del onclick=Remove(this.parentNode.parentNode.rowIndex)>
+      </td>
+     </tr>
+    </table>
+   </div>
+  </fieldset>
+  <script>
+footer()
+  </script>
+ </form>
+
+</html>

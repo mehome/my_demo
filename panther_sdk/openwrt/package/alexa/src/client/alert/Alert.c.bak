@@ -1,0 +1,205 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+
+#include "Alert.h"
+
+
+
+Alert * alert_new(const char *token, const AlertType type, const char * scheduledTime)
+{
+	Alert *alert = NULL;
+	alert = calloc(1, sizeof(alert));
+
+	if(NULL == alert) {
+		DEBUG_ERR("malloc alert failed");
+		return NULL;
+	}
+
+	//alert->token 	     = strdup(token);
+	//alert->type 		 = strdup(type);
+	//alert->scheduledTime = strdup(scheduledTime);
+	alert->token 	     = token;
+	alert->type 		 = type;
+	alert->scheduledTime = scheduledTime;
+
+	DEBUG_INFO("token:%s,type:%s, scheduledTime:%s", token, type, scheduledTime);
+	return alert;
+}
+
+char *alert_get_token(Alert *alert)
+{
+	return alert->token;
+}
+
+
+char *alert_get_type(Alert *alert)
+{
+	return alert->type;
+}
+char *alert_get_scheduledtime(Alert *alert)
+{
+	return alert->scheduledTime;
+}
+
+void print_tm( struct tm *p)
+{   
+	char *wday[]={"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
+	printf("%d %02d %02d ",1900+p->tm_year,(1+p->tm_mon),p->tm_mday);  
+	printf("%s %02d:%02d:%02d\n",wday[p->tm_wday],(p->tm_hour),p->tm_min,p->tm_sec);  
+}
+
+
+/*  convert UTC time to local zone time  */
+time_t alert_convert_scheduledtime(Alert *alert)
+{
+	
+	time_t tm_t;
+	struct tm tm; 
+	struct tm *time = NULL ;
+	struct timeval tv;
+    struct timezone tz;
+	
+	char *scheduledTime = NULL;
+	char buf[128]={0};
+	
+	int zone;
+	int year;		
+	int month;
+	int day;
+	int hour;
+	int min;
+	int sec;
+	
+	scheduledTime = alert->scheduledTime;
+	printf("scheduledTime:%s\n",scheduledTime);	
+	DEBUG_INFO("scheduledTime:%s",scheduledTime);		
+
+	sscanf(scheduledTime,"%d-%02d-%02dT%02d:%02d:%02d%3d", &year,&month,&day, &hour, &min,&sec ,&zone);
+
+	snprintf(buf,128,"%d-%02d-%02d %02d:%02d:%02d", year, month, day,  hour, min, sec);	
+	DEBUG_INFO("buf:%s\n",buf);		
+	strptime(buf, "%Y-%m-%d %H:%M:%S", &tm);
+	DEBUG_INFO("strptime");		
+	//print_tm(&tm);
+	printf("%s\n", asctime(&tm));
+	DEBUG_INFO("print_tm");		
+
+	tm_t = mktime(&tm); //tm结构体转换成秒数
+	
+    gettimeofday(&tv, &tz); //获得当前精确时间（1970年1月1日到现在的时间）
+
+	tm_t -= tz.tz_minuteswest * 60 ;//获得的是UTC时间，转换成当地时间
+
+	//tm_t += 8 * 60 * 60;
+	
+	//tm_t += tz.tz_minuteswest * 60 ;
+	//美国西雅图时间比北京慢15个小时
+	
+	time = localtime(&tm_t);
+	printf("LOCAL TIME:%s\n", asctime(&time));
+	//*time->tm_year += 1900;
+	//*time->tm_mon += 1;
+	//print_tm(time);
+	
+	
+	return tm_t;
+}
+
+
+
+
+void alert_convert_scheduledtime_tm(Alert *alert, struct tm **time) 
+{
+	time_t tm_t; 
+	struct tm tm; 
+	struct timeval tv;
+    struct timezone tz;
+	
+	char *scheduledTime = NULL;
+	char buf[64]={0};
+	
+	int zone;
+	int year;		
+	int month;
+	int day;
+	int hour;
+	int min;
+	int sec;
+
+	scheduledTime = alert->scheduledTime;
+	
+	sscanf(scheduledTime,"%d-%02d-%02dT%02d:%02d:%02d%3d", &year,&month,&day, &hour, &min,&sec ,&zone);
+	
+	snprintf(buf,64,"%d-%02d-%02d %02d:%02d:%02d", year, month, day,  hour, min, sec );	
+	DEBUG_INFO("buf:%s",buf);		
+	strptime(buf, "%Y-%m-%d %H:%M:%S", &tm);
+
+	tm_t = mktime(&tm); //tm结构体转换成秒数
+	
+    gettimeofday(&tv, &tz); //获得当前精确时间（1970年1月1日到现在的时间）
+
+	//tm_t -= tz.tz_minuteswest * 60 ;//获得的是UTC时间，转换成当地时间
+	tm_t += 8 * 60 * 60;
+	
+	//tm_t += tz.tz_minuteswest * 60 + 60 * 60;
+
+	*time = localtime(&tm_t);
+	 DEBUG_INFO("############Beijing  time is %s/n",asctime(*time));   
+	//*time->tm_year += 1900;
+	//*time->tm_mon += 1;
+	//print_tm(*time);
+	
+}
+		
+
+
+time_t get_now_time()
+{
+	 //struct timeval tv;
+   	// struct timezone tz;
+	 //gettimeofday(&tv, &tv); //获得当前精确时间（1970年1月1日到现在的时间）
+	 time_t timep;
+	 struct tm *timenow; //实例化tm结构指针  
+	 time(&timep);
+	 timenow = localtime(&timep);   
+	 DEBUG_INFO("--------Local time is %s/n",asctime(timenow));   
+	 //p=gmtime(s);
+
+	 return timep;
+}
+
+int alert_equals(Alert *alert, Alert *otherAlert)
+{
+	if(NULL != alert && alert == otherAlert)
+		return 1;
+	if(NULL != alert->token && NULL != otherAlert->token) {
+		if(strcmp(alert->token, otherAlert->token) == 0)
+			return 1;
+	}
+	return 0;
+}
+
+
+void alert_free(Alert *alert)
+{
+
+	if(alert != NULL) {
+		if(alert->token) {
+			free(alert->token);
+		}
+		if(alert->type) {
+			free(alert->type);
+		}
+		if(alert->scheduledTime) {
+			free(alert->scheduledTime);
+		}
+		free(alert);
+		alert = NULL;
+	}
+}
+
+
+

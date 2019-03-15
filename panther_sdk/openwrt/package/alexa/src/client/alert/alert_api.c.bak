@@ -1,0 +1,181 @@
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <json/json.h>
+#include <pthread.h>
+
+
+#include "list.h"
+#include "alert_api.h"
+#include "Alert.h"
+#include "Crontab.h"
+#include "AlertManager.h"
+#include "AlertScheduler.h"
+#include "hashmap_itr.h"
+#include "AlertsStatePayload.h"
+
+
+
+#define ALERTS_DIRECTIVES_SETALERT 		"SetAlert"
+#define ALERTS_DIRECTIVES_DELETEALERT 	"DeleteAlert"
+
+static void  alert_add(AlertManager *manager, char *token, char *type, char *scheduledTime)
+{
+	if(alertmanager_has_alert(manager,token)) {
+		DEBUG_INFO("have %s ", token);
+		AlertScheduler *scheduler;
+		Alert *alert;
+		char *time = NULL;
+		scheduler = alertmanager_get_alertscheduler(manager,token);
+		
+		alert = alertscheduler_get_alert(scheduler);
+		time = alert_get_scheduledtime(alert);
+		if(strcmp(time, scheduledTime) == 0) {
+			DEBUG_INFO("%s equals %s",scheduledTime,time);
+			return ;
+		} else {
+			alertscheduler_cancel(scheduler,manager);
+		}
+	}
+	Alert *alert = alert_new(token,type,scheduledTime);
+	alertmanager_add(manager, alert,false);
+}
+
+
+int handle_alerts_directive(AlertManager *manager, char *name , char *token, char *type, char *scheduledTime) 
+{
+	DEBUG_INFO("######### name = %s",name);
+	DEBUG_INFO("######### token = %s",token);
+	DEBUG_INFO("######### type = %s",type);
+	DEBUG_INFO("######### scheduledTime = %s",scheduledTime);
+
+	if(	strcmp (name ,ALERTS_DIRECTIVES_SETALERT) == 0 ) {
+		DEBUG_INFO("######### ALERTS_DIRECTIVES_SETALERT");
+		alert_add(manager, token, type, scheduledTime) ;
+	} else if(	strcmp (name ,ALERTS_DIRECTIVES_DELETEALERT) == 0 ) {
+		DEBUG_INFO("######### ALERTS_DIRECTIVES_DELETEALERT");
+		alertmanager_delete(manager,token);
+	} else {
+		
+	}
+	
+	return 0;
+}
+
+
+
+#if 0
+int main()
+{
+	AlertManager *manager=NULL;
+	pthread_t tid;
+	
+	manager = alertmanager_new();
+	if(NULL == manager) {
+		printf("alertmanager_new failed\n");
+		exit(-1);
+	}
+
+
+	tid = alertmanager_schedulers(manager);
+	if(tid == 0) { 
+		printf("alertmanager_schedulers failed\n");
+		exit(1);
+	}
+
+	while(1) {
+		int ch;
+		
+		printf("please input<[A|a], [D|d], [Q|q]> \n");
+		fflush(stdout);
+		ch = getchar();
+		if(ch == 'a' || ch == 'A') {
+			//Alert *alert =NULL;
+			char token[16]={0};
+			char time[48]={0};
+			int hour;
+			int min;
+			
+			//printf("add alert \n");
+			printf("please input token: ");
+			scanf("%s",token);
+			printf("please input <hh:mm>: ");
+			scanf("%02d:%02d",&hour, &min);
+
+			snprintf(time, 64, "2016-10-28T%02d:%02d:00+0000", hour, min);
+
+			printf("schedulerTime : %s \n",time );
+
+			alert_add(manager, token, "Alarm", time);
+			
+		} else if(ch == 'D' || ch == 'd') {
+			char token[16]={0};
+			hashmap_itr_t it = NULL;
+			AlertScheduler *scheduler =NULL;
+			int len;
+			map_t map = alertmanager_get_schedulers(manager);
+			if(NULL == map) {
+				printf("alertmanager_get_schedulers failed\n");
+				exit(-1);
+			}
+			it = hashmap_iterator(map);
+			if(it == NULL) {
+				printf("alertmanager_get_schedulers failed\n");
+				exit(-1);
+			}
+
+			len = hashmap_length(map);
+			
+			printf("len : %d \n" , len);
+			#if 1
+			while(hashmap_iterator_has_next(it)) {
+				Alert *alert = NULL;
+				hashmap_iterator_next(it);    	
+				//printf("before hashmap_iterator_next\n");    			
+				scheduler = (AlertScheduler *)hashmap_iterator_value(it);
+				if(scheduler != NULL) {
+					alert = alertscheduler_get_alert(scheduler);
+					printf(" %s , schedulerTimer:%s\n"  ,alert_get_token(alert),
+							alert_get_scheduledtime( alert));
+				}
+			} 
+			#endif	
+			printf("please input  token: ");
+			scanf("%s",token);
+			alertmanager_delete(manager,token);
+		}else if(ch == 'q' || ch == 'Q') {
+			alertmanager_free(manager);
+			exit(-1);
+		} else if(ch == 'l' || ch == 'L') {
+			AlertsStatePayload *payload = NULL;
+			payload = alertmanager_get_state(manager);
+
+			alertsstatepayload_to_activealerts(payload);
+			alertsstatepayload_to_allalerts(payload);
+		}else if(ch == 'f' || ch == 'F')  {
+
+			crontab_load_from_disk(manager);
+			
+		} else {
+			continue;
+		}
+		
+	}
+
+	pthread_join(tid, NULL);
+	
+	return 0;
+}
+#endif
+
+
+
+
+
+
+
+
+
+

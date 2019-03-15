@@ -1,0 +1,1040 @@
+<!--ifdef CONFIG_WIZARD_WEB-->
+<!DOCTYPE HTML>
+<HTML>
+
+<head>
+ <title>Panther</title>
+ <META http-equiv=Content-Type content='text/html; charset=utf-8'>
+ <SCRIPT src=common.js></SCRIPT>
+ <SCRIPT src=wdk.js></SCRIPT>
+ <SCRIPT src=product.js></SCRIPT>
+ <SCRIPT>
+wdk.cdbLoad(['$sys_name', '$sys_domain', '$sys_day_info', '$nat_enable', '$wan_clone_mac', '$wan_clone_mac_enable',
+	'$dns_fix', '$dns_svr1', '$dns_svr2', '$wan_mode', '$wan_ip', '$wan_gw', '$wan_msk', '$poe_user',
+	'$poe_pass', '$poe_mtu', '$poe_svc', '$poe_idle', '$pptp_user', '$pptp_pass', '$pptp_idle', '$pptp_mtu',
+	'$pptp_gw', '$pptp_ip', '$pptp_svr', '$pptp_msk', '$l2tp_user', '$l2tp_pass', '$l2tp_idle', '$l2tp_mtu',
+	'$l2tp_ip', '$l2tp_svr', '$l2tp_msk', '$l2tp_gw', '$wan_bpa_user', '$wan_bpa_pass', '$wan_bpa_serv',
+	/*--ifdef CONFIG_BRIDGE_MODE--*/
+	'$sys_funcmode', '$fw_enable', '$fw_clientf_mode', '$fw_urlf_mode', '$route_rip_en',
+	'$upnp_enable', '$ddns_enable', 'wan_mode',
+	/*--endif--*/
+]);
+/*--ifdef CONFIG_BRIDGE_MODE--*/
+var old_funcmode = wdk.cdbVal('$sys_funcmode');
+/*--endif--*/
+var oldp;
+var autowan_status;
+
+function init() {
+	oldp = 'HOST';
+	var r = wdk.cdbVal('$sys_day_info');
+	var f = document.HOST;
+	wdk.init_form();
+	f.TZ.value = rule2var(r, 'tz');
+	f.DL.checked = Number(rule2var(r, 'dls'));
+	f.SM.value = rule2var(r, 'sm');
+	f.SD.value = rule2var(r, 'sd');
+	f.EM.value = rule2var(r, 'em');
+	f.ED.value = rule2var(r, 'ed');
+}
+
+function Start_Detect() {
+	wdk.cliCmd('auto_wan go');
+
+	wdk.showResultBG();
+	wdk.getById("titleupwarng").innerHTML = wdk.msg("Detecting! Please wait....");
+	setTimeout("real_submit()", 100); /* wait loading picture */
+}
+
+function real_submit() {
+	autowan_status = 0;
+	check_autowan_status();
+}
+
+function autowan_state() {
+	autowan_status = wdk.cliCmd('auto_wan state');
+}
+
+function check_autowan_status() {
+	if (autowan_status == 0) {
+		wdk.getById("titleupwarng").innerHTML = wdk.msg("Detecting! Please wait....");
+		setTimeout("autowan_state()", 2000);
+	} else {
+		wdk.getById("resultbg").style.display = 'none';
+		if (autowan_status == 1)
+			document.WAN.autowan.value = wdk.msg("Static IP");
+		else if (autowan_status == 2)
+			document.WAN.autowan.value = wdk.msg("Dynamic IP Address");
+		else if (autowan_status == 3)
+			document.WAN.autowan.value = wdk.msg("PPPOE");
+		else
+			document.WAN.autowan.value = wdk.msg("Abnormal");
+		document.getElementById("next").style.backgroundColor = "rgb(73, 111, 199)";
+		document.getElementById("next").style.cursor = 'pointer';
+		document.getElementById("next").disabled = false;
+		return;
+	}
+	setTimeout("check_autowan_status()", 1000);
+}
+
+function goPage(n) {
+	if (n == 'PPPOE2') n = 'PPPOE';
+	if (n == 'PPTP2') n = 'PPTP';
+
+	if (oldp)
+		showHide(oldp, 0);
+	showHide(n, 1);
+	if (n == 'WAN') {
+		var f = document.WAN;
+		AutoManualSelect(f);
+	}
+	oldp = n;
+}
+
+function AutoManualSelect(f) {
+	if (f.wmode0.checked) {
+		showHide('auto_wan', 1);
+		showHide('mode', 0);
+		document.WAN.autowan.value = "";
+		document.getElementById("next").style.backgroundColor = "rgb(192, 192, 192)";
+		document.getElementById("next").style.cursor = 'default';
+		document.getElementById("next").disabled = true;
+	} else {
+		showHide('auto_wan', 0);
+		showHide('mode', 1);
+		document.getElementById("next").style.backgroundColor = "rgb(73, 111, 199)";
+		document.getElementById("next").style.cursor = 'pointer';
+		document.getElementById("next").disabled = false;
+	}
+}
+
+function chkWanFix(f) {
+	if (!chkIP(f.ip, "IP Address")) {
+		highlight("$wan_ip");
+		return;
+	}
+	if (!chkMsk(f.msk, "Subnet mask")) {
+		highlight("$wan_msk");
+		return;
+	}
+	if (!chkIP(f.gw, "Gateway IP")) {
+		highlight("$wan_gw");
+		return;
+	}
+	wdk.presubmit_form(f);
+	showHide('dns_en', 1);
+	goPage('DNS');
+}
+
+function chkDhcp(f) {
+	//if (f.clone.checked)
+	{
+		if (!chkMAC(f.mac, "MAC address")) {
+			highlight("$wan_clone_mac");
+			return;
+		}
+	}
+	wdk.presubmit_form(f);
+	showHide('dns_en', 1);
+	goPage('DNS');
+}
+
+function chkPppoe(f) {
+	if (!chkStr(f.user, "User Name")) {
+		highlight("$poe_user");
+		return;
+	}
+	if (!chkNum(f.mtu, 546, 1492, "MTU")) {
+		highlight("$poe_mtu");
+		return;
+	}
+	if (f.idle.value == '') {
+		alert(wdk.msg("Idle Time Out") + wdk.msg(" must input a value !"));
+		highlight("$poe_idle");
+		return;
+	}
+	if (f.idle.value != 0)
+		if (!chkNum(f.idle, 60, 3600, "Idle Time Out")) {
+			highlight("$poe_idle");
+			return;
+		}
+	if (!chkStrLen(f.user, WAN_USERNAME_MIN_LEN, WAN_USERNAME_MAX_LEN, "PPPoE Account")) {
+		highlight("");
+		return;
+	}
+	if (!chkStrLen(f.pass, WAN_PASSWD_MIN_LEN, WAN_PASSWD_MAX_LEN, "PPPoE Password")) {
+		highlight("$poe_pass");
+		return;
+	}
+	if (!chkPass(f.pass, f.pass2, f._changed, "New input password is not consistent!")) {
+		highlight("");
+		return;
+	}
+	if (Number(f._changed.value)) wdk.cdbSet('$poe_pass', f.pass.value);
+	wdk.presubmit_form(f);
+	showHide('dns_en', 1);
+	goPage('DNS');
+}
+
+function chkPptp(f) {
+	if (!chkStr(f.user, "PPTP Account")) {
+		highlight("$pptp_user");
+		return;
+	}
+	if (f.ip)
+		if (!chkIP(f.ip, "IP Address")) {
+			highlight("$pptp_ip");
+			return;
+		}
+	if (f.gw)
+		if (!chkIpOrNull(f.gw, "Gateway")) {
+			highlight("$pptp_gw");
+			return;
+		}
+	if (f.ip)
+		if (getIP(f.ip) == getIP(f.gw)) {
+			alert(wdk.msg("IP Address and Gateway Address are same !"));
+			return;
+		}
+	if (!chkMsk(f.msk, "Subnet Mask")) {
+		highlight("$pptp_msk");
+		return;
+	}
+	if (!chkNum(f.mtu, 546, 1460, "MTU")) {
+		highlight("$pptp_mtu");
+		return;
+	}
+	if (f.idle.value == '') {
+		alert(wdk.msg("Idle Time Out") + wdk.msg(" must input a value !"));
+		highlight("$pptp_idle");
+		return;
+	}
+	if (f.idle.value != 0)
+		if (!chkNum(f.idle, 60, 3600, "Idle Time Out")) {
+			highlight("$pptp_idle");
+			return;
+		}
+	if (!chkStrLen(f.user, WAN_USERNAME_MIN_LEN, WAN_USERNAME_MAX_LEN, "PPTP Account")) {
+		highlight("$pptp_user");
+		return;
+	}
+	if (!chkStrLen(f.pass, WAN_PASSWD_MIN_LEN, WAN_PASSWD_MAX_LEN, "PPTP Password")) {
+		highlight("$pptp_pass");
+		return;
+	}
+	if (!chkPass(f.pass, f.pass2, f._changed, "New input password is not consistent!")) {
+		highlight("");
+		return;
+	}
+	if (Number(f._changed.value)) wdk.cdbSet('$pptp_pass', f.pass.value);
+	wdk.presubmit_form(f);
+	showHide('dns_en', 1);
+	goPage('DNS');
+}
+
+function chkL2tp(f) {
+	if (!chkStr(f.user, "L2TP Account")) {
+		highlight("$l2tp_user");
+		return;
+	}
+	if (f.ip)
+		if (!chkIP(f.ip, "IP Address")) {
+			highlight("$l2tp_ip");
+			return;
+		}
+	if (f.gw)
+		if (!chkIpOrNull(f.gw, "Gateway")) {
+			highlight("$l2tp_gw");
+			return;
+		}
+	if (f.ip)
+		if (getIP(f.ip) == getIP(f.gw)) {
+			alert(wdk.msg("IP Address and Gateway Address are same !"));
+			return;
+		}
+	if (!chkMsk(f.msk, "Subnet Mask")) {
+		highlight("$l2tp_msk");
+		return;
+	}
+	if (!chkNum(f.mtu, 546, 1460, "MTU")) {
+		highlight("$l2tp_mtu");
+		return;
+	}
+	if (f.idle.value == '') {
+		alert(wdk.msg("Idle Time Out") + wdk.msg(" must input a value !"));
+		highlight("$l2tp_idle");
+		return;
+	}
+	if (f.idle.value != 0)
+		if (!chkNum(f.idle, 60, 3600, "Idle Time Out")) {
+			highlight("$l2tp_idle");
+			return;
+		}
+	if (!chkStrLen(f.user, WAN_USERNAME_MIN_LEN, WAN_USERNAME_MAX_LEN, "L2TP Account")) {
+		highlight("$l2tp_user");
+		return;
+	}
+	if (!chkStrLen(f.pass, WAN_PASSWD_MIN_LEN, WAN_PASSWD_MAX_LEN, "L2TP Password")) {
+		highlight("$l2tp_pass");
+		return;
+	}
+	if (!chkPass(f.pass, f.pass2, f._changed, "New input password is not consistent!")) {
+		highlight("");
+		return;
+	}
+	if (Number(f._changed.value)) wdk.cdbSet('$l2tp_pass', f.pass.value);
+	wdk.presubmit_form(f);
+	showHide('dns_en', 1);
+	goPage('DNS');
+}
+
+function chkBA(f) {
+	if (!chkStr(f.user, "BigPond Account")) {
+		highlight("$wan_bpa_user");
+		return;
+	}
+	if (!chkPass(f.pass, f.pass2, f._changed, "New input password is not consistent!")) {
+		highlight("bigPondPsw");
+		return;
+	}
+	if (Number(f._changed.value)) wdk.cdbSet('$wan_bpa_pass', f.pass.value);
+	wdk.presubmit_form(f);
+	showHide('dns_en', 1);
+	goPage('DNS');
+}
+
+function chkDns(f) {
+	if (f.enable.checked) {
+		if (!chkIP(f.dns1, "Primary DNS")) {
+			highlight("$dns_svr1");
+			return;
+		}
+		if (!chkIpOrNull(f.dns2, "Secondly DNS")) {
+			highlight("$dns_svr2");
+			return;
+		}
+	}
+	wdk.setThisPage('status.htm');
+	/*--ifdef CONFIG_BRIDGE_MODE--*/
+	if (document.HOST.funcmode.value != old_funcmode) {
+		if (window.confirm(wdk.msg("Function mode has been changed. Device will reboot..."))) {
+			wdk.showResultBG();
+			reboot();
+			wdk.save_form(0, 1);
+		}
+	} else
+	/*--endif--*/
+	{
+		wdk.save_form(2000);
+	}
+}
+
+function chkHost(f) {
+	var m;
+	var p = 'WAN';
+
+	if (!chkStr(f.hname, "Host Name")) {
+		highlight("$sys_name");
+		return;
+	}
+	if (!chkDate(f.SM.value, f.SD.value)) {
+		alert(wdk.msg("The starting day is incorrect!"));
+		highlight("");
+		return;
+	}
+	if (!chkDate(f.EM.value, f.ED.value)) {
+		alert(wdk.msg("The ending day is incorrect!"));
+		highlight("");
+		return;
+	}
+	if (Number(f.SM.value) > Number(f.EM.value)) {
+		alert(wdk.msg("The starting month should be smaller or equal to the ending month!"));
+		highlight("");
+		return;
+	} else if (Number(f.SM.value) == Number(f.EM.value)) {
+		if (Number(f.SD.value) > Number(f.ED.value)) {
+			alert(wdk.msg("The starting day should be smaller than the ending day!"));
+			highlight("");
+			return;
+		}
+	}
+	m = 'tz=' + f.TZ.value + '&dls=' + Number(f.DL.checked) + '&sm=' + f.SM.value + '&sd=' + f.SD.value + '&em=' + f.EM.value + '&ed=' + f.ED.value;
+	wdk.presubmit_form(f);
+	/*--ifdef CONFIG_BRIDGE_MODE--*/
+	if (old_funcmode == 1) //Current is bridge mode
+	{
+		if (f.funcmode.value == 0) //router
+		{
+			if (window.confirm(wdk.msg("Device will reboot from Bridge mode to Router mode!"))) {
+				wdk.showResultBG();
+				reboot();
+				wdk.save_form(0, 1);
+			}
+		} else {
+			showHide('dns_en', 1);
+			p = 'DNS';
+		}
+	} else //current is router mode
+	{
+		if (f.funcmode.value == 1) //bridge
+		{
+			showHide('dns_en', 1);
+			p = 'DNS';
+		}
+	}
+	/*--endif--*/
+	goPage(p);
+	wdk.cdbSet("$sys_day_info", m);
+}
+
+var static_dns_server = wdk.cdbVal('$dns_fix');
+var wsec = ['STATIC', 'DHCP', 'PPPOE', 'PPTP', 'L2TP', 'BigPond', 'PPPOE2', 'PPTP2'];
+
+function setWanMode(f) {
+	if (f.wmode[0].checked) {
+		if (f.autowan.value == wdk.msg("Static IP")) document.WAN.wm[1].checked = true;
+		else if (f.autowan.value == wdk.msg("Dynamic IP Address")) document.WAN.wm[0].checked = true;
+		else if (f.autowan.value == wdk.msg("PPPOE")) document.WAN.wm[2].checked = true;
+		else document.WAN.wm[1].checked = true;
+	} else {
+		if (f.wm[1].checked) {
+			wdk.cdbSet('$dns_fix', 1);
+			document.DNS.enable.disabled = true;
+			document.DNS.enable.checked = true;
+		} else {
+			wdk.cdbSet('$dns_fix', static_dns_server);
+			document.DNS.enable.disabled = false;
+			if (Number(static_dns_server))
+				document.DNS.enable.checked = true;
+			else
+				document.DNS.enable.checked = false;
+		}
+	}
+	wdk.presubmit_form(f);
+	var wm = wdk.cdbVal('$wan_mode');
+	goPage(wsec[wm - 1]);
+}
+
+function backWanMode() {
+	var wm = wdk.cdbVal('$wan_mode');
+	/*--ifdef CONFIG_BRIDGE_MODE--*/
+	if (document.HOST.funcmode.value == 1)
+		goPage('HOST');
+	else
+	/*--endif--*/
+		goPage(wsec[wm - 1]);
+}
+ </SCRIPT>
+
+ <link rel=stylesheet type=text/css href=demo2.css>
+</HEAD>
+
+<body class=gui onload=init() onkeydown="(event.keyCode==13) ? 0 : 1">
+ <script>
+header()
+ </script>
+
+ <fieldset id=HOST>
+  <legend>
+   <script>
+wdk.putmsg("HOST Settings");
+   </script>
+  </legend>
+  <FORM name=HOST>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Host Name");
+     </script>
+    </div>
+    <input type=text name=hname id=$sys_name size=33 maxlength=31>
+   </div>
+   <!--<div class=setting>
+		<div class=label><script>wdk.putmsg("Domain Name");</script></div>
+		<input type=text name=DN id=$sys_domain size=33 maxlength=31>
+	</div>-->
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Time Zone");
+     </script>
+    </div>
+    <select name=TZ size=1>
+     <script>
+genTimeOpt()
+     </script>
+    </select>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Daylight Saving");
+     </script>
+    </div>
+    <input type=checkbox name=DL value=1>
+    <script>
+wdk.putmsg("Enabled");
+    </script>&nbsp;
+    <script>
+wdk.putmsg("From")
+    </script>
+    <select name=SM size=1>
+     <script>
+genMonOpt()
+     </script>
+    </select>
+    <select name=SD size=1>
+     <script>
+genDayOpt()
+     </script>
+    </select>
+    <script>
+wdk.putmsg("to")
+    </script>
+    <select name=EM size=1>
+     <script>
+genMonOpt()
+     </script>
+    </select>
+    <select name=ED size=1>
+     <script>
+genDayOpt()
+     </script>
+    </select>
+   </div>
+   <!--ifdef CONFIG_BRIDGE_MODE-->
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Function Mode");
+     </script>
+    </div>
+    <select name=funcmode id=$sys_funcmode size=1>
+     <option value=0>
+      <script>
+wdk.putmsg("Router");
+      </script>
+     </option>
+     <option value=1>
+      <script>
+wdk.putmsg("Bridge");
+      </script>
+     </option>
+    </select>
+   </div>
+   <!--endif-->
+   <br>
+   <div class=submitFooter>
+    <script>
+puts('<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkHost(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+
+ <fieldset id=DNS style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("DNS Server");
+   </script>
+  </legend>
+  <FORM name=DNS>
+   <div class=setting id=dns_en style="display:block;">
+    <div class=label>
+     <script>
+wdk.putmsg("Static DNS Server");
+     </script>
+    </div>
+    <input type=checkbox name=enable id=$dns_fix value=1>
+    <script>
+wdk.putmsg("Enabled");
+    </script>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Primary DNS");
+     </script>
+    </div>
+    <input name=dns1 id=$dns_svr1 size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Secondary DNS");
+     </script>
+    </div>
+    <input name=dns2 id=$dns_svr2 size=15 maxlength=15>
+   </div>
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=backWanMode()>' +
+	'<input class=button name=apply value=' + wdk.msg("Finish") + ' type=button onclick=chkDns(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+
+ <fieldset id=WAN style="display:none">
+  <legend>
+   <script>
+wdk.putmsg("WAN Mode");
+   </script>
+  </legend>
+  <p class=message>
+   <script>
+wdk.putmsg("Specify the WAN connection type required by your Internet Service Provider. Please select your WAN connection from the following:")
+   </script>
+  </p>
+  <FORM name=WAN>
+   <div class=setting>
+    <input type=radio id=wmode0 name=wmode value=0 onclick=AutoManualSelect(this.form); checked>
+    <script>
+wdk.putmsg("Auto Detect");
+    </script>
+    <input type=radio id=wmode1 name=wmode value=1 onclick=AutoManualSelect(this.form);>
+    <script>
+wdk.putmsg("Manual Select");
+    </script>
+   </div>
+   <hr>
+   <div id=auto_wan>
+    <div class=label>
+     <script>
+wdk.putmsg('Auto detect result :')
+     </script>
+     <input maxLength=15 name=autowan id=autowan size=25 readonly>
+     <script>
+puts('<input class=button value=' + wdk.msg("Detect") + ' type=button onclick=Start_Detect();>');
+     </script>
+    </div>
+   </div>
+   <div class=mode id=mode>
+    <!--ifdef CONFIG_DHCPC-->
+    <input type=radio name=wm id=$wan_mode value=2>
+    <script>
+wdk.putmsg("Dynamic IP Address")
+    </script>
+    <br>
+    <!--endif-->
+    <input type=radio name=wm value=1>
+    <script>
+wdk.putmsg("Static IP")
+    </script>
+    <br>
+    <!--ifdef CONFIG_PPPOE-->
+    <input type=radio name=wm value=3>
+    <script>
+wdk.putmsg("PPPOE")
+    </script>
+    <br>
+    <!--endif-->
+    <!--ifdef CONFIG_PPTP-->
+    <input type=radio name=wm value=4>
+    <script>
+wdk.putmsg("PPTP")
+    </script>
+    <br>
+    <!--endif-->
+    <!--ifdef CONFIG_L2TP-->
+    <input type=radio name=wm value=5>
+    <script>
+wdk.putmsg("L2TP")
+    </script>
+    <br>
+    <!--endif-->
+    <!--ifdef CONFIG_BPA-->
+    <input type=radio name=wm value=6>
+    <script>
+wdk.putmsg("BigPond")
+    </script>
+    <br>
+    <!--endif-->
+   </div>
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("HOST")>' +
+	'<input class=button id=next name=next value=' + wdk.msg("Next") + ' type=button onclick=setWanMode(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+
+ <fieldset id=STATIC style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("WAN Static IP");
+   </script>
+  </legend>
+  <FORM name=STATIC>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("IP Address");
+     </script>
+    </div>
+    <input name=ip id=$wan_ip size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Subnet Mask");
+     </script>
+    </div>
+    <input name=msk id=$wan_msk size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Gateway IP");
+     </script>
+    </div>
+    <input name=gw id=$wan_gw size=15 maxlength=15>
+   </div>
+
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("WAN")>' +
+	'<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkWanFix(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+
+ <!--ifdef CONFIG_DHCPC-->
+ <fieldset id=DHCP style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("DHCP Mode");
+   </script>
+  </legend>
+  <FORM name=DHCP>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("MAC Cloning");
+     </script>
+    </div>
+    <input type=checkbox name=clone id=$wan_clone_mac_enable value=1>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Clone MAC")
+     </script>:
+    </div>
+    <input name=mac id=$wan_clone_mac size=16 maxlength=17>
+    <script>
+puts('<input type=button class=button value="' + wdk.msg("Clone MAC") + '" onclick=onclick=cloneMac(clone,mac)>')
+    </script>
+   </div>
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("WAN")>' +
+	'<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkDhcp(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+ <!--endif-->
+
+ <fieldset id=PPPOE style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("PPPOE Mode");
+   </script>
+  </legend>
+  <FORM name=PPPOE>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("User Name");
+     </script>
+    </div>
+    <input name=user id=$poe_user size=25>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Password");
+     </script>
+    </div>
+    <input type=password name=pass size=25 value=****** onFocus=chkPassInput(pass,pass2,_changed);>
+   </div>
+   <input type=hidden name=_changed value=0>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Retype password");
+     </script>
+    </div>
+    <input type=password name=pass2 size=25 value=****** onFocus=chkPassInput(pass,this,_changed);>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Service Name");
+     </script>
+    </div>
+    <input name=PSN id=$poe_svc size=25 maxlength=60 value>
+   </div>
+   <div class=setting>
+    <div class=label>MTU (546-1492)</div>
+    <input name=mtu id=$poe_mtu size=25 maxlength=4 value>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Maximum Idle Time");
+     </script>(60-3600)</div>
+    <input name=idle id=$poe_idle size=4 maxlength=4 value>&nbsp;
+    <script>
+wdk.putmsg("seconds (0: No timeout)");
+    </script>
+   </div>
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("WAN")>' +
+	'<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkPppoe(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+
+ <fieldset id=PPTP style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("PPTP Mode");
+   </script>
+  </legend>
+  <FORM name=PPTP>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("PPTP Account");
+     </script>
+    </div>
+    <input name=user id=$pptp_user size=25 value>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("PPTP Password");
+     </script>
+    </div>
+    <input type=password name=pass size=25 value=****** onFocus=chkPassInput(this,pass2,_changed);>
+    <input type=hidden name=_changed value=0>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Retype password");
+     </script>
+    </div>
+    <input type=password name=pass2 size=25 value=****** onFocus=chkPassInput(pass,this,_changed);>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Service IP Address");
+wdk.putmsg(" (IP or Domain name)");
+     </script>
+    </div>
+    <input name=server id=$pptp_svr>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("IP Address");
+     </script>
+    </div>
+    <input name=ip id=$pptp_ip size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Subnet Mask");
+     </script>
+    </div>
+    <input name=msk id=$pptp_msk size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Gateway")
+     </script>
+    </div>
+    <input name=gw id=$pptp_gw size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>MTU (546-1460)</div>
+    <input name=mtu id=$pptp_mtu size=4 maxlength=4>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Maximum Idle Time");
+     </script>(60-3600)</div>
+    <input name=idle id=$pptp_idle size=4 maxlength=4>&nbsp;
+    <script>
+wdk.putmsg("seconds (0: No timeout)");
+    </script>
+   </div>
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("WAN")>' +
+	'<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkPptp(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+
+ <!--ifdef CONFIG_L2TP-->
+ <fieldset id=L2TP style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("L2TP Mode");
+   </script>
+  </legend>
+  <FORM name=L2TP>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("L2TP Account");
+     </script>
+    </div>
+    <input name=user id=$l2tp_user size=25 value>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("L2TP Password");
+     </script>
+    </div>
+    <input type=password name=pass size=25 value=****** onFocus=chkPassInput(this,pass2,_changed);>
+    <input type=hidden name=_changed value=0>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Retype password");
+     </script>
+    </div>
+    <input type=password name=pass2 size=25 value=****** onFocus=chkPassInput(pass,this,_changed);>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Service IP Address");
+wdk.putmsg(" (IP or Domain name)");
+     </script>
+    </div>
+    <input name=server id=$l2tp_svr>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("IP Address");
+     </script>
+    </div>
+    <input name=ip id=$l2tp_ip size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Subnet Mask");
+     </script>
+    </div>
+    <input name=msk id=$l2tp_msk size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Gateway")
+     </script>
+    </div>
+    <input name=gw id=$l2tp_gw size=15 maxlength=15>
+   </div>
+   <div class=setting>
+    <div class=label>MTU (546-1460)</div>
+    <input name=mtu id=$l2tp_mtu size=4 maxlength=4>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Maximum Idle Time");
+     </script>(60-3600)</div>
+    <input name=idle id=$l2tp_idle size=4 maxlength=4>&nbsp;
+    <script>
+wdk.putmsg("seconds (0: No timeout)");
+    </script>
+   </div>
+
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("WAN")>' +
+	'<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkL2tp(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+ <!--endif-->
+ <!--ifdef CONFIG_BPA-->
+ <fieldset id=BigPond style="display:none;">
+  <legend>
+   <script>
+wdk.putmsg("BigPond Mode");
+   </script>
+  </legend>
+  <FORM name=BigPond>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("BigPond Account");
+     </script>
+    </div>
+    <input name=user id=$wan_bpa_user size=25 value>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("BigPond Password");
+     </script>
+    </div>
+    <input id=bigPondPsw type=password name=pass size=25 value=****** onFocus=chkPassInput(this,pass2,_changed);>
+    <input type=hidden name=_changed value=0>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Retype password");
+     </script>
+    </div>
+    <input id=bigPondPsw2 type=password name=pass2 size=25 value=****** onFocus=chkPassInput(pass,this,_changed);>
+   </div>
+   <div class=setting>
+    <div class=label>
+     <script>
+wdk.putmsg("Authentication Server");
+wdk.putmsg(" (IP or Domain name)");
+     </script>
+    </div>
+    <input name=server id=$wan_bpa_serv>
+   </div>
+
+   <div class=submitFooter>
+    <script>
+puts('<input class=button value=' + wdk.msg("Back") + ' type=button onclick=goPage("WAN")>' +
+	'<input class=button name=apply value=' + wdk.msg("Next") + ' type=button onclick=chkBA(this.form)>');
+    </script>
+   </div>
+  </FORM>
+ </fieldset>
+ <!--endif-->
+
+ <script>
+footer(1)
+ </script>
+
+</html>
+<!--endif-->

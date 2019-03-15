@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var param = [
+	'$lan_ip',
+	'$dhcps_lease_time',
+	'dhcps leases',
+	'time ntp'
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var dhcp = {
+	'client': wdk.cdbValA('dhcps leases'),
+};
+
+function init() {
+	var clients = dhcp.client;
+	var content = "";
+
+	for (var i = 0; i < clients.length; i++) {
+		var c = clients[i].split('&');
+		content += "<li class=textbox><span class=header><table>";
+		content += "<tr><td>IP:<" + "/td><td>&nbsp;&nbsp;" + c[1].replace("ip=", "") + "<" + "/td><" + "/tr>";
+		content += "<tr><td>Host Name:<" + "/td><td>&nbsp;&nbsp;" + c[0].replace("name=", "") + "<" + "/td><" + "/tr>";
+		content += "<tr><td>MAC:<" + "/td><td>&nbsp;&nbsp;" + c[2].replace("mac=", "") + "<" + "/td><" + "/tr>";
+		content += "<" + "/table><" + "/span><" + "/li>";
+	}
+
+	get_by_id("client_list").innerHTML = content;
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="lan.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">DHCP Client</div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+   <div id="client_list"></div>
+  </ul>
+ </div>
+
+</body>
+
+</html>

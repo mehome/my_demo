@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+ <title>Panther(Mobile Version)</title>
+ <meta http-equiv="cache-control" content="no-cache">
+ <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+ <meta content="width=device-width, height= device-height, initial-scale=1, maximum-scale=4, user-scalable=yes" name="viewport" />
+ <link href="pics/homescreen.gif" rel="apple-touch-icon" />
+ <link href="css/style.css" rel="stylesheet" media="screen" type="text/css" />
+ <link href="css/demo2.css" rel="stylesheet" media="screen" type="text/css" />
+ <script type="text/javascript" src="javascript/common.js"></script>
+ <script type="text/javascript" src="javascript/wdk.js"></script>
+ <script type="text/javascript" src="javascript/product.js"></script>
+ <script type="text/javascript" src="javascript/wrap_function.js"></script>
+ <script type="text/javascript">
+var op_work_mode = wdk.cdbVal('$op_work_mode');
+
+var param = [
+	'time',
+	'time ntpstr',
+	'dhcps num',
+	'$sw_ver',
+	'status lan_mac',
+	'status wan_mac',
+];
+
+var mainObj = new dataObject();
+mainObj.get_config_obj(param);
+
+var info = [
+	["System Up Time", time_format_trans(mainObj.config_val('time'))],
+	["System Date", mainObj.config_val('time ntpstr')],
+	["Connected Clients", mainObj.config_val('dhcps num')],
+	["Firmware Version", mainObj.config_val('$sw_ver')],
+	["LAN MAC Address", mainObj.config_val('status lan_mac')],
+	["WAN MAC Address", mainObj.config_val('status wan_mac')]
+];
+
+function init() {
+	if (op_work_mode == 2 || op_work_mode == 3) {
+		showHide("st_lmac", 1);
+		showHide("st_wmac", 1);
+	} else if (op_work_mode == 1 || op_work_mode == 9) {
+		showHide("st_lmac", 0);
+		showHide("st_wmac", 0);
+	}
+}
+ </script>
+</head>
+
+<body onload=init()>
+ <div id="resultbg" style="display:none;" class="black_overlay">
+  <div id="result" class="white_content">
+   <img src="images/load.gif" alt="loading icon" />
+   <div><font id="titleupwarng"></font>
+   </div>
+  </div>
+ </div>
+
+ <div id="topbar">
+  <div id="leftnav">
+   <a href="status.htm">
+    <img alt="home" src="images/back.gif" />
+   </a>
+  </div>
+  <div id="title">System Status</div>
+ </div>
+
+ <div id="content">
+  <ul class="pageitem">
+   <li class="smallfield">
+    <span class="name"><script>show_words(info[0][0])</script></span>
+    <span class="label"><script>show_words(info[0][1])</script></span>
+   </li>
+   <li class="smallfield">
+    <span class="name"><script>show_words(info[1][0])</script></span>
+    <span class="label"><script>show_words(info[1][1])</script></span>
+   </li>
+   <li class="smallfield">
+    <span class="name"><script>show_words(info[2][0])</script></span>
+    <span class="label"><script>show_words(info[2][1])</script></span>
+   </li>
+   <li class="smallfield">
+    <span class="name"><script>show_words(info[3][0])</script></span>
+    <span class="label"><script>show_words(info[3][1])</script></span>
+   </li>
+   <li id="st_lmac" class="smallfield">
+    <span class="name"><script>show_words(info[4][0])</script></span>
+    <span class="label"><script>show_words(info[4][1])</script></span>
+   </li>
+   <li id="st_wmac" class="smallfield">
+    <span class="name"><script>show_words(info[5][0])</script></span>
+    <span class="label"><script>show_words(info[5][1])</script></span>
+   </li>
+  </ul>
+ </div>
+
+</body>
+
+</html>

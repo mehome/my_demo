@@ -1,0 +1,54 @@
+#!/bin/sh
+# Copyright (C) 2013 Montage Inc.
+# Printer Server API for Web
+
+. /etc/cdb.sh
+
+local prnprog="/etc/init.d/cupsd"
+
+prn_getname() {
+	for iface in /sys/bus/usb/drivers/usblp/*-*; do
+		[ -d $iface ] || break # break if iface is /sys/bus/usb/drivers/usblp/*-*
+		local dev=`echo -n ${iface##/*/} | cut -d ':' -f 1`
+		[ -f "/sys/bus/usb/devices/"$dev"/product" ] &&
+			cat "/sys/bus/usb/devices/"$dev"/product" 2>/dev/null &&
+			break
+	done
+}
+
+prn_start() {
+	${prnprog} restart
+	echo "printer server is running"
+}
+
+prn_stop() {
+	${prnprog} stop
+	echo "printer server is stop"
+}
+
+# do printer server enable/disable
+prn_run() {
+	config_get prn_enable prn_enable
+	case "${prn_enable}" in
+		"0")	echo "prn is disabled"
+				prn_stop
+				;;
+		"1")	echo "prn is enabled"
+				prn_start
+				;;
+	esac
+}
+
+arg="$1"
+shift
+args="$*"
+case "${arg}" in
+	"name")
+			prn_getname
+			;;
+	"run")
+			prn_run &
+			;;
+esac
+
+exit 0

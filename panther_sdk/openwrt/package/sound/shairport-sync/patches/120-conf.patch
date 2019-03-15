@@ -1,0 +1,12 @@
+diff -Nur a/scripts/shairport-sync.conf b/scripts/shairport-sync.conf
+--- a/scripts/shairport-sync.conf	2017-07-12 10:20:33.000000000 +0800
++++ b/scripts/shairport-sync.conf	2018-06-07 14:17:20.395272483 +0800
+@@ -64,6 +64,8 @@
+ //  disable_synchronization = "no"; // Set to "yes" to disable synchronization. Default is "no".
+ //  period_size = <number>; // Use this optional advanced setting to set the alsa period size near to this value
+ //  use_mmap_if_available = "yes"; // Use this optional advanced setting to control whether MMAP-based output is used to communicate  with the DAC. Default is "yes"
++    disable_synchronization = "yes";
++    use_mmap_if_available = "yes";
+ };
+ 
+ // These are parameters for the "pipe" audio back end, a back end that directs raw CD-style audio output to a pipe. No interpolation is done.

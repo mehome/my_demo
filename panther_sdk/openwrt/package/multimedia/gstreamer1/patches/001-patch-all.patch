@@ -1,0 +1,59 @@
+diff -Nur a/configure.ac b/configure.ac
+--- a/configure.ac	2017-09-18 19:27:56.000000000 +0800
++++ b/configure.ac	2017-10-04 17:54:10.897472373 +0800
+@@ -1083,30 +1084,9 @@
+ plugins/Makefile
+ plugins/elements/Makefile
+ plugins/tracers/Makefile
+-po/Makefile.in
+-tests/Makefile
+-tests/benchmarks/Makefile
+-tests/check/Makefile
+-tests/misc/Makefile
+-tests/examples/Makefile
+-tests/examples/adapter/Makefile
+-tests/examples/controller/Makefile
+-tests/examples/stepping/Makefile
+-tests/examples/helloworld/Makefile
+-tests/examples/memory/Makefile
+-tests/examples/netclock/Makefile
+-tests/examples/ptp/Makefile
+-tests/examples/streamiddemux/Makefile
+-tests/examples/streams/Makefile
+ tools/Makefile
+ common/Makefile
+ common/m4/Makefile
+-docs/Makefile
+-docs/gst/Makefile
+-docs/gst/gstreamer.types
+-docs/libs/Makefile
+-docs/plugins/Makefile
+-docs/version.entities
+ m4/Makefile
+ pkgconfig/Makefile
+ stamp.h
+diff -Nur a/Makefile.am b/Makefile.am
+--- a/Makefile.am	2017-05-15 23:47:37.000000000 +0800
++++ b/Makefile.am	2017-10-04 17:49:49.861458806 +0800
+@@ -7,9 +7,7 @@
+ aclocal_DATA = gst-element-check-@GST_API_VERSION@.m4
+ 
+ SUBDIRS = pkgconfig \
+-	gst libs plugins tests \
+-	docs \
+-	po \
++	gst libs plugins \
+ 	m4 \
+ 	common \
+ 	data
+@@ -20,9 +18,7 @@
+ 
+ # These are all the possible subdirs
+ DIST_SUBDIRS = pkgconfig \
+-	gst libs plugins tools tests \
+-	docs \
+-	po \
++	gst libs plugins tools \
+ 	m4 \
+ 	common \
+ 	data

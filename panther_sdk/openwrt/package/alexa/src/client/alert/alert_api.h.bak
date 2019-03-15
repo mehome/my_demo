@@ -1,0 +1,24 @@
+#ifndef __ALERT_APT_H__
+#define __ALERT_APT_H__ 
+#include <stdlib.h>
+
+#include "list.h"
+#include "Alert.h"
+#include "Crontab.h"
+#include "AlertManager.h"
+#include "AlertScheduler.h"
+#include "hashmap_itr.h"
+#include "AlertsStatePayload.h"
+
+
+
+#define ALERTS_DIRECTIVES_SETALERT 		"SetAlert"
+#define ALERTS_DIRECTIVES_DELETEALERT 	"DeleteAlert"
+
+
+
+extern int handle_alerts_directive(AlertManager *manager, char *name , char *token, char *type, char *scheduledTime) ;
+#endif
+
+
+

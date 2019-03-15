@@ -1,0 +1,55 @@
+AirKiss library Version airkiss-2.0.0-26515
+
+A. Build
+-----------------------------------------------------------------------------
+Please make sure the following.
+1. Please enable CONFIG_CHEETAH_SMART_TO_USRSPACE in kernel config
+2. Please enable CONFIG_PACKAGE_airkiss in default config
+
+or
+
+You can directly cp 
+	camelot/target/linux/montage/cheetah/config/default.wifi_speaker.usr
+to
+	camelot/.config
+
+then make
+-----------------------------------------------------------------------------
+
+B. How To Use:
+-----------------------------------------------------------------------------
+1. airkiss command:
+	airkiss start: start sniffer and bypass pkt to AirKiss library.
+
+	if ssid and pass (exist or not), after connect target ap will notify APP.
+-----------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------
+2016-10-21
+Montage AirKiss Version 1.0.2
+: Add decript.
+: monitor channel using 20MHz
+
+
+
+-----------------------------------------------------------------------------
+
+
+
+
+-----------------------------------------------------------------------------
+2016-06-28
+Montage AirKiss Version 1.0.1
+: instead script using c code.
+: monitor interface add/del
+
+
+
+-----------------------------------------------------------------------------
+2016-06-23
+Montage AirKiss Version 1.0.0
+: First commit.
+
+
